@@ -41,9 +41,13 @@
     return `https://${coverStr}`
   }
 
-  const goToAlbum = (type: string, id: number) => {
-    if (!type || !id) return
-    router.push({ name: 'album', params: { type, id } })
+  const goToAlbum = (item: any) => {
+    if (!item.type || !item.id) return
+    router.push({ 
+      name: 'album', 
+      params: { type: item.type, id: item.id },
+      state: { albumName: item.title, artistName: item.author || '' }
+    })
   }
 </script>
 
@@ -132,7 +136,7 @@
         <div class="dashboard__albums-section" v-if="categories.length > 0">
           <h2 class="dashboard__section-title">Kategori</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in categories" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
+            <div v-for="item in categories" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
@@ -151,7 +155,7 @@
         <div class="dashboard__albums-section" v-if="albums.length > 0">
           <h2 class="dashboard__section-title">Album Terbaru</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
+            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
@@ -170,7 +174,7 @@
         <div class="dashboard__albums-section" v-if="playlists.length > 0">
           <h2 class="dashboard__section-title">Playlist</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
+            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">

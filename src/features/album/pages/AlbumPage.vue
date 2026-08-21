@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watchEffect, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/app/layouts/AppLayout.vue'
 import { albumApi } from '../api/album.api'
@@ -16,6 +16,27 @@ const currentSong = ref<Song | null>(null)
 
 const type = route.params.type as string
 const id = Number(route.params.id)
+
+const originalTitle = document.title
+const stateAlbumName = history.state?.albumName as string | undefined
+const stateArtistName = history.state?.artistName as string | undefined
+
+watchEffect(() => {
+  if (currentSong.value) {
+    document.title = `${currentSong.value.title} • ${currentSong.value.artist}`
+  } else if (songs.value.length > 0) {
+    const firstSong = songs.value[0]
+    document.title = `${firstSong.album} • ${firstSong.artist}`
+  } else if (stateAlbumName) {
+    document.title = stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
+  } else {
+    document.title = 'CyBeat'
+  }
+})
+
+onUnmounted(() => {
+  document.title = originalTitle
+})
 
 onMounted(async () => {
   if (!type || !id) {
@@ -76,7 +97,7 @@ const playPrev = () => {
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <h1 class="album-page__title">Detail Page</h1>
+        <h1 class="album-page__title">{{ stateAlbumName }}</h1>
       </div>
 
       <div v-if="isLoading" class="album-page__state">
