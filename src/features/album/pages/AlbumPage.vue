@@ -16,7 +16,6 @@ const currentSong = ref<Song | null>(null)
 
 const type = route.params.type as string
 const id = Number(route.params.id)
-const title = (route.query.title || route.params.title) as string
 
 onMounted(async () => {
   if (!type || !id) {

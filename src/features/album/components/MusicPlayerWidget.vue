@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick, computed } from 'vue'
 import type { Song } from '../types/song.types'
 import apiClient from '@/infrastructure/http/axios'
 
@@ -17,6 +17,7 @@ const audioRef = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
+const bufferedTime = ref(0)
 const volume = ref(1)
 
 const formatTime = (time: number) => {
@@ -79,6 +80,34 @@ const onTimeUpdate = () => {
   }
 }
 
+const onProgress = () => {
+  if (audioRef.value && audioRef.value.buffered.length > 0) {
+    let maxBuffered = 0
+    for (let i = 0; i < audioRef.value.buffered.length; i++) {
+      if (audioRef.value.buffered.end(i) > maxBuffered) {
+        maxBuffered = audioRef.value.buffered.end(i)
+      }
+    }
+    bufferedTime.value = maxBuffered
+  }
+}
+
+const progressStyle = computed(() => {
+  const dur = duration.value || 100
+  const currentPct = (currentTime.value / dur) * 100
+  const bufferedPct = (bufferedTime.value / dur) * 100
+  
+  return {
+    background: `linear-gradient(to right, 
+      var(--color-primary) 0%, 
+      var(--color-primary) ${currentPct}%, 
+      var(--color-primary-ring) ${currentPct}%, 
+      var(--color-primary-ring) ${bufferedPct}%, 
+      rgba(255,255,255,0.2) ${bufferedPct}%, 
+      rgba(255,255,255,0.2) 100%)`
+  }
+})
+
 const onLoadedMetadata = () => {
   if (audioRef.value) {
     duration.value = audioRef.value.duration
@@ -129,6 +158,7 @@ onMounted(() => {
     <audio 
       ref="audioRef"
       @timeupdate="onTimeUpdate"
+      @progress="onProgress"
       @loadedmetadata="onLoadedMetadata"
       @ended="onEnded"
       @play="isPlaying = true"
@@ -172,6 +202,7 @@ onMounted(() => {
           :max="duration || 100" 
           :value="currentTime" 
           @input="seek" 
+          :style="progressStyle"
         />
         <span class="player-widget__time">{{ formatTime(duration) }}</span>
       </div>
