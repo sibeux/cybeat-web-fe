@@ -38,6 +38,13 @@ const router = createRouter({
       component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
     },
 
+    // ─── Album Route ──────────────────────────────────────────────────────────
+    {
+      path: '/album/:type/:id',
+      name: 'album',
+      component: () => import('@/features/album/pages/AlbumPage.vue'),
+    },
+
     // ─── 404 Fallback ─────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',

@@ -1,11 +1,13 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
+  import { useRouter } from 'vue-router'
   import AppLayout from '@/app/layouts/AppLayout.vue'
   import { useAuthStore } from '@/features/auth/index'
   import { dashboardApi } from '../api/dashboard.api'
   import type { Album, Category } from '../types/album.types'
 
   const authStore = useAuthStore()
+  const router = useRouter()
   const albums = ref<Album[]>([])
   const categories = ref<Category[]>([])
   const playlists = ref<any[]>([])
@@ -37,6 +39,11 @@
     if (!coverStr) return ''
     if (coverStr.startsWith('http') || coverStr.startsWith('data:')) return coverStr
     return `https://${coverStr}`
+  }
+
+  const goToAlbum = (type: string, id: number) => {
+    if (!type || !id) return
+    router.push({ name: 'album', params: { type, id } })
   }
 </script>
 
@@ -125,7 +132,7 @@
         <div class="dashboard__albums-section" v-if="categories.length > 0">
           <h2 class="dashboard__section-title">Kategori</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in categories" :key="item.id" class="dashboard__album-card">
+            <div v-for="item in categories" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
@@ -144,7 +151,7 @@
         <div class="dashboard__albums-section" v-if="albums.length > 0">
           <h2 class="dashboard__section-title">Album Terbaru</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in albums" :key="item.id" class="dashboard__album-card">
+            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
@@ -163,7 +170,7 @@
         <div class="dashboard__albums-section" v-if="playlists.length > 0">
           <h2 class="dashboard__section-title">Playlist</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card">
+            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item.type, item.id)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
