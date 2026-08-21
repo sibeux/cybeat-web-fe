@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/app/layouts/AppLayout.vue'
 import { albumApi } from '../api/album.api'
 import type { Song } from '../types/song.types'
+import MusicPlayerWidget from '../components/MusicPlayerWidget.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,6 +12,7 @@ const router = useRouter()
 const songs = ref<Song[]>([])
 const isLoading = ref(true)
 const error = ref<string | null>(null)
+const currentSong = ref<Song | null>(null)
 
 const type = route.params.type as string
 const id = Number(route.params.id)
@@ -43,6 +45,26 @@ const resolveCoverUrl = (cover: string | null) => {
 const goBack = () => {
   router.back()
 }
+
+const playSong = (song: Song) => {
+  currentSong.value = song
+}
+
+const playNext = () => {
+  if (!currentSong.value) return
+  const idx = songs.value.findIndex(s => s.id_music === currentSong.value?.id_music)
+  if (idx !== -1 && idx < songs.value.length - 1) {
+    currentSong.value = songs.value[idx + 1]
+  }
+}
+
+const playPrev = () => {
+  if (!currentSong.value) return
+  const idx = songs.value.findIndex(s => s.id_music === currentSong.value?.id_music)
+  if (idx > 0) {
+    currentSong.value = songs.value[idx - 1]
+  }
+}
 </script>
 
 <template>
@@ -55,7 +77,7 @@ const goBack = () => {
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <h1 class="album-page__title">{{ title }}</h1>
+        <h1 class="album-page__title">Detail Page</h1>
       </div>
 
       <div v-if="isLoading" class="album-page__state">
@@ -93,13 +115,17 @@ const goBack = () => {
             <tr v-for="(song, index) in songs" :key="song.id_music" class="song-list__tr">
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
-                <div class="song-list__cover-wrapper">
+                <div class="song-list__cover-wrapper" @click="playSong(song)">
                   <img v-if="resolveCoverUrl(song.cover)" :src="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                   <div v-else class="song-list__cover-placeholder">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                   </div>
+                  <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
+                    <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
                 </div>
-                <span class="song-list__title">{{ song.title }}</span>
+                <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }">{{ song.title }}</span>
               </td>
               <td class="song-list__td song-list__td--artist">{{ song.artist }}</td>
             </tr>
@@ -107,6 +133,13 @@ const goBack = () => {
         </table>
       </div>
     </div>
+
+    <MusicPlayerWidget 
+      :song="currentSong" 
+      @close="currentSong = null" 
+      @next="playNext" 
+      @prev="playPrev" 
+    />
   </AppLayout>
 </template>
 
@@ -241,12 +274,39 @@ const goBack = () => {
 }
 
 .song-list__cover-wrapper {
+  position: relative;
   width: 3rem;
   height: 3rem;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background-color: var(--color-surface-raised);
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.song-list__play-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: #fff;
+}
+
+.song-list__cover-wrapper:hover .song-list__play-overlay,
+.song-list__play-overlay--active {
+  opacity: 1;
+}
+
+.song-list__play-overlay svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .song-list__cover {
@@ -271,6 +331,11 @@ const goBack = () => {
 
 .song-list__title {
   font-weight: 500;
+  transition: color 0.2s;
+}
+
+.song-list__title--active {
+  color: var(--color-primary, #10b981);
 }
 
 .song-list__td--artist {
