@@ -8,3 +8,8 @@ export interface ApiErrorResponse {
   message: string
   error?: string
 }
+
+export interface ApiSuccessResponse<T> {
+  status: string
+  data: T
+}

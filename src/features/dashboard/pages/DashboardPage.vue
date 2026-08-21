@@ -1,8 +1,43 @@
 <script setup lang="ts">
+  import { ref, onMounted } from 'vue'
   import AppLayout from '@/app/layouts/AppLayout.vue'
   import { useAuthStore } from '@/features/auth/index'
+  import { dashboardApi } from '../api/dashboard.api'
+  import type { Album, Category } from '../types/album.types'
 
   const authStore = useAuthStore()
+  const albums = ref<Album[]>([])
+  const categories = ref<Category[]>([])
+  const playlists = ref<any[]>([])
+  const isLoading = ref(true)
+  const error = ref<string | null>(null)
+
+  onMounted(async () => {
+    try {
+      isLoading.value = true
+      const response = await dashboardApi.getMusicDashboard()
+      albums.value = response.data.data.album || []
+      categories.value = response.data.data.category || []
+      playlists.value = response.data.data.playlist || []
+    } catch (err: any) {
+      error.value = err.message || 'Gagal memuat data'
+    } finally {
+      isLoading.value = false
+    }
+  })
+
+  const resolveCoverUrl = (cover: any) => {
+    if (!cover) return ''
+    let coverStr = ''
+    if (typeof cover === 'object') {
+      coverStr = cover.cover_1 || cover.cover_2 || cover.cover_3 || cover.cover_4 || ''
+    } else if (typeof cover === 'string') {
+      coverStr = cover
+    }
+    if (!coverStr) return ''
+    if (coverStr.startsWith('http') || coverStr.startsWith('data:')) return coverStr
+    return `https://${coverStr}`
+  }
 </script>
 
 <template>
@@ -69,20 +104,80 @@
         </div>
       </div>
 
-      <div class="dashboard__placeholder">
-        <div class="dashboard__placeholder-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <line x1="3" y1="9" x2="21" y2="9" />
-            <line x1="9" y1="21" x2="9" y2="9" />
-          </svg>
-        </div>
-        <h2 class="dashboard__placeholder-title">Dashboard dalam pengembangan</h2>
-        <p class="dashboard__placeholder-desc">
-          Fitur dashboard akan segera hadir. Arsitektur sudah siap untuk menerima
-          fitur-fitur baru tanpa restrukturisasi.
-        </p>
+      <div v-if="isLoading" class="dashboard__loading">
+        <svg class="dashboard__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        Memuat data...
       </div>
+      <div v-else-if="error" class="dashboard__error">
+        {{ error }}
+      </div>
+      <template v-else>
+        <!-- Kategori Section -->
+        <div class="dashboard__albums-section" v-if="categories.length > 0">
+          <h2 class="dashboard__section-title">Kategori</h2>
+          <div class="dashboard__album-grid">
+            <div v-for="item in categories" :key="item.id" class="dashboard__album-card">
+              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-else class="dashboard__album-cover-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                </div>
+              </div>
+              <div class="dashboard__album-info">
+                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
+                <p v-if="item.author" class="dashboard__album-artist">Author: {{ item.author }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Album Section -->
+        <div class="dashboard__albums-section" v-if="albums.length > 0">
+          <h2 class="dashboard__section-title">Album Terbaru</h2>
+          <div class="dashboard__album-grid">
+            <div v-for="item in albums" :key="item.id" class="dashboard__album-card">
+              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-else class="dashboard__album-cover-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                </div>
+              </div>
+              <div class="dashboard__album-info">
+                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
+                <p class="dashboard__album-artist" :title="item.author">{{ item.author }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playlist Section -->
+        <div class="dashboard__albums-section" v-if="playlists.length > 0">
+          <h2 class="dashboard__section-title">Playlist</h2>
+          <div class="dashboard__album-grid">
+            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card">
+              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-else class="dashboard__album-cover-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                </div>
+              </div>
+              <div class="dashboard__album-info">
+                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
+                <p v-if="item.author" class="dashboard__album-artist" :title="item.author">{{ item.author }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </AppLayout>
 </template>
@@ -192,46 +287,126 @@
     color: var(--color-text);
   }
 
-  .dashboard__placeholder {
+  .dashboard__albums-section {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 4rem 2rem;
-    background: var(--color-surface);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-lg);
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
-  .dashboard__placeholder-icon {
-    width: 4rem;
-    height: 4rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--color-surface-raised);
-    border-radius: var(--radius-lg);
-    color: var(--color-text-muted);
-  }
-
-  .dashboard__placeholder-icon svg {
-    width: 2rem;
-    height: 2rem;
-  }
-
-  .dashboard__placeholder-title {
-    font-size: 1.125rem;
-    font-weight: 600;
+  .dashboard__section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--color-text);
     margin: 0;
   }
 
-  .dashboard__placeholder-desc {
-    font-size: 0.9375rem;
+  .dashboard__loading,
+  .dashboard__error,
+  .dashboard__empty {
+    padding: 3rem;
+    text-align: center;
+    background: var(--color-surface);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .dashboard__spinner {
+    width: 2rem;
+    height: 2rem;
+    animation: spin 2s linear infinite;
+    color: var(--color-primary);
+  }
+
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .dashboard__error {
+    color: #ef4444;
+    border-color: #ef4444;
+  }
+
+  .dashboard__album-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .dashboard__album-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .dashboard__album-card:hover {
+    transform: translateY(-4px);
+  }
+
+  .dashboard__album-cover {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .dashboard__album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .dashboard__album-card:hover .dashboard__album-cover img {
+    transform: scale(1.05);
+  }
+
+  .dashboard__album-cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .dashboard__album-cover-placeholder svg {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .dashboard__album-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .dashboard__album-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dashboard__album-artist {
+    font-size: 0.875rem;
     color: var(--color-text-muted);
     margin: 0;
-    max-width: 40ch;
-    line-height: 1.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
