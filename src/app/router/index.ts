@@ -31,12 +31,11 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
 
-    // ─── Protected Routes ─────────────────────────────────────────────────────
+    // ─── Dashboard Route ──────────────────────────────────────────────────────
     {
       path: '/',
       name: 'dashboard',
       component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
-      meta: { requiresAuth: true },
     },
 
     // ─── 404 Fallback ─────────────────────────────────────────────────────────

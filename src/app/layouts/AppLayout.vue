@@ -32,24 +32,39 @@
           <span class="app-layout__brand-name">{{ APP_NAME }}</span>
         </div>
 
-        <!-- Right side: user info + logout -->
+        <!-- Right side: user info + auth actions -->
         <div class="app-layout__nav-actions">
-          <span v-if="authStore.user?.name" class="app-layout__user-name">
-            {{ authStore.user.name }}
-          </span>
-          <button
-            id="logout-button"
-            class="app-layout__logout"
-            type="button"
-            @click="handleLogout"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            Keluar
-          </button>
+          <template v-if="authStore.isAuthenticated">
+            <span v-if="authStore.user?.name" class="app-layout__user-name">
+              {{ authStore.user.name }}
+            </span>
+            <button
+              id="logout-button"
+              class="app-layout__logout"
+              type="button"
+              @click="handleLogout"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Keluar
+            </button>
+          </template>
+          <template v-else>
+            <button
+              class="app-layout__login"
+              type="button"
+              @click="router.push('/login')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Masuk
+            </button>
+          </template>
         </div>
       </div>
     </header>
@@ -117,6 +132,7 @@
     color: var(--color-text-muted);
   }
 
+  .app-layout__login,
   .app-layout__logout {
     display: flex;
     align-items: center;
@@ -142,6 +158,13 @@
     background: rgba(239, 68, 68, 0.05);
   }
 
+  .app-layout__login:hover {
+    color: var(--color-primary, #6366f1);
+    border-color: var(--color-primary, #6366f1);
+    background: rgba(99, 102, 241, 0.05);
+  }
+
+  .app-layout__login svg,
   .app-layout__logout svg {
     width: 1rem;
     height: 1rem;

@@ -12,10 +12,15 @@
         <div class="dashboard__welcome-icon" aria-hidden="true">👋</div>
         <div>
           <h1 class="dashboard__title">
-            Selamat datang{{ authStore.user?.name ? `, ${authStore.user.name}` : '' }}!
+            Selamat datang{{ authStore.user?.name ? `, ${authStore.user.name}` : ' di CyBeat' }}!
           </h1>
           <p class="dashboard__subtitle">
-            Anda berhasil masuk ke CyBeat. Dashboard sedang dalam pengembangan.
+            <template v-if="authStore.isAuthenticated">
+              Anda berhasil masuk ke CyBeat. Dashboard sedang dalam pengembangan.
+            </template>
+            <template v-else>
+              Silakan masuk untuk mengakses fitur penuh CyBeat. Dashboard sedang dalam pengembangan.
+            </template>
           </p>
         </div>
       </div>
