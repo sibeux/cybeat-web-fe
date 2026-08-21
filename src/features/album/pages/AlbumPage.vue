@@ -14,6 +14,7 @@ const error = ref<string | null>(null)
 
 const type = route.params.type as string
 const id = Number(route.params.id)
+const title = (route.query.title || route.params.title) as string
 
 onMounted(async () => {
   if (!type || !id) {
@@ -54,7 +55,7 @@ const goBack = () => {
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <h1 class="album-page__title">Daftar Lagu</h1>
+        <h1 class="album-page__title">{{ title }}</h1>
       </div>
 
       <div v-if="isLoading" class="album-page__state">
