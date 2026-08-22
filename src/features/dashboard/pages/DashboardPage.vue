@@ -30,17 +30,24 @@
     await dashboardStore.fetchDashboardData(true)
   })
 
-  const resolveCoverUrl = (cover: any) => {
-    if (!cover) return ''
-    let coverStr = ''
-    if (typeof cover === 'object') {
-      coverStr = cover.cover_1 || cover.cover_2 || cover.cover_3 || cover.cover_4 || ''
-    } else if (typeof cover === 'string') {
-      coverStr = cover
+  const resolveCoverUrl = (cover: unknown) => {
+    if (typeof cover !== 'string' || !cover) return ''
+    if (cover.startsWith('http') || cover.startsWith('data:')) return cover
+    return `https://${cover}`
+  }
+
+  const getCoverUrls = (item: any): string[] => {
+    const cover = item.cover
+    if (!cover || typeof cover !== 'object' || !['category', 'playlist'].includes(item.type)) {
+      const url = resolveCoverUrl(cover)
+      return url ? [url] : []
     }
-    if (!coverStr) return ''
-    if (coverStr.startsWith('http') || coverStr.startsWith('data:')) return coverStr
-    return `https://${coverStr}`
+
+    const coverUrls = [cover.cover_1, cover.cover_2, cover.cover_3, cover.cover_4]
+      .map(resolveCoverUrl)
+      .filter((url): url is string => Boolean(url))
+
+    return coverUrls.length === 4 ? coverUrls : coverUrls.slice(-1)
   }
 
   const goToAlbum = (item: any) => {
@@ -144,7 +151,10 @@
           <div class="dashboard__album-grid">
             <div v-for="item in categories" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                </div>
+                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
@@ -166,7 +176,10 @@
           <div class="dashboard__album-grid">
             <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                </div>
+                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
@@ -188,7 +201,10 @@
           <div class="dashboard__album-grid">
             <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                </div>
+                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
