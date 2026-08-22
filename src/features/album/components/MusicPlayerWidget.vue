@@ -6,10 +6,9 @@ import type { Song } from '../types/song.types'
 import apiClient from '@/core/infrastructure/http/axios'
 
 const playerStore = usePlayerStore()
-const { currentSong: song, repeatMode, isShuffle } = storeToRefs(playerStore)
+const { currentSong: song, repeatMode, isShuffle, isPlaying, playbackToggleRequest } = storeToRefs(playerStore)
 
 const audioRef = ref<HTMLAudioElement | null>(null)
-const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const bufferedTime = ref(0)
@@ -69,13 +68,18 @@ const loadSong = async (newSong: Song | null) => {
 }
 
 // Watch for song changes to autoplay
-watch(song, async (newSong) => {
+watch(() => song.value?.id_music, async (songId, previousSongId) => {
+  if (songId === previousSongId || !song.value) return
   await nextTick()
-  loadSong(newSong)
+  loadSong(song.value)
+})
+
+watch(playbackToggleRequest, () => {
+  togglePlay()
 })
 
 const togglePlay = () => {
-  if (!audioRef.value || !song.value) return
+  if (!audioRef.value || !song.value || isLoadingStream.value) return
   if (isPlaying.value) {
     audioRef.value.pause()
   } else {

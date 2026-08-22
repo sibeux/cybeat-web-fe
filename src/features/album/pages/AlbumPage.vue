@@ -11,7 +11,7 @@ import { storeToRefs } from 'pinia'
 const route = useRoute()
 const router = useRouter()
 const playerStore = usePlayerStore()
-const { currentSong } = storeToRefs(playerStore)
+const { currentSong, isPlaying } = storeToRefs(playerStore)
 
 const songs = ref<Song[]>([])
 const isLoading = ref(true)
@@ -83,6 +83,11 @@ const goBack = () => {
 }
 
 const playSong = (song: Song) => {
+  if (currentSong.value?.id_music === song.id_music) {
+    playerStore.togglePlayback()
+    return
+  }
+
   playerStore.playSong(song, songs.value, { type, id: Number(id) })
 }
 </script>
@@ -141,8 +146,8 @@ const playSong = (song: Song) => {
                     <div v-else class="song-list__cover-placeholder">
                       <img :src="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
                     </div>
-                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
-                      <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying }">
+                      <svg v-if="currentSong?.id_music === song.id_music && isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                       <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </div>
                   </div>

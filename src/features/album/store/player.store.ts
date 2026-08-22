@@ -15,6 +15,8 @@ export const usePlayerStore = defineStore('player', () => {
   
   const repeatMode = ref<number>(0) // 0: None, 1: All, 2: One
   const isShuffle = ref<boolean>(false)
+  const isPlaying = ref(false)
+  const playbackToggleRequest = ref(0)
 
   const activePlaylist = computed(() => isShuffle.value ? shuffledPlaylist.value : playlist.value)
 
@@ -29,6 +31,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   const playSong = (song: Song, contextPlaylist: Song[] = [], album: PlaybackAlbum | null = null) => {
     currentSong.value = song
+    isPlaying.value = false
     if (album) {
       currentAlbum.value = album
     }
@@ -42,6 +45,10 @@ export const usePlayerStore = defineStore('player', () => {
       const others = playlist.value.filter(s => s.id_music !== song.id_music)
       shuffledPlaylist.value = [song, ...shuffleArray(others)]
     }
+  }
+
+  const togglePlayback = () => {
+    playbackToggleRequest.value++
   }
 
   const playNext = () => {
@@ -84,6 +91,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   const closePlayer = () => {
     currentSong.value = null
+    isPlaying.value = false
     currentAlbum.value = null
     playlist.value = []
     shuffledPlaylist.value = []
@@ -97,7 +105,10 @@ export const usePlayerStore = defineStore('player', () => {
     playlist,
     repeatMode,
     isShuffle,
+    isPlaying,
+    playbackToggleRequest,
     playSong,
+    togglePlayback,
     playNext,
     playPrev,
     toggleShuffle,
