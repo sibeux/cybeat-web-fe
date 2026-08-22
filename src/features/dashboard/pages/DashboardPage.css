@@ -186,6 +186,26 @@
     transform: scale(1.05);
   }
 
+  .dashboard__album-card--playing .dashboard__album-cover {
+    box-shadow: 0 0 0 2px var(--color-primary), 0 8px 20px rgba(16, 185, 129, 0.25);
+  }
+
+  .dashboard__album-playing-indicator {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.48);
+    color: #fff;
+  }
+
+  .dashboard__album-playing-indicator svg {
+    width: 2.5rem;
+    height: 2.5rem;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  }
+
   .dashboard__album-cover-placeholder {
     width: 100%;
     height: 100%;
@@ -216,6 +236,10 @@
     text-overflow: ellipsis;
   }
 
+  .dashboard__album-title--playing {
+    color: var(--color-primary);
+  }
+
   .dashboard__album-artist {
     font-size: 0.875rem;
     color: var(--color-text-muted);
@@ -223,4 +247,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .dashboard__album-artist--playing {
+    color: var(--color-primary);
   }

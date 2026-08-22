@@ -4,13 +4,16 @@
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { useAuthStore } from '@/features/auth/index'
+  import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDashboardStore } from '../store/dashboard.store'
 
   const authStore = useAuthStore()
   const router = useRouter()
+  const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
   
   const { albums, categories, playlists, isLoading, error } = storeToRefs(dashboardStore)
+  const { currentAlbum } = storeToRefs(playerStore)
 
   onMounted(async () => {
     await dashboardStore.fetchDashboardData()
@@ -36,6 +39,10 @@
       params: { type: item.type, id: item.id },
       state: { albumName: item.title, artistName: item.author || '' }
     })
+  }
+
+  const isPlayingAlbum = (item: any) => {
+    return currentAlbum.value?.type === item.type && currentAlbum.value?.id === item.id
   }
 </script>
 
@@ -124,16 +131,19 @@
         <div class="dashboard__albums-section" v-if="categories.length > 0">
           <h2 class="dashboard__section-title">Kategori</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in categories" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
+            <div v-for="item in categories" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
+                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                </div>
               </div>
               <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
-                <p v-if="item.author" class="dashboard__album-artist">Author: {{ item.author }}</p>
+                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                <p v-if="item.author" class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }">Author: {{ item.author }}</p>
               </div>
             </div>
           </div>
@@ -143,16 +153,19 @@
         <div class="dashboard__albums-section" v-if="albums.length > 0">
           <h2 class="dashboard__section-title">Album Terbaru</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
+            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
+                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                </div>
               </div>
               <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
-                <p class="dashboard__album-artist" :title="item.author">{{ item.author }}</p>
+                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                <p class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
               </div>
             </div>
           </div>
@@ -162,16 +175,19 @@
         <div class="dashboard__albums-section" v-if="playlists.length > 0">
           <h2 class="dashboard__section-title">Playlist</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" @click="goToAlbum(item)">
+            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <img v-if="resolveCoverUrl(item.cover)" :src="resolveCoverUrl(item.cover)" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
                 <div v-else class="dashboard__album-cover-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                 </div>
+                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                </div>
               </div>
               <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :title="item.title">{{ item.title }}</h3>
-                <p v-if="item.author" class="dashboard__album-artist" :title="item.author">{{ item.author }}</p>
+                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                <p v-if="item.author" class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
               </div>
             </div>
           </div>

@@ -69,7 +69,7 @@ const goBack = () => {
 }
 
 const playSong = (song: Song) => {
-  playerStore.playSong(song, songs.value)
+  playerStore.playSong(song, songs.value, { type, id })
 }
 </script>
 

@@ -2,8 +2,14 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Song } from '../types/song.types'
 
+export interface PlaybackAlbum {
+  type: string
+  id: number
+}
+
 export const usePlayerStore = defineStore('player', () => {
   const currentSong = ref<Song | null>(null)
+  const currentAlbum = ref<PlaybackAlbum | null>(null)
   const playlist = ref<Song[]>([])
   const shuffledPlaylist = ref<Song[]>([])
   
@@ -21,8 +27,11 @@ export const usePlayerStore = defineStore('player', () => {
     return arr
   }
 
-  const playSong = (song: Song, contextPlaylist: Song[] = []) => {
+  const playSong = (song: Song, contextPlaylist: Song[] = [], album: PlaybackAlbum | null = null) => {
     currentSong.value = song
+    if (album) {
+      currentAlbum.value = album
+    }
     if (contextPlaylist.length > 0) {
       playlist.value = contextPlaylist
       if (isShuffle.value) {
@@ -75,10 +84,12 @@ export const usePlayerStore = defineStore('player', () => {
 
   const closePlayer = () => {
     currentSong.value = null
+    currentAlbum.value = null
   }
 
   return {
     currentSong,
+    currentAlbum,
     playlist,
     repeatMode,
     isShuffle,
