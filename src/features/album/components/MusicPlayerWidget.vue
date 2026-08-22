@@ -103,6 +103,17 @@ const progressStyle = computed(() => {
   }
 })
 
+const volumeStyle = computed(() => {
+  const volPct = volume.value * 100
+  return {
+    background: `linear-gradient(to right, 
+      var(--color-primary) 0%, 
+      var(--color-primary) ${volPct}%, 
+      rgba(255,255,255,0.2) ${volPct}%, 
+      rgba(255,255,255,0.2) 100%)`
+  }
+})
+
 const onLoadedMetadata = () => {
   if (audioRef.value) {
     duration.value = audioRef.value.duration
@@ -248,6 +259,7 @@ onMounted(() => {
         step="0.01" 
         :value="volume" 
         @input="changeVolume" 
+        :style="volumeStyle"
       />
       <button class="player-btn player-btn--close" @click="playerStore.closePlayer()" aria-label="Close Player">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
