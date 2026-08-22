@@ -157,6 +157,14 @@ const resolveCoverUrl = (cover: string | null) => {
   return `https://${cover}`
 }
 
+const DEFAULT_COVER = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22224%22 height=%22224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22%3E%3Crect x=%221%22 y=%221%22 width=%2222%22 height=%2222%22 rx=%222%22/%3E%3Cpolygon points=%228 6 18 13 8 20 8 6%22/%3E%3C/svg%3E'
+
+const handleCoverError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  img.src = DEFAULT_COVER
+  img.style.display = ''
+}
+
 onMounted(() => {
   if (audioRef.value) {
     audioRef.value.volume = volume.value
@@ -187,7 +195,12 @@ onBeforeUnmount(() => {
     ></audio>
 
     <div class="player-widget__info">
-      <img :src="resolveCoverUrl(song.cover)" alt="Cover" class="player-widget__cover" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+      <img 
+        :src="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
+        alt="Cover" 
+        class="player-widget__cover" 
+        @error="handleCoverError"
+      />
       <div class="player-widget__track-details">
         <h4 class="player-widget__title">{{ song.title }}</h4>
         <span class="player-widget__artist">{{ song.artist }}</span>
