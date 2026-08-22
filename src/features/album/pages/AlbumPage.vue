@@ -26,11 +26,11 @@ const stateArtistName = history.state?.artistName as string | undefined
 watchEffect(() => {
   if (currentSong.value) {
     document.title = `${currentSong.value.title} • ${currentSong.value.artist}`
+  } else if (stateAlbumName) {
+    document.title = stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
   } else if (songs.value.length > 0) {
     const firstSong = songs.value[0]
     document.title = `${firstSong.album} • ${firstSong.artist}`
-  } else if (stateAlbumName) {
-    document.title = stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
   } else {
     document.title = 'CyBeat'
   }

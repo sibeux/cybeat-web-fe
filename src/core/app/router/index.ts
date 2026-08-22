@@ -44,7 +44,7 @@ const router = createRouter({
 
     // ─── Album Route ──────────────────────────────────────────────────────────
     {
-      path: '/album/:type/:id',
+      path: '/:type/:id',
       name: 'album',
       component: () => import('@/features/album/pages/AlbumPage.vue'),
     },
