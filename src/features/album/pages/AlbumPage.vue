@@ -62,6 +62,15 @@ const resolveCoverUrl = (cover: string | null) => {
 
 const DEFAULT_COVER = '/placeholder_cover_music.png'
 
+const resolveQualityBadge = (song: Song) => {
+  if (song.codec_name?.toLowerCase() === 'alac') return '/badge-alac.png'
+
+  const sampleRate = Number.parseFloat(song.sample_rate)
+  if (sampleRate >= 96) return '/badge-en-hires.png'
+  if (sampleRate > 0 && song.music_quality?.toLowerCase() === 'lossless') return '/badge-en-lossless.png'
+  return undefined
+}
+
 const handleCoverError = (e: Event) => {
   const img = e.target as HTMLImageElement
   if (img.dataset.fallbackApplied) return
@@ -131,6 +140,7 @@ const playSong = (song: Song) => {
                   <div v-else class="song-list__cover-placeholder">
                     <img :src="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
                   </div>
+                  <img v-if="resolveQualityBadge(song)" :src="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
                   <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
                     <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                     <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
