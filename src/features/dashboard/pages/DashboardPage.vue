@@ -1,8 +1,9 @@
 <script setup lang="ts">
-  import { onMounted, watch } from 'vue'
+  import { onMounted, watch, watchEffect } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
+  import { APP_NAME } from '@/core/app/config/app.config'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDashboardStore } from '../store/dashboard.store'
@@ -13,7 +14,13 @@
   const dashboardStore = useDashboardStore()
   
   const { albums, categories, playlists, isLoading, error } = storeToRefs(dashboardStore)
-  const { currentAlbum } = storeToRefs(playerStore)
+  const { currentAlbum, currentSong } = storeToRefs(playerStore)
+
+  watchEffect(() => {
+    document.title = currentSong.value
+      ? `${currentSong.value.title} • ${currentSong.value.artist}`
+      : APP_NAME
+  })
 
   onMounted(async () => {
     await dashboardStore.fetchDashboardData()

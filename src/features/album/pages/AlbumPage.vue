@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect, onUnmounted } from 'vue'
+import { ref, onMounted, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
+import { APP_NAME } from '@/core/app/config/app.config'
 import { albumApi } from '../api/album.api'
 import type { Song } from '../types/song.types'
 import { usePlayerStore } from '../store/player.store'
@@ -19,7 +20,6 @@ const error = ref<string | null>(null)
 const type = route.params.type as string
 const id = Number(route.params.id)
 
-const originalTitle = document.title
 const stateAlbumName = history.state?.albumName as string | undefined
 const stateArtistName = history.state?.artistName as string | undefined
 
@@ -32,12 +32,8 @@ watchEffect(() => {
     const firstSong = songs.value[0]
     document.title = `${firstSong.album} • ${firstSong.artist}`
   } else {
-    document.title = 'Cybeat'
+    document.title = APP_NAME
   }
-})
-
-onUnmounted(() => {
-  document.title = originalTitle
 })
 
 onMounted(async () => {
