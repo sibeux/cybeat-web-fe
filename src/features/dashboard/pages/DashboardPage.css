@@ -179,6 +179,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  background: var(--color-surface-raised) url('/placeholder_cover_music.png') center / cover no-repeat;
   transition: transform 0.3s ease;
 }
 
@@ -226,6 +227,13 @@
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.dashboard__album-cover-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .dashboard__album-cover-placeholder svg {

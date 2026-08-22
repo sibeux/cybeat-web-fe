@@ -60,12 +60,21 @@ const resolveCoverUrl = (cover: string | null) => {
   return `https://${cover}`
 }
 
+const DEFAULT_COVER = '/placeholder_cover_music.png'
+
+const handleCoverError = (e: Event) => {
+  const img = e.target as HTMLImageElement
+  if (img.dataset.fallbackApplied) return
+  img.dataset.fallbackApplied = 'true'
+  img.src = DEFAULT_COVER
+}
+
 const goBack = () => {
   router.back()
 }
 
 const playSong = (song: Song) => {
-  playerStore.playSong(song, songs.value, { type, id })
+  playerStore.playSong(song, songs.value, { type, id: Number(id) })
 }
 </script>
 
@@ -118,9 +127,9 @@ const playSong = (song: Song) => {
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
                 <div class="song-list__cover-wrapper" @click="playSong(song)">
-                  <img v-if="resolveCoverUrl(song.cover)" :src="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                  <img v-if="resolveCoverUrl(song.cover)" :src="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
                   <div v-else class="song-list__cover-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                    <img :src="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
                   </div>
                   <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
                     <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>

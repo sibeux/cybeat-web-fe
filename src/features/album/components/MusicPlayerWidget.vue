@@ -173,12 +173,13 @@ const resolveCoverUrl = (cover: string | null) => {
   return `https://${cover}`
 }
 
-const DEFAULT_COVER = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22224%22 height=%22224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23666%22 stroke-width=%222%22%3E%3Crect x=%221%22 y=%221%22 width=%2222%22 height=%2222%22 rx=%222%22/%3E%3Cpolygon points=%228 6 18 13 8 20 8 6%22/%3E%3C/svg%3E'
+const DEFAULT_COVER = '/placeholder_cover_music.png'
 
 const handleCoverError = (e: Event) => {
   const img = e.target as HTMLImageElement
+  if (img.dataset.fallbackApplied) return
+  img.dataset.fallbackApplied = 'true'
   img.src = DEFAULT_COVER
-  img.style.display = ''
 }
 
 onMounted(() => {

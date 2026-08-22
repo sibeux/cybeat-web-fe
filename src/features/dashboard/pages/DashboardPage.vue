@@ -44,10 +44,19 @@
     }
 
     const coverUrls = [cover.cover_1, cover.cover_2, cover.cover_3, cover.cover_4]
-      .map(resolveCoverUrl)
-      .filter((url): url is string => Boolean(url))
+      .map((coverUrl) => resolveCoverUrl(coverUrl))
+      .filter((coverUrl): coverUrl is string => Boolean(coverUrl))
 
-    return coverUrls.length === 4 ? coverUrls : coverUrls.slice(-1)
+    return coverUrls.length < 4 ? coverUrls.slice(-1) : coverUrls
+  }
+
+  const DEFAULT_COVER = '/placeholder_cover_music.png'
+
+  const handleCoverError = (e: Event) => {
+    const img = e.target as HTMLImageElement
+    if (img.dataset.fallbackApplied) return
+    img.dataset.fallbackApplied = 'true'
+    img.src = DEFAULT_COVER
   }
 
   const goToAlbum = (item: any) => {
@@ -60,7 +69,8 @@
   }
 
   const isPlayingAlbum = (item: any) => {
-    return currentAlbum.value?.type === item.type && currentAlbum.value?.id === item.id
+    return String(currentAlbum.value?.type) === String(item.type)
+      && Number(currentAlbum.value?.id) === Number(item.id)
   }
 </script>
 
@@ -151,13 +161,13 @@
           <div class="dashboard__album-grid">
             <div v-for="item in categories" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
+                  <img :src="DEFAULT_COVER" :alt="item.title" />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
-                <div v-else class="dashboard__album-cover-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
+                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
                 <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
@@ -176,13 +186,13 @@
           <div class="dashboard__album-grid">
             <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
+                  <img :src="DEFAULT_COVER" :alt="item.title" />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
-                <div v-else class="dashboard__album-cover-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
+                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
                 <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
@@ -201,13 +211,13 @@
           <div class="dashboard__album-grid">
             <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <div v-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
+                  <img :src="DEFAULT_COVER" :alt="item.title" />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
-                <div v-else class="dashboard__album-cover-placeholder">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
+                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
                 <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
