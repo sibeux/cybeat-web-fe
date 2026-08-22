@@ -1,17 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { usePlayerStore } from '../store/player.store'
 import type { Song } from '../types/song.types'
 import apiClient from '@/core/infrastructure/http/axios'
 
-const props = defineProps<{
-  song: Song | null
-}>()
-
-const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'next'): void
-  (e: 'prev'): void
-}>()
+const playerStore = usePlayerStore()
+const { currentSong: song } = storeToRefs(playerStore)
 
 const audioRef = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
@@ -59,13 +54,13 @@ const loadSong = async (newSong: Song | null) => {
 }
 
 // Watch for song changes to autoplay
-watch(() => props.song, async (newSong) => {
+watch(song, async (newSong) => {
   await nextTick()
   loadSong(newSong)
 })
 
 const togglePlay = () => {
-  if (!audioRef.value || !props.song) return
+  if (!audioRef.value || !song.value) return
   if (isPlaying.value) {
     audioRef.value.pause()
   } else {
@@ -116,7 +111,7 @@ const onLoadedMetadata = () => {
 
 const onEnded = () => {
   isPlaying.value = false
-  emit('next')
+  playerStore.playNext()
 }
 
 const seek = (e: Event) => {
@@ -147,8 +142,8 @@ onMounted(() => {
   if (audioRef.value) {
     audioRef.value.volume = volume.value
   }
-  if (props.song) {
-    loadSong(props.song)
+  if (song.value) {
+    loadSong(song.value)
   }
 })
 </script>
@@ -178,7 +173,7 @@ onMounted(() => {
 
     <div class="player-widget__controls-container">
       <div class="player-widget__buttons">
-        <button class="player-btn" @click="emit('prev')" aria-label="Previous">
+        <button class="player-btn" @click="playerStore.playPrev()" aria-label="Previous">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         </button>
         <button class="player-btn player-btn--play" @click="togglePlay" aria-label="Play/Pause" :disabled="isLoadingStream">
@@ -188,7 +183,7 @@ onMounted(() => {
           <svg v-else-if="!isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-        <button class="player-btn" @click="emit('next')" aria-label="Next">
+        <button class="player-btn" @click="playerStore.playNext()" aria-label="Next">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
         </button>
       </div>
@@ -222,7 +217,7 @@ onMounted(() => {
         :value="volume" 
         @input="changeVolume" 
       />
-      <button class="player-btn player-btn--close" @click="emit('close')" aria-label="Close Player">
+      <button class="player-btn player-btn--close" @click="playerStore.closePlayer()" aria-label="Close Player">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>

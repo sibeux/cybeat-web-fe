@@ -4,6 +4,7 @@
   import { useAuthStore } from '@/features/auth/index'
   import { SESSION_EXPIRED_EVENT } from '@/core/infrastructure/http/interceptors'
   import LoadingSpinner from '@/core/shared/components/LoadingSpinner.vue'
+  import MusicPlayerWidget from '@/features/album/components/MusicPlayerWidget.vue'
 
   const router = useRouter()
   const authStore = useAuthStore()
@@ -57,5 +58,8 @@
   </div>
 
   <!-- Once session is restored, hand off to the router -->
-  <RouterView v-else />
+  <template v-else>
+    <RouterView />
+    <MusicPlayerWidget />
+  </template>
 </template>

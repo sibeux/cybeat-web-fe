@@ -4,15 +4,17 @@ import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { albumApi } from '../api/album.api'
 import type { Song } from '../types/song.types'
-import MusicPlayerWidget from '../components/MusicPlayerWidget.vue'
+import { usePlayerStore } from '../store/player.store'
+import { storeToRefs } from 'pinia'
 
 const route = useRoute()
 const router = useRouter()
+const playerStore = usePlayerStore()
+const { currentSong } = storeToRefs(playerStore)
 
 const songs = ref<Song[]>([])
 const isLoading = ref(true)
 const error = ref<string | null>(null)
-const currentSong = ref<Song | null>(null)
 
 const type = route.params.type as string
 const id = Number(route.params.id)
@@ -67,23 +69,7 @@ const goBack = () => {
 }
 
 const playSong = (song: Song) => {
-  currentSong.value = song
-}
-
-const playNext = () => {
-  if (!currentSong.value) return
-  const idx = songs.value.findIndex(s => s.id_music === currentSong.value?.id_music)
-  if (idx !== -1 && idx < songs.value.length - 1) {
-    currentSong.value = songs.value[idx + 1]
-  }
-}
-
-const playPrev = () => {
-  if (!currentSong.value) return
-  const idx = songs.value.findIndex(s => s.id_music === currentSong.value?.id_music)
-  if (idx > 0) {
-    currentSong.value = songs.value[idx - 1]
-  }
+  playerStore.playSong(song, songs.value)
 }
 </script>
 
@@ -153,13 +139,6 @@ const playPrev = () => {
         </table>
       </div>
     </div>
-
-    <MusicPlayerWidget 
-      :song="currentSong" 
-      @close="currentSong = null" 
-      @next="playNext" 
-      @prev="playPrev" 
-    />
   </AppLayout>
 </template>
 

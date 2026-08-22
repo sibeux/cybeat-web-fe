@@ -1,31 +1,19 @@
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { onMounted } from 'vue'
   import { useRouter } from 'vue-router'
+  import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { useAuthStore } from '@/features/auth/index'
-  import { dashboardApi } from '../api/dashboard.api'
-  import type { Album, Category } from '../types/album.types'
+  import { useDashboardStore } from '../store/dashboard.store'
 
   const authStore = useAuthStore()
   const router = useRouter()
-  const albums = ref<Album[]>([])
-  const categories = ref<Category[]>([])
-  const playlists = ref<any[]>([])
-  const isLoading = ref(true)
-  const error = ref<string | null>(null)
+  const dashboardStore = useDashboardStore()
+  
+  const { albums, categories, playlists, isLoading, error } = storeToRefs(dashboardStore)
 
   onMounted(async () => {
-    try {
-      isLoading.value = true
-      const response = await dashboardApi.getMusicDashboard()
-      albums.value = response.data.data.album || []
-      categories.value = response.data.data.category || []
-      playlists.value = response.data.data.playlist || []
-    } catch (err: any) {
-      error.value = err.message || 'Gagal memuat data'
-    } finally {
-      isLoading.value = false
-    }
+    await dashboardStore.fetchDashboardData()
   })
 
   const resolveCoverUrl = (cover: any) => {
