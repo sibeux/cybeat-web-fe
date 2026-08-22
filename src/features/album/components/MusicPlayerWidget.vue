@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, computed } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player.store'
 import type { Song } from '../types/song.types'
@@ -163,6 +163,13 @@ onMounted(() => {
   }
   if (song.value) {
     loadSong(song.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (audioRef.value) {
+    audioRef.value.pause()
+    audioRef.value.src = ''
   }
 })
 </script>

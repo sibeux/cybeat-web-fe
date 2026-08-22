@@ -52,7 +52,7 @@ onMounted(async () => {
     const response = await albumApi.getSongs(type, id)
     songs.value = response.data.data || []
   } catch (err: any) {
-    error.value = err.message || 'Gagal memuat data'
+    error.value = err.response?.data?.message || err.message || 'Gagal memuat data'
   } finally {
     isLoading.value = false
   }

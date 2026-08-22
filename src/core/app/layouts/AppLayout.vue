@@ -2,10 +2,12 @@
   import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
+  import { usePlayerStore } from '@/features/album/store/player.store'
   import { APP_NAME } from '@/core/app/config/app.config'
 
   const router = useRouter()
   const authStore = useAuthStore()
+  const playerStore = usePlayerStore()
 
   const isLoggingOut = ref(false)
   const isLoggingIn = ref(false)
@@ -14,8 +16,9 @@
     if (isLoggingOut.value) return
     isLoggingOut.value = true
     try {
+      playerStore.closePlayer()
       await authStore.logout()
-      await router.push('/login')
+      await router.push('/')
     } finally {
       isLoggingOut.value = false
     }
