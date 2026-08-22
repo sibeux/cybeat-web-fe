@@ -1,0 +1,225 @@
+.player-widget {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  gap: 1rem;
+}
+
+.player-widget__info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 25%;
+  min-width: 150px;
+}
+
+.player-widget__cover {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.player-widget__track-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.player-widget__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-widget__artist {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-widget__codec {
+  font-size: 0.65rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  display: inline-block;
+  width: fit-content;
+}
+
+.player-widget__controls-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-widget__buttons {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.player-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.player-btn:hover {
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.player-btn svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.player-btn.is-active-shuffle {
+  color: #ef4444;
+}
+
+.player-btn.is-active-repeat-all {
+  color: #eab308;
+}
+
+.player-btn.is-active-repeat-one {
+  color: #10b981;
+}
+
+.player-btn--small svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+}
+
+.player-btn--play {
+  background: #fff;
+  color: #000;
+  padding: 0.6rem;
+}
+.player-btn--play:hover {
+  background: #e0e0e0;
+  color: #000;
+  transform: scale(1.05);
+}
+.player-btn--play svg {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+
+.player-btn--close svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.player-widget__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.player-widget__time {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.7);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.player-widget__seek, .player-widget__volume {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255,255,255,0.2);
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.player-widget__seek {
+  flex: 1;
+}
+
+.player-widget__seek::-webkit-slider-thumb, .player-widget__volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.player-widget__seek::-webkit-slider-thumb:hover, .player-widget__volume::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.player-widget__extra {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 25%;
+  justify-content: flex-end;
+}
+
+.player-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.player-widget__volume {
+  width: 80px;
+}
+
+.player-btn--play:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.spinner {
+  animation: widget-spin 2s linear infinite;
+  color: #000;
+}
+
+@keyframes widget-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
