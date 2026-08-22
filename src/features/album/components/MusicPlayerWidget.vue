@@ -14,6 +14,7 @@ const currentTime = ref(0)
 const duration = ref(0)
 const bufferedTime = ref(0)
 const volume = ref(1)
+const loadRequestId = ref(0)
 
 const formatTime = (time: number) => {
   if (isNaN(time)) return '0:00'
@@ -26,6 +27,14 @@ const isLoadingStream = ref(false)
 
 const loadSong = async (newSong: Song | null) => {
   if (!newSong || !audioRef.value) return
+
+  const requestId = ++loadRequestId.value
+  currentTime.value = 0
+  duration.value = 0
+  bufferedTime.value = 0
+  audioRef.value.pause()
+  audioRef.value.removeAttribute('src')
+  audioRef.value.load()
   
   try {
     isPlaying.value = false
@@ -39,6 +48,8 @@ const loadSong = async (newSong: Song | null) => {
     })
     
     const data = response.data
+    if (requestId !== loadRequestId.value || newSong.id_music !== song.value?.id_music) return
+
     if (data.success && data.stream_url) {
       audioRef.value.src = data.stream_url
       audioRef.value.play().catch(e => console.error('Playback failed', e))
@@ -47,9 +58,13 @@ const loadSong = async (newSong: Song | null) => {
       console.error('Failed to resolve stream URL:', data)
     }
   } catch (err) {
-    console.error('Error fetching stream URL:', err)
+    if (requestId === loadRequestId.value) {
+      console.error('Error fetching stream URL:', err)
+    }
   } finally {
-    isLoadingStream.value = false
+    if (requestId === loadRequestId.value && !audioRef.value?.src) {
+      isLoadingStream.value = false
+    }
   }
 }
 
@@ -117,6 +132,7 @@ const volumeStyle = computed(() => {
 const onLoadedMetadata = () => {
   if (audioRef.value) {
     duration.value = audioRef.value.duration
+    isLoadingStream.value = false
   }
 }
 
@@ -252,7 +268,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="player-widget__progress">
-        <span class="player-widget__time">{{ formatTime(currentTime) }}</span>
+        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(currentTime) }}</span>
         <input 
           type="range" 
           class="player-widget__seek" 
@@ -261,8 +277,9 @@ onBeforeUnmount(() => {
           :value="currentTime" 
           @input="seek" 
           :style="progressStyle"
+          :disabled="isLoadingStream || !duration"
         />
-        <span class="player-widget__time">{{ formatTime(duration) }}</span>
+        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(duration) }}</span>
       </div>
     </div>
 
