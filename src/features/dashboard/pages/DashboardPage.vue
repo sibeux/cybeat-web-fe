@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted } from 'vue'
+  import { onMounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -17,6 +17,10 @@
 
   onMounted(async () => {
     await dashboardStore.fetchDashboardData()
+  })
+
+  watch(() => authStore.isAuthenticated, async () => {
+    await dashboardStore.fetchDashboardData(true)
   })
 
   const resolveCoverUrl = (cover: any) => {

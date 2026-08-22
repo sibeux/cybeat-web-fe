@@ -2,6 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import apiClient from './axios'
 import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 import { isTokenExpired } from '@/features/auth/utils/jwt'
+import type { AuthResponse } from '@/features/auth/types/auth.types'
 
 /**
  * SESSION EXPIRATION EVENT
@@ -19,29 +20,47 @@ import { isTokenExpired } from '@/features/auth/utils/jwt'
  */
 export const SESSION_EXPIRED_EVENT = 'cybeat:session-expired'
 
-/**
- * TOKEN REFRESH — PENDING
- *
- * The backend returns a refresh_token on login/register.
- * However, the refresh endpoint contract has NOT been provided.
- *
- * DO NOT implement refresh here until the following are confirmed:
- *  - Endpoint URL
- *  - HTTP method
- *  - Request payload
- *  - Response structure
- *  - Token rotation behavior
- *
- * When the contract is available, implement refresh in this function
- * and call it from the 401 handler below before dispatching the
- * session-expired event.
- */
-// async function attemptTokenRefresh(): Promise<boolean> {
-//   // TODO: implement when backend refresh endpoint is confirmed
-//   return false
-// }
+let refreshPromise: Promise<string | null> | null = null
+type RetriableRequestConfig = InternalAxiosRequestConfig & {
+  __cybeatRetried?: boolean
+}
 
-let isHandling401 = false
+async function attemptTokenRefresh(): Promise<string | null> {
+  const refreshToken = authStorage.getRefreshToken()
+  if (!refreshToken) return null
+
+  if (!refreshPromise) {
+    refreshPromise = apiClient
+      .post<AuthResponse>('/auth/refresh', null, {
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      })
+      .then(({ data }) => {
+        authStorage.setAccessToken(data.access_token)
+        authStorage.setRefreshToken(data.refresh_token)
+        return data.access_token
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+
+  const accessToken = await refreshPromise
+  if (!accessToken) {
+    authStorage.clearAll()
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
+  }
+
+  return accessToken
+}
+
+export function refreshAccessToken(): Promise<string | null> {
+  return attemptTokenRefresh()
+}
+
+function isRefreshRequest(config?: InternalAxiosRequestConfig): boolean {
+  return config?.url?.replace(/\/$/, '') === '/auth/refresh'
+}
 
 export function setupInterceptors(): void {
   // ─── Request Interceptor ────────────────────────────────────────────────────
@@ -50,12 +69,17 @@ export function setupInterceptors(): void {
   apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
       const token = authStorage.getAccessToken()
+      if (token && !isRefreshRequest(config) && isTokenExpired(token)) {
+        return attemptTokenRefresh().then((newAccessToken) => {
+          if (!newAccessToken) {
+            return Promise.reject(new axios.Cancel('Unable to refresh token'))
+          }
+          config.headers.Authorization = `Bearer ${newAccessToken}`
+          return config
+        })
+      }
+
       if (token) {
-        if (isTokenExpired(token)) {
-          authStorage.clearAll()
-          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
-          return Promise.reject(new axios.Cancel('Token expired locally'))
-        }
         config.headers.Authorization = `Bearer ${token}`
       }
       return config
@@ -71,20 +95,18 @@ export function setupInterceptors(): void {
     (response) => response,
     (error: AxiosError) => {
       const status = error.response?.status
+      const requestConfig = error.config as RetriableRequestConfig | undefined
 
-      if (status === 401 && !isHandling401) {
-        isHandling401 = true
+      if (status === 401 && !isRefreshRequest(requestConfig) && !requestConfig?.__cybeatRetried) {
+        return attemptTokenRefresh().then((newAccessToken) => {
+          if (!newAccessToken || !requestConfig) {
+            return Promise.reject(error)
+          }
 
-        // Clear persisted tokens immediately
-        authStorage.clearAll()
-
-        // Notify the application layer (App.vue handles this)
-        window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
-
-        // Reset flag after a short delay to allow the app to react
-        setTimeout(() => {
-          isHandling401 = false
-        }, 1000)
+          requestConfig.__cybeatRetried = true
+          requestConfig.headers.Authorization = `Bearer ${newAccessToken}`
+          return apiClient.request(requestConfig)
+        })
       }
 
       return Promise.reject(error)

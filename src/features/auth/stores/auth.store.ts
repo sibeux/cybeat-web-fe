@@ -4,6 +4,7 @@ import { authApi } from '@/features/auth/api/auth.api'
 import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 import { extractUserFromToken, isTokenExpired } from '@/features/auth/utils/jwt'
 import { normalizeError } from '@/core/shared/utils/error-normalizer'
+import { refreshAccessToken } from '@/core/infrastructure/http/interceptors'
 import type { LoginRequest, RegisterRequest, AuthUser } from '@/features/auth/types/auth.types'
 
 /**
@@ -60,7 +61,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       if (storedAccess) {
         if (isTokenExpired(storedAccess)) {
-          authStorage.clearAll()
+          await refreshSession()
         } else {
           accessToken.value = storedAccess
           refreshToken.value = storedRefresh
@@ -70,6 +71,21 @@ export const useAuthStore = defineStore('auth', () => {
     } finally {
       isInitializing.value = false
     }
+  }
+
+  async function refreshSession(): Promise<boolean> {
+    const newAccessToken = await refreshAccessToken()
+    const newRefreshToken = authStorage.getRefreshToken()
+
+    if (!newAccessToken || !newRefreshToken) {
+      clearSession()
+      return false
+    }
+
+    accessToken.value = newAccessToken
+    refreshToken.value = newRefreshToken
+    user.value = extractUserFromToken(newAccessToken)
+    return true
   }
 
   /**
@@ -150,6 +166,7 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken: computed(() => accessToken.value),
     // Actions
     restoreSession,
+    refreshSession,
     login,
     register,
     logout,

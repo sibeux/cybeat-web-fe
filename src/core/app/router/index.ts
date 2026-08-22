@@ -70,7 +70,7 @@ const router = createRouter({
  * - guestOnly + authenticated → /
  * - Otherwise → proceed
  */
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   NProgress.start()
   const authStore = useAuthStore()
 
@@ -82,8 +82,10 @@ router.beforeEach((to) => {
 
   if (authStore.isAuthenticated && authStore.accessToken) {
     if (isTokenExpired(authStore.accessToken)) {
-      authStore.clearSession()
-      return { name: 'login', query: { redirect: to.fullPath } }
+      const refreshed = await authStore.refreshSession()
+      if (!refreshed) {
+        return { name: 'login', query: { redirect: to.fullPath } }
+      }
     }
   }
 
