@@ -136,15 +136,17 @@ const playSong = (song: Song) => {
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
                 <div class="song-list__cover-wrapper" @click="playSong(song)">
-                  <img v-if="resolveCoverUrl(song.cover)" :src="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
-                  <div v-else class="song-list__cover-placeholder">
-                    <img :src="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
+                  <div class="song-list__cover-surface">
+                    <img v-if="resolveCoverUrl(song.cover)" :src="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
+                    <div v-else class="song-list__cover-placeholder">
+                      <img :src="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
+                    </div>
+                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
+                      <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                      <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
                   </div>
                   <img v-if="resolveQualityBadge(song)" :src="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
-                  <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music }">
-                    <svg v-if="currentSong?.id_music === song.id_music" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                    <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                  </div>
                 </div>
                 <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }">{{ song.title }}</span>
               </td>
