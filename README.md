@@ -1,4 +1,4 @@
-# CyBeat Web Frontend
+# Cybeat Web Frontend
 
 Enterprise-grade Vue 3 + TypeScript SPA using **feature-based / vertical slice architecture**.
 

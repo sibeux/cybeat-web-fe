@@ -10,17 +10,7 @@
       <div class="login-page__panel-inner">
         <div class="login-page__brand">
           <div class="login-page__logo">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="40" height="40" rx="10" fill="url(#logo-grad)" />
-              <path d="M12 20C12 15.582 15.582 12 20 12C22.122 12 24.05 12.822 25.485 14.172L22.657 17C21.908 16.372 20.996 16 20 16C17.791 16 16 17.791 16 20C16 22.209 17.791 24 20 24C20.996 24 21.908 23.628 22.657 23L25.485 25.828C24.05 27.178 22.122 28 20 28C15.582 28 12 24.418 12 20Z" fill="white"/>
-              <path d="M24 20L28 16V24L24 20Z" fill="white" opacity="0.7"/>
-              <defs>
-                <linearGradient id="logo-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#6366f1"/>
-                  <stop offset="1" stop-color="#8b5cf6"/>
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="/logo.png" alt="Logo" class="login-page__logo-img" />
           </div>
           <span class="login-page__brand-name">{{ APP_NAME }}</span>
         </div>
@@ -58,17 +48,7 @@
       <div class="login-page__form-container">
         <!-- Mobile brand -->
         <div class="login-page__mobile-brand" aria-hidden="true">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="10" fill="url(#logo-grad-m)" />
-            <path d="M12 20C12 15.582 15.582 12 20 12C22.122 12 24.05 12.822 25.485 14.172L22.657 17C21.908 16.372 20.996 16 20 16C17.791 16 16 17.791 16 20C16 22.209 17.791 24 20 24C20.996 24 21.908 23.628 22.657 23L25.485 25.828C24.05 27.178 22.122 28 20 28C15.582 28 12 24.418 12 20Z" fill="white"/>
-            <path d="M24 20L28 16V24L24 20Z" fill="white" opacity="0.7"/>
-            <defs>
-              <linearGradient id="logo-grad-m" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#6366f1"/>
-                <stop offset="1" stop-color="#8b5cf6"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="/logo.png" alt="Logo" class="login-page__logo-img-m" />
           <span>{{ APP_NAME }}</span>
         </div>
 
@@ -120,7 +100,7 @@
     gap: 0.75rem;
   }
 
-  .login-page__logo svg {
+  .login-page__logo-img {
     width: 2.5rem;
     height: 2.5rem;
   }
@@ -230,7 +210,7 @@
     color: var(--color-text);
   }
 
-  .login-page__mobile-brand svg {
+  .login-page__logo-img-m {
     width: 2rem;
     height: 2rem;
   }

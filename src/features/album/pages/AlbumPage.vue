@@ -32,7 +32,7 @@ watchEffect(() => {
     const firstSong = songs.value[0]
     document.title = `${firstSong.album} • ${firstSong.artist}`
   } else {
-    document.title = 'CyBeat'
+    document.title = 'Cybeat'
   }
 })
 

@@ -46,14 +46,14 @@
         <div class="dashboard__welcome-icon" aria-hidden="true">👋</div>
         <div>
           <h1 class="dashboard__title">
-            Selamat datang{{ authStore.user?.name ? `, ${authStore.user.name}` : ' di CyBeat' }}!
+            Selamat datang<template v-if="authStore.user?.name">, {{ authStore.user.name }}</template><template v-else> di Cybeat</template>!
           </h1>
           <p class="dashboard__subtitle">
             <template v-if="authStore.isAuthenticated">
-              Anda berhasil masuk ke CyBeat. Dashboard sedang dalam pengembangan.
+              Anda berhasil masuk ke Cybeat. Dashboard sedang dalam pengembangan.
             </template>
             <template v-else>
-              Silakan masuk untuk mengakses fitur penuh CyBeat. Dashboard sedang dalam pengembangan.
+              Silakan masuk untuk mengakses fitur penuh Cybeat. Dashboard sedang dalam pengembangan.
             </template>
           </p>
         </div>

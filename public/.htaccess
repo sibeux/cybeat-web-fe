@@ -1,4 +1,4 @@
-# Apache SPA Fallback — CyBeat Frontend
+# Apache SPA Fallback — Cybeat Frontend
 #
 # Required for Vue Router history mode on shared hosting.
 # Serves index.html for all unknown routes so /login, /register, /

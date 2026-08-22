@@ -38,17 +38,7 @@
       <div class="app-layout__nav-inner">
         <!-- Brand -->
         <div class="app-layout__brand">
-          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="32" height="32" rx="8" fill="url(#nav-logo-grad)" />
-            <path d="M9 16C9 12.134 12.134 9 16 9C17.897 9 19.64 9.758 20.94 11.007L18.526 13.42C17.926 12.91 17.142 12.6 16.3 12.6C14.198 12.6 12.5 14.298 12.5 16.4C12.5 18.502 14.198 20.2 16.3 20.2C17.142 20.2 17.926 19.89 18.526 19.38L20.94 21.793C19.64 23.042 17.897 23.8 16 23.8C12.134 23.8 9 20.666 9 16.8V16Z" fill="white"/>
-            <path d="M19.5 16L23 12.5V19.5L19.5 16Z" fill="white" opacity="0.7"/>
-            <defs>
-              <linearGradient id="nav-logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#6366f1"/>
-                <stop offset="1" stop-color="#8b5cf6"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="/logo.png" alt="Logo" class="app-layout__brand-logo" />
           <span class="app-layout__brand-name">{{ APP_NAME }}</span>
         </div>
 
@@ -152,7 +142,7 @@
     gap: 0.625rem;
   }
 
-  .app-layout__brand svg {
+  .app-layout__brand-logo {
     width: 2rem;
     height: 2rem;
   }

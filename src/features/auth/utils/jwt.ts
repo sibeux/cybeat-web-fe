@@ -12,12 +12,19 @@ import type { AuthUser } from '@/features/auth/types/auth.types'
  */
 
 interface JwtPayload {
+  exp?: number
+  iat?: number
+  sub?: string | number
+  iss?: string
+  data?: {
+    email?: string
+    name?: string
+    role?: string
+  }
+  // Fallbacks just in case
   email?: string
   name?: string
   role?: string
-  exp?: number
-  iat?: number
-  sub?: string
 }
 
 function decodeBase64Url(str: string): string {
@@ -51,13 +58,15 @@ export function extractUserFromToken(token: string): AuthUser | null {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
 
-  const email = payload.email ?? payload.sub
+  const email = payload.data?.email ?? payload.email ?? (payload.sub ? String(payload.sub) : undefined)
   if (!email) return null
+
+  const rawName = payload.data?.name ?? payload.name
 
   return {
     email,
-    name: payload.name,
-    role: payload.role,
+    name: rawName ? rawName.trim() : undefined,
+    role: payload.data?.role ?? payload.role,
   }
 }
 
