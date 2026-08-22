@@ -41,7 +41,7 @@
       <div class="app-layout__nav-inner">
         <!-- Brand -->
         <div class="app-layout__brand">
-          <img src="/logo.png" alt="Logo" class="app-layout__brand-logo" />
+          <img src="/assets/images/logo.png" alt="Logo" class="app-layout__brand-logo" />
           <span class="app-layout__brand-name">{{ APP_NAME }}</span>
         </div>
 

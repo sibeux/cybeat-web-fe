@@ -35,7 +35,7 @@
   display: block;
   border-radius: 0.5rem;
   object-fit: cover;
-  background: var(--color-surface-raised) url('/placeholder_cover_music.png') center / cover no-repeat;
+  background: var(--color-surface-raised) url('/assets/images/placeholder_cover_music.png') center / cover no-repeat;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 

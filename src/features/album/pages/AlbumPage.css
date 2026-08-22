@@ -175,7 +175,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: var(--color-surface-raised) url('/placeholder_cover_music.png') center / cover no-repeat;
+  background: var(--color-surface-raised) url('/assets/images/placeholder_cover_music.png') center / cover no-repeat;
 }
 
 .song-list__quality-badge {

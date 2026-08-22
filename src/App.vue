@@ -45,7 +45,7 @@
        This prevents auth flicker (dashboard → login → dashboard). -->
   <div v-if="authStore.isInitializing" class="app-init" role="status" aria-label="Memuat aplikasi">
     <div class="app-init__logo" aria-hidden="true">
-      <img src="/logo.png" alt="Logo" width="48" height="48" class="app-init__logo-img" />
+      <img src="/assets/images/logo.png" alt="Logo" width="48" height="48" class="app-init__logo-img" />
     </div>
     <LoadingSpinner size="sm" label="Memuat aplikasi..." />
   </div>

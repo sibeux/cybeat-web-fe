@@ -60,14 +60,14 @@ const resolveCoverUrl = (cover: string | null) => {
   return `https://${cover}`
 }
 
-const DEFAULT_COVER = '/placeholder_cover_music.png'
+const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
 
 const resolveQualityBadge = (song: Song) => {
-  if (song.codec_name?.toLowerCase() === 'alac') return '/badge-alac.png'
+  if (song.codec_name?.toLowerCase() === 'alac') return '/assets/images/badge-alac.png'
 
   const sampleRate = Number.parseFloat(song.sample_rate)
-  if (sampleRate >= 96) return '/badge-en-hires.png'
-  if (sampleRate > 0 && song.music_quality?.toLowerCase() === 'lossless') return '/badge-en-lossless.png'
+  if (sampleRate >= 96) return '/assets/images/badge-en-hires.png'
+  if (sampleRate > 0 && song.music_quality?.toLowerCase() === 'lossless') return '/assets/images/badge-en-lossless.png'
   return undefined
 }
 

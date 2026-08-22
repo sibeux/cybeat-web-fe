@@ -10,7 +10,7 @@
       <div class="login-page__panel-inner">
         <div class="login-page__brand">
           <div class="login-page__logo">
-            <img src="/logo.png" alt="Logo" class="login-page__logo-img" />
+            <img src="/assets/images/logo.png" alt="Logo" class="login-page__logo-img" />
           </div>
           <span class="login-page__brand-name">{{ APP_NAME }}</span>
         </div>
@@ -48,7 +48,7 @@
       <div class="login-page__form-container">
         <!-- Mobile brand -->
         <div class="login-page__mobile-brand" aria-hidden="true">
-          <img src="/logo.png" alt="Logo" class="login-page__logo-img-m" />
+          <img src="/assets/images/logo.png" alt="Logo" class="login-page__logo-img-m" />
           <span>{{ APP_NAME }}</span>
         </div>
 

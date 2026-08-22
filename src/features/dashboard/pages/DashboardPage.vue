@@ -50,7 +50,7 @@
     return coverUrls.length < 4 ? coverUrls.slice(-1) : coverUrls
   }
 
-  const DEFAULT_COVER = '/placeholder_cover_music.png'
+  const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
 
   const handleCoverError = (e: Event) => {
     const img = e.target as HTMLImageElement

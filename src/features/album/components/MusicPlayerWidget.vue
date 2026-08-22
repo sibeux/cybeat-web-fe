@@ -173,7 +173,7 @@ const resolveCoverUrl = (cover: string | null) => {
   return `https://${cover}`
 }
 
-const DEFAULT_COVER = '/placeholder_cover_music.png'
+const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
 
 const handleCoverError = (e: Event) => {
   const img = e.target as HTMLImageElement

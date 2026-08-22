@@ -179,7 +179,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  background: var(--color-surface-raised) url('/placeholder_cover_music.png') center / cover no-repeat;
+  background: var(--color-surface-raised) url('/assets/images/placeholder_cover_music.png') center / cover no-repeat;
   transition: transform 0.3s ease;
 }
 
