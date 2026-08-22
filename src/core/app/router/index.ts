@@ -1,6 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/index'
+import { isTokenExpired } from '@/features/auth/utils/jwt'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
 
+NProgress.configure({ showSpinner: false })
 /**
  * Route meta type augmentation.
  * Enables typed route meta across the application.
@@ -67,12 +71,20 @@ const router = createRouter({
  * - Otherwise → proceed
  */
 router.beforeEach((to) => {
+  NProgress.start()
   const authStore = useAuthStore()
 
   // Safety net: if somehow called before session is restored, block navigation.
   // This should not happen in normal flow given the startup sequence in main.ts.
   if (authStore.isInitializing) {
     return false
+  }
+
+  if (authStore.isAuthenticated && authStore.accessToken) {
+    if (isTokenExpired(authStore.accessToken)) {
+      authStore.clearSession()
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -84,6 +96,14 @@ router.beforeEach((to) => {
   }
 
   return true
+})
+
+router.afterEach(() => {
+  NProgress.done()
+})
+
+router.onError(() => {
+  NProgress.done()
 })
 
 export default router

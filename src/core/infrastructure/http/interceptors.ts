@@ -1,6 +1,7 @@
-import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import apiClient from './axios'
 import { authStorage } from '@/core/infrastructure/storage/auth-storage'
+import { isTokenExpired } from '@/features/auth/utils/jwt'
 
 /**
  * SESSION EXPIRATION EVENT
@@ -50,6 +51,11 @@ export function setupInterceptors(): void {
     (config: InternalAxiosRequestConfig) => {
       const token = authStorage.getAccessToken()
       if (token) {
+        if (isTokenExpired(token)) {
+          authStorage.clearAll()
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
+          return Promise.reject(new axios.Cancel('Token expired locally'))
+        }
         config.headers.Authorization = `Bearer ${token}`
       }
       return config

@@ -47,10 +47,6 @@ export function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-/**
- * Extracts AuthUser from a JWT token for UI display purposes.
- * Returns null if the token cannot be decoded.
- */
 export function extractUserFromToken(token: string): AuthUser | null {
   const payload = decodeJwtPayload(token)
   if (!payload) return null
@@ -63,4 +59,19 @@ export function extractUserFromToken(token: string): AuthUser | null {
     name: payload.name,
     role: payload.role,
   }
+}
+
+/**
+ * Checks if a JWT token is expired based on its `exp` claim.
+ * Returns true if expired or if decoding fails.
+ */
+export function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token)
+  if (!payload || !payload.exp) return true
+  
+  // exp is in seconds, Date.now() is in milliseconds
+  const now = Math.floor(Date.now() / 1000)
+  
+  // Add a small buffer (e.g., 5 seconds) to prevent edge cases
+  return payload.exp <= now + 5
 }

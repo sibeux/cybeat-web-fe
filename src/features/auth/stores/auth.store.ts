@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/features/auth/api/auth.api'
 import { authStorage } from '@/core/infrastructure/storage/auth-storage'
-import { extractUserFromToken } from '@/features/auth/utils/jwt'
+import { extractUserFromToken, isTokenExpired } from '@/features/auth/utils/jwt'
 import { normalizeError } from '@/core/shared/utils/error-normalizer'
 import type { LoginRequest, RegisterRequest, AuthUser } from '@/features/auth/types/auth.types'
 
@@ -59,9 +59,13 @@ export const useAuthStore = defineStore('auth', () => {
       const storedRefresh = authStorage.getRefreshToken()
 
       if (storedAccess) {
-        accessToken.value = storedAccess
-        refreshToken.value = storedRefresh
-        user.value = extractUserFromToken(storedAccess)
+        if (isTokenExpired(storedAccess)) {
+          authStorage.clearAll()
+        } else {
+          accessToken.value = storedAccess
+          refreshToken.value = storedRefresh
+          user.value = extractUserFromToken(storedAccess)
+        }
       }
     } finally {
       isInitializing.value = false
