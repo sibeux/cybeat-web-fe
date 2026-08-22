@@ -2,12 +2,14 @@
   import { onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
+  import { usePlayerStore } from '@/features/album/store/player.store'
   import { SESSION_EXPIRED_EVENT } from '@/core/infrastructure/http/interceptors'
   import LoadingSpinner from '@/core/shared/components/LoadingSpinner.vue'
   import MusicPlayerWidget from '@/features/album/components/MusicPlayerWidget.vue'
 
   const router = useRouter()
   const authStore = useAuthStore()
+  const playerStore = usePlayerStore()
 
   /**
    * Application-level session expiration coordinator.
@@ -24,6 +26,7 @@
    *     → redirects to /login
    */
   function handleSessionExpired(): void {
+    playerStore.closePlayer()
     authStore.clearSession()
     router.push('/login')
   }
@@ -50,6 +53,6 @@
   <!-- Once session is restored, hand off to the router -->
   <template v-else>
     <RouterView />
-    <MusicPlayerWidget />
+    <MusicPlayerWidget v-if="authStore.isAuthenticated" />
   </template>
 </template>

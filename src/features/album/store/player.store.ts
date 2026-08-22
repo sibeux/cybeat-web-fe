@@ -85,6 +85,10 @@ export const usePlayerStore = defineStore('player', () => {
   const closePlayer = () => {
     currentSong.value = null
     currentAlbum.value = null
+    playlist.value = []
+    shuffledPlaylist.value = []
+    isShuffle.value = false
+    repeatMode.value = 0
   }
 
   return {
