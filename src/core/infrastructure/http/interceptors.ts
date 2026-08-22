@@ -1,6 +1,6 @@
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import apiClient from './axios'
-import { authStorage } from '@/infrastructure/storage/auth-storage'
+import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 
 /**
  * SESSION EXPIRATION EVENT

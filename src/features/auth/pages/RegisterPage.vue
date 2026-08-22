@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import RegisterForm from '@/features/auth/components/RegisterForm.vue'
-  import { APP_NAME } from '@/app/config/app.config'
+  import { APP_NAME } from '@/core/app/config/app.config'
 </script>
 
 <template>

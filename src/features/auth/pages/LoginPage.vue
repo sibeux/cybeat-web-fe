@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import LoginForm from '@/features/auth/components/LoginForm.vue'
-  import { APP_NAME } from '@/app/config/app.config'
+  import { APP_NAME } from '@/core/app/config/app.config'
 </script>
 
 <template>

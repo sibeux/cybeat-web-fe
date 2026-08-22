@@ -1,9 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/features/auth/api/auth.api'
-import { authStorage } from '@/infrastructure/storage/auth-storage'
+import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 import { extractUserFromToken } from '@/features/auth/utils/jwt'
-import { normalizeError } from '@/shared/utils/error-normalizer'
+import { normalizeError } from '@/core/shared/utils/error-normalizer'
 import type { LoginRequest, RegisterRequest, AuthUser } from '@/features/auth/types/auth.types'
 
 /**

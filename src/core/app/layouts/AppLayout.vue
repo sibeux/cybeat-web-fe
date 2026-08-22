@@ -1,14 +1,34 @@
 <script setup lang="ts">
+  import { ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
-  import { APP_NAME } from '@/app/config/app.config'
+  import { APP_NAME } from '@/core/app/config/app.config'
 
   const router = useRouter()
   const authStore = useAuthStore()
 
+  const isLoggingOut = ref(false)
+  const isLoggingIn = ref(false)
+
   async function handleLogout(): Promise<void> {
-    await authStore.logout()
-    await router.push('/login')
+    if (isLoggingOut.value) return
+    isLoggingOut.value = true
+    try {
+      await authStore.logout()
+      await router.push('/login')
+    } finally {
+      isLoggingOut.value = false
+    }
+  }
+
+  async function handleLogin(): Promise<void> {
+    if (isLoggingIn.value) return
+    isLoggingIn.value = true
+    try {
+      await router.push('/login')
+    } finally {
+      isLoggingIn.value = false
+    }
   }
 </script>
 
@@ -43,26 +63,50 @@
               class="app-layout__logout"
               type="button"
               @click="handleLogout"
+              :disabled="isLoggingOut"
+              :class="{ 'app-layout__btn--loading': isLoggingOut }"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg v-if="isLoggingOut" class="app-layout__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
-              Keluar
+              {{ isLoggingOut ? 'Keluar...' : 'Keluar' }}
             </button>
           </template>
           <template v-else>
             <button
               class="app-layout__login"
               type="button"
-              @click="router.push('/login')"
+              @click="handleLogin"
+              :disabled="isLoggingIn"
+              :class="{ 'app-layout__btn--loading': isLoggingIn }"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg v-if="isLoggingIn" class="app-layout__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              Masuk
+              {{ isLoggingIn ? 'Memuat...' : 'Masuk' }}
             </button>
           </template>
         </div>
@@ -168,6 +212,21 @@
   .app-layout__logout svg {
     width: 1rem;
     height: 1rem;
+  }
+
+  .app-layout__btn--loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .app-layout__spinner {
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
   }
 
   .app-layout__content {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watchEffect, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AppLayout from '@/app/layouts/AppLayout.vue'
+import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { albumApi } from '../api/album.api'
 import type { Song } from '../types/song.types'
 import MusicPlayerWidget from '../components/MusicPlayerWidget.vue'

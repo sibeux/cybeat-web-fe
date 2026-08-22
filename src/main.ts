@@ -1,8 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
-import router from './app/router/index'
-import { setupInterceptors } from './infrastructure/http/interceptors'
+import router from './core/app/router/index'
+import { setupInterceptors } from './core/infrastructure/http/interceptors'
 import { useAuthStore } from './features/auth/index'
 import './style.css'
 

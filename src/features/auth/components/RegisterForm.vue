@@ -8,9 +8,9 @@
     hasErrors,
     isEmailValid,
   } from '@/features/auth/validation/auth.validation'
-  import { useDebounce } from '@/shared/composables/useDebounce'
-  import BaseInput from '@/shared/components/BaseInput.vue'
-  import BaseButton from '@/shared/components/BaseButton.vue'
+  import { useDebounce } from '@/core/shared/composables/useDebounce'
+  import BaseInput from '@/core/shared/components/BaseInput.vue'
+  import BaseButton from '@/core/shared/components/BaseButton.vue'
   import type { RegisterFormValues, FormErrors } from '@/features/auth/types/auth.types'
 
   const router = useRouter()

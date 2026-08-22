@@ -2,8 +2,8 @@
   import { onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
-  import { SESSION_EXPIRED_EVENT } from '@/infrastructure/http/interceptors'
-  import LoadingSpinner from '@/shared/components/LoadingSpinner.vue'
+  import { SESSION_EXPIRED_EVENT } from '@/core/infrastructure/http/interceptors'
+  import LoadingSpinner from '@/core/shared/components/LoadingSpinner.vue'
 
   const router = useRouter()
   const authStore = useAuthStore()

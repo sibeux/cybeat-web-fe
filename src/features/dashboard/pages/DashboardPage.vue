@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
-  import AppLayout from '@/app/layouts/AppLayout.vue'
+  import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { useAuthStore } from '@/features/auth/index'
   import { dashboardApi } from '../api/dashboard.api'
   import type { Album, Category } from '../types/album.types'

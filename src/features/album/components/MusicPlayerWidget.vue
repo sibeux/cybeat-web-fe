@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick, computed } from 'vue'
 import type { Song } from '../types/song.types'
-import apiClient from '@/infrastructure/http/axios'
+import apiClient from '@/core/infrastructure/http/axios'
 
 const props = defineProps<{
   song: Song | null

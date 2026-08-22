@@ -1,4 +1,4 @@
-import apiClient from '@/infrastructure/http/axios'
+import apiClient from '@/core/infrastructure/http/axios'
 import type {
   LoginRequest,
   RegisterRequest,

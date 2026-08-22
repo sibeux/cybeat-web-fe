@@ -1,5 +1,5 @@
 import type { AxiosError } from 'axios'
-import type { ApiErrorResponse } from '@/shared/types/api.types'
+import type { ApiErrorResponse } from '@/core/shared/types/api.types'
 
 /**
  * Normalizes API and network errors into user-friendly Indonesian messages.

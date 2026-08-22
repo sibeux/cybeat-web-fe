@@ -3,8 +3,8 @@
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/stores/auth.store'
   import { validateLoginForm, hasErrors } from '@/features/auth/validation/auth.validation'
-  import BaseInput from '@/shared/components/BaseInput.vue'
-  import BaseButton from '@/shared/components/BaseButton.vue'
+  import BaseInput from '@/core/shared/components/BaseInput.vue'
+  import BaseButton from '@/core/shared/components/BaseButton.vue'
   import type { LoginFormValues, FormErrors } from '@/features/auth/types/auth.types'
 
   const router = useRouter()
