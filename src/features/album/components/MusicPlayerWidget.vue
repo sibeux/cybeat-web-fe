@@ -6,7 +6,7 @@ import type { Song } from '../types/song.types'
 import apiClient from '@/core/infrastructure/http/axios'
 
 const playerStore = usePlayerStore()
-const { currentSong: song } = storeToRefs(playerStore)
+const { currentSong: song, repeatMode, isShuffle } = storeToRefs(playerStore)
 
 const audioRef = ref<HTMLAudioElement | null>(null)
 const isPlaying = ref(false)
@@ -110,8 +110,16 @@ const onLoadedMetadata = () => {
 }
 
 const onEnded = () => {
-  isPlaying.value = false
-  playerStore.playNext()
+  if (repeatMode.value === 2) {
+    if (audioRef.value) {
+      audioRef.value.currentTime = 0
+      audioRef.value.play().catch(e => console.error('Playback failed', e))
+      isPlaying.value = true
+    }
+  } else {
+    isPlaying.value = false
+    playerStore.playNext()
+  }
 }
 
 const seek = (e: Event) => {
@@ -173,6 +181,21 @@ onMounted(() => {
 
     <div class="player-widget__controls-container">
       <div class="player-widget__buttons">
+        <button class="player-btn player-btn--small" :class="{ 'is-active-repeat-all': repeatMode === 1, 'is-active-repeat-one': repeatMode === 2 }" @click="playerStore.toggleRepeat()" aria-label="Repeat">
+          <svg v-if="repeatMode === 0 || repeatMode === 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+          <svg v-else-if="repeatMode === 2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            <path d="M11 10h1v4"></path>
+          </svg>
+        </button>
         <button class="player-btn" @click="playerStore.playPrev()" aria-label="Previous">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         </button>
@@ -185,6 +208,15 @@ onMounted(() => {
         </button>
         <button class="player-btn" @click="playerStore.playNext()" aria-label="Next">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+        <button class="player-btn player-btn--small" :class="{ 'is-active-shuffle': isShuffle }" @click="playerStore.toggleShuffle()" aria-label="Shuffle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
         </button>
       </div>
 
@@ -332,6 +364,23 @@ onMounted(() => {
 .player-btn svg {
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.player-btn.is-active-shuffle {
+  color: #ef4444;
+}
+
+.player-btn.is-active-repeat-all {
+  color: #eab308;
+}
+
+.player-btn.is-active-repeat-one {
+  color: #10b981;
+}
+
+.player-btn--small svg {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
 }
 
 .player-btn--play {
