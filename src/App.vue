@@ -53,6 +53,6 @@
   <!-- Once session is restored, hand off to the router -->
   <template v-else>
     <RouterView />
-    <MusicPlayerWidget v-if="authStore.isAuthenticated" />
+    <MusicPlayerWidget />
   </template>
 </template>
