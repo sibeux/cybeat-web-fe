@@ -43,7 +43,11 @@ async function bootstrap(): Promise<void> {
   const authStore = useAuthStore()
   await authStore.restoreSession()
 
-  // 5. Mount — router starts its initial navigation here
+  // 5. Wait for the lazy-loaded initial route before mounting the view.
+  //    This prevents RouterView from rendering an empty shell on first load.
+  await router.isReady()
+
+  // 6. Mount the fully resolved initial route
   app.mount('#app')
 }
 
