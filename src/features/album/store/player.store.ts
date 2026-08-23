@@ -97,6 +97,7 @@ export const usePlayerStore = defineStore('player', () => {
     shuffledPlaylist.value = []
     isShuffle.value = false
     repeatMode.value = 0
+    playbackToggleRequest.value = 0
   }
 
   return {

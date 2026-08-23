@@ -24,6 +24,20 @@ const formatTime = (time: number) => {
 
 const isLoadingStream = ref(false)
 
+const clearAudio = () => {
+  loadRequestId.value++
+  isLoadingStream.value = false
+  currentTime.value = 0
+  duration.value = 0
+  bufferedTime.value = 0
+
+  if (audioRef.value) {
+    audioRef.value.pause()
+    audioRef.value.removeAttribute('src')
+    audioRef.value.load()
+  }
+}
+
 const loadSong = async (newSong: Song | null) => {
   if (!newSong || !audioRef.value) return
 
@@ -69,7 +83,11 @@ const loadSong = async (newSong: Song | null) => {
 
 // Watch for song changes to autoplay
 watch(() => song.value?.id_music, async (songId, previousSongId) => {
-  if (songId === previousSongId || !song.value) return
+  if (!song.value) {
+    clearAudio()
+    return
+  }
+  if (songId === previousSongId) return
   await nextTick()
   loadSong(song.value)
 })

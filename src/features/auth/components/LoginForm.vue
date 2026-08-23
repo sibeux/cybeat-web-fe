@@ -2,6 +2,7 @@
   import { ref, reactive } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/stores/auth.store'
+  import { usePlayerStore } from '@/features/album/store/player.store'
   import { validateLoginForm, hasErrors } from '@/features/auth/validation/auth.validation'
   import BaseInput from '@/core/shared/components/BaseInput.vue'
   import BaseButton from '@/core/shared/components/BaseButton.vue'
@@ -9,6 +10,7 @@
 
   const router = useRouter()
   const authStore = useAuthStore()
+  const playerStore = usePlayerStore()
 
   const values = reactive<LoginFormValues>({
     email: '',
@@ -37,6 +39,7 @@
 
     try {
       await authStore.login({ email: values.email, password: values.password })
+      playerStore.closePlayer()
       await router.push('/')
     } catch {
       // Error is already set in the store by the login action
