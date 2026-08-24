@@ -220,7 +220,7 @@
       </div> -->
 
       <div class="dashboard__search">
-        <label for="dashboard-search" class="dashboard__search-label">Cari musik</label>
+        <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
         <div class="dashboard__search-input-wrapper">
           <svg class="dashboard__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="8" />
@@ -231,7 +231,7 @@
             v-model="search"
             type="search"
             class="dashboard__search-input"
-            placeholder="Cari album, kategori, atau playlist..."
+            placeholder="Search by title or artist..."
             autocomplete="off"
           />
         </div>
