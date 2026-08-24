@@ -11,8 +11,18 @@
 
   const isLoggingOut = ref(false)
   const isLoggingIn = ref(false)
+  const isLogoutConfirmationOpen = ref(false)
 
-  async function handleLogout(): Promise<void> {
+  function requestLogout(): void {
+    if (!isLoggingOut.value) isLogoutConfirmationOpen.value = true
+  }
+
+  function cancelLogout(): void {
+    if (!isLoggingOut.value) isLogoutConfirmationOpen.value = false
+  }
+
+  async function confirmLogout(): Promise<void> {
+    isLogoutConfirmationOpen.value = false
     if (isLoggingOut.value) return
     isLoggingOut.value = true
     try {
@@ -55,7 +65,7 @@
               id="logout-button"
               class="app-layout__logout"
               type="button"
-              @click="handleLogout"
+              @click="requestLogout"
               :disabled="isLoggingOut"
               :class="{ 'app-layout__btn--loading': isLoggingOut }"
             >
@@ -109,6 +119,31 @@
     <main class="app-layout__content">
       <slot />
     </main>
+
+    <div
+      v-if="isLogoutConfirmationOpen"
+      class="app-layout__dialog-backdrop"
+      @click.self="cancelLogout"
+    >
+      <section
+        class="app-layout__dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="logout-dialog-title"
+        aria-describedby="logout-dialog-description"
+      >
+        <h2 id="logout-dialog-title">Konfirmasi keluar</h2>
+        <p id="logout-dialog-description">Apakah Anda yakin ingin keluar dari akun?</p>
+        <div class="app-layout__dialog-actions">
+          <button class="app-layout__dialog-cancel" type="button" @click="cancelLogout">
+            Batal
+          </button>
+          <button class="app-layout__dialog-confirm" type="button" @click="confirmLogout">
+            Keluar
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -228,5 +263,71 @@
     width: 100%;
     margin: 0 auto;
     padding: 2rem 1.5rem;
+  }
+
+  .app-layout__dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .app-layout__dialog {
+    width: min(100%, 26rem);
+    padding: 1.5rem;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .app-layout__dialog h2 {
+    font-size: 1.125rem;
+  }
+
+  .app-layout__dialog p {
+    margin-top: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.9375rem;
+  }
+
+  .app-layout__dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .app-layout__dialog-cancel,
+  .app-layout__dialog-confirm {
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .app-layout__dialog-cancel {
+    color: var(--color-text-muted);
+    background: transparent;
+  }
+
+  .app-layout__dialog-confirm {
+    color: white;
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  .app-layout__dialog-cancel:hover {
+    color: var(--color-text);
+    background: var(--color-surface);
+  }
+
+  .app-layout__dialog-confirm:hover {
+    filter: brightness(0.9);
   }
 </style>
