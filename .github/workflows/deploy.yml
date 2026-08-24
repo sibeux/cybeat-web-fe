@@ -48,4 +48,4 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             sibn9212@jembayan.iixcp.rumahweb.net \
-            'target="public_html/cybeat.sibeux.my.id"; mkdir -p "$target"; find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +; tar -xzf - -C "$target"'
+            'target="public_html/cybeat.sibeux.my.id"; mkdir -p "$target"; tar -xzf - -C "$target"'
