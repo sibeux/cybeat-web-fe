@@ -166,8 +166,15 @@ const onEnded = () => {
       isPlaying.value = true
     }
   } else {
+    const endedSongId = song.value?.id_music
     isPlaying.value = false
     playerStore.playNext()
+
+    if (repeatMode.value === 1 && song.value?.id_music === endedSongId && audioRef.value) {
+      audioRef.value.currentTime = 0
+      audioRef.value.play().catch(e => console.error('Playback failed', e))
+      isPlaying.value = true
+    }
   }
 }
 
