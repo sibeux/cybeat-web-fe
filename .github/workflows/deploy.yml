@@ -39,18 +39,11 @@ jobs:
       - name: Install SSH password client
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Trust RumahWeb SSH host
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -p 2223 jembayan.iixcp.rumahweb.net >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
       - name: Deploy dist to shared hosting
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
         run: >-
           sshpass -e rsync -az --delete
-          -e "ssh -p 2223 -o StrictHostKeyChecking=yes"
+          -e "ssh -p 2223 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
           dist/
           sibn9212@jembayan.iixcp.rumahweb.net:public_html/cybeat.sibeux.my.id/
