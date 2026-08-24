@@ -40,7 +40,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Trust RumahWeb SSH host
-        run: ssh-keyscan -p 2223 jembayan.iixcp.rumahweb.net >> ~/.ssh/known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p 2223 jembayan.iixcp.rumahweb.net >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy dist to shared hosting
         env:
