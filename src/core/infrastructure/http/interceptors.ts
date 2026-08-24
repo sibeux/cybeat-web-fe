@@ -85,7 +85,7 @@ export function setupInterceptors(): void {
         })
       }
 
-      if (token) {
+      if (token && !isRefreshRequest(config)) {
         config.headers.Authorization = `Bearer ${token}`
       }
       return config
