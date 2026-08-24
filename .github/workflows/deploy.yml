@@ -26,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -35,10 +35,15 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Load SSH private key
-        uses: webfactory/ssh-agent@v0.9.1
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Prepare SSH private key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          key_file="$RUNNER_TEMP/cybeat_deploy_key"
+          printf '%s' "$SSH_PRIVATE_KEY" | tr -d '\r' | sed 's/\\n/\n/g' > "$key_file"
+          chmod 600 "$key_file"
+          ssh-keygen -y -f "$key_file" > /dev/null
+          echo "SSH_KEY_FILE=$key_file" >> "$GITHUB_ENV"
 
       - name: Trust RumahWeb SSH host
         run: ssh-keyscan -p 2223 jembayan.iixcp.rumahweb.net >> ~/.ssh/known_hosts
@@ -46,6 +51,6 @@ jobs:
       - name: Deploy dist to shared hosting
         run: >-
           rsync -az --delete
-          -e "ssh -p 2223"
+          -e "ssh -i $SSH_KEY_FILE -p 2223 -o IdentitiesOnly=yes"
           dist/
           sibn9212@jembayan.iixcp.rumahweb.net:public_html/cybeat.sibeux.my.id/
