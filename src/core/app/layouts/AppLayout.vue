@@ -116,9 +116,14 @@
       </div>
     </header>
 
-    <main class="app-layout__content">
-      <slot />
-    </main>
+    <div class="app-layout__body">
+      <aside v-if="$slots.sidebar" class="app-layout__sidebar">
+        <slot name="sidebar" />
+      </aside>
+      <main class="app-layout__content">
+        <slot />
+      </main>
+    </div>
 
     <div
       v-if="isLogoutConfirmationOpen"
@@ -165,8 +170,7 @@
   }
 
   .app-layout__nav-inner {
-    max-width: 1280px;
-    margin: 0 auto;
+    width: 100%;
     padding: 0 1.5rem;
     height: 3.75rem;
     display: flex;
@@ -257,12 +261,37 @@
     }
   }
 
+  .app-layout__body {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    overflow: hidden;
+  }
+
+  .app-layout__sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: fixed;
+    top: 3.75rem;
+    left: 0;
+    bottom: 0;
+    z-index: 40;
+  }
+
   .app-layout__content {
     flex: 1;
-    max-width: 1280px;
-    width: 100%;
-    margin: 0 auto;
+    min-width: 0;
     padding: 2rem 1.5rem;
+    margin-left: 260px;
+  }
+
+  /* when no sidebar slot, remove the margin */
+  .app-layout__body:not(:has(.app-layout__sidebar)) .app-layout__content {
+    margin-left: 0;
   }
 
   .app-layout__dialog-backdrop {

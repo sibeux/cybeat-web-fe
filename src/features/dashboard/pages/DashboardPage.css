@@ -1,3 +1,128 @@
+/* ── Sidebar (Kategori) ───────────────────────────────────────── */
+.dashboard__sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.5rem 0 2rem;
+}
+
+.dashboard__sidebar-header {
+  padding: 0 1.25rem 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dashboard__sidebar-loading,
+.dashboard__sidebar-empty {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.dashboard__sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dashboard__sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-left: 2px solid transparent;
+}
+
+.dashboard__sidebar-item:hover {
+  background: var(--color-surface-raised);
+}
+
+.dashboard__sidebar-item--playing {
+  background: var(--color-primary-subtle, rgba(99, 102, 241, 0.08));
+  border-left-color: var(--color-primary);
+}
+
+/* Cover thumbnail — same radius as album cards */
+.dashboard__sidebar-cover {
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  background: var(--color-surface-raised);
+}
+
+.dashboard__sidebar-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.dashboard__sidebar-item:hover .dashboard__sidebar-cover img {
+  transform: scale(1.06);
+}
+
+.dashboard__sidebar-cover-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.dashboard__sidebar-cover-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Text info — mirrors .dashboard__album-info style */
+.dashboard__sidebar-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.dashboard__sidebar-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dashboard__sidebar-item--playing .dashboard__sidebar-label {
+  color: var(--color-primary);
+}
+
+.dashboard__sidebar-playing {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--color-primary);
+  opacity: 0.85;
+}
+
+/* ── Main content ─────────────────────────────────────────────── */
 .dashboard {
   display: flex;
   flex-direction: column;
