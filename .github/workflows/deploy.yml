@@ -42,8 +42,10 @@ jobs:
       - name: Deploy dist to shared hosting
         env:
           SSHPASS: ${{ secrets.SSH_PASSWORD }}
-        run: >-
-          sshpass -e rsync -az --delete
-          -e "ssh -p 2223 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          dist/
-          sibn9212@jembayan.iixcp.rumahweb.net:public_html/cybeat.sibeux.my.id/
+        run: |
+          tar -czf - -C dist . | sshpass -e ssh \
+            -p 2223 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            sibn9212@jembayan.iixcp.rumahweb.net \
+            'target="public_html/cybeat.sibeux.my.id"; mkdir -p "$target"; find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +; tar -xzf - -C "$target"'
