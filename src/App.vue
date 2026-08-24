@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, onUnmounted } from 'vue'
+  import { onMounted, onUnmounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
@@ -57,8 +57,9 @@
 
   onMounted(() => {
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
-    scheduleTokenRefresh()
   })
+
+  watch(() => authStore.accessToken, scheduleTokenRefresh, { immediate: true })
 
   onUnmounted(() => {
     window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired)
