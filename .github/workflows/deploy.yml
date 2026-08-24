@@ -35,13 +35,17 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Deploy dist to shared hosting
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Load SSH private key
+        uses: webfactory/ssh-agent@v0.9.1
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          local-dir: ./dist/
-          server-dir: /public_html/cybeat.sibeux.my.id/
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Trust RumahWeb SSH host
+        run: ssh-keyscan -p 2223 jembayan.iixcp.rumahweb.net >> ~/.ssh/known_hosts
+
+      - name: Deploy dist to shared hosting
+        run: >-
+          rsync -az --delete
+          -e "ssh -p 2223"
+          dist/
+          sibn9212@jembayan.iixcp.rumahweb.net:public_html/cybeat.sibeux.my.id/
