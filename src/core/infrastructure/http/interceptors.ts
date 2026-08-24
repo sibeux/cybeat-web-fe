@@ -31,7 +31,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
 
   if (!refreshPromise) {
     refreshPromise = apiClient
-      .post<AuthResponse>('/auth/refresh', { refresh_token: refreshToken }, {
+      .post<AuthResponse>('/auth/refresh', null, {
         headers: { Authorization: `Bearer ${refreshToken}` },
       })
       .then(({ data }) => {
