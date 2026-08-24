@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, ref, watch, watchEffect } from 'vue'
+  import { onMounted, watchEffect, watch, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -14,10 +14,9 @@
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
   
-  const { albums, categories, playlists, isLoading, error } = storeToRefs(dashboardStore)
+  const { albums, categories, playlists, isLoading, error, searchQuery } = storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
-  const search = ref('')
-  const debouncedSearch = useDebounce(search, 350)
+  const debouncedSearch = useDebounce(searchQuery, 350)
   const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
 
   watchEffect(() => {
@@ -27,7 +26,7 @@
   })
 
   onMounted(async () => {
-    await dashboardStore.fetchDashboardData()
+    await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())
   })
 
   watch(debouncedSearch, async (value) => {
@@ -228,7 +227,7 @@
           </svg>
           <input
             id="dashboard-search"
-            v-model="search"
+            v-model="searchQuery"
             type="search"
             class="dashboard__search-input"
             placeholder="Search by title or artist..."

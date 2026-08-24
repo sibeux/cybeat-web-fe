@@ -12,6 +12,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const isFetched = ref(false)
   const error = ref<string | null>(null)
   const fetchedSearch = ref('')
+  const searchQuery = ref('')
 
   const authStore = useAuthStore()
 
@@ -49,6 +50,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     isLoading,
     isFetched,
     error,
+    searchQuery,
     fetchDashboardData
   }
 })
