@@ -1,11 +1,12 @@
 <script setup lang="ts">
-  import { onMounted, watch, watchEffect } from 'vue'
+  import { onMounted, ref, watch, watchEffect } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { APP_NAME } from '@/core/app/config/app.config'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
+  import { useDebounce } from '@/core/shared/composables/useDebounce'
   import { useDashboardStore } from '../store/dashboard.store'
 
   const authStore = useAuthStore()
@@ -15,6 +16,8 @@
   
   const { albums, categories, playlists, isLoading, error } = storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
+  const search = ref('')
+  const debouncedSearch = useDebounce(search, 350)
 
   watchEffect(() => {
     document.title = currentSong.value
@@ -26,8 +29,12 @@
     await dashboardStore.fetchDashboardData()
   })
 
+  watch(debouncedSearch, async (value) => {
+    await dashboardStore.fetchDashboardData(value.trim(), true)
+  })
+
   watch(() => authStore.isAuthenticated, async () => {
-    await dashboardStore.fetchDashboardData(true)
+    await dashboardStore.fetchDashboardData(debouncedSearch.value.trim(), true)
   })
 
   const resolveCoverUrl = (cover: unknown) => {
@@ -138,6 +145,24 @@
         </div>
       </div>
 
+      <div class="dashboard__search">
+        <label for="dashboard-search" class="dashboard__search-label">Cari musik</label>
+        <div class="dashboard__search-input-wrapper">
+          <svg class="dashboard__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            id="dashboard-search"
+            v-model="search"
+            type="search"
+            class="dashboard__search-input"
+            placeholder="Cari album, kategori, atau playlist..."
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
       <div v-if="isLoading" class="dashboard__loading">
         <svg class="dashboard__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="2" x2="12" y2="6"></line>
@@ -180,31 +205,6 @@
           </div>
         </div>
 
-        <!-- Album Section -->
-        <div class="dashboard__albums-section" v-if="albums.length > 0">
-          <h2 class="dashboard__section-title">Album Terbaru</h2>
-          <div class="dashboard__album-grid">
-            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
-              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
-                  <img :src="DEFAULT_COVER" :alt="item.title" />
-                </div>
-                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
-                </div>
-                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              </div>
-              <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
-                <p class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Playlist Section -->
         <div class="dashboard__albums-section" v-if="playlists.length > 0">
           <h2 class="dashboard__section-title">Playlist</h2>
@@ -225,6 +225,31 @@
               <div class="dashboard__album-info">
                 <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
                 <p v-if="item.author" class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Album Section -->
+        <div class="dashboard__albums-section" v-if="albums.length > 0">
+          <h2 class="dashboard__section-title">Album Terbaru</h2>
+          <div class="dashboard__album-grid">
+            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
+              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
+                  <img :src="DEFAULT_COVER" :alt="item.title" />
+                </div>
+                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                </div>
+                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                </div>
+              </div>
+              <div class="dashboard__album-info">
+                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                <p class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const isLoading = ref(false)
   const isFetched = ref(false)
   const error = ref<string | null>(null)
+  const fetchedSearch = ref('')
 
   const authStore = useAuthStore()
 
@@ -22,16 +23,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
     playlists.value = []
   })
 
-  const fetchDashboardData = async (force = false) => {
-    if (isFetched.value && !force) return
+  const fetchDashboardData = async (search = '', force = false) => {
+    if (isFetched.value && fetchedSearch.value === search && !force) return
 
     try {
       isLoading.value = true
       error.value = null
-      const response = await dashboardApi.getMusicDashboard()
+      const response = await dashboardApi.getMusicDashboard(search)
       albums.value = response.data.data.album || []
       categories.value = response.data.data.category || []
       playlists.value = response.data.data.playlist || []
+      fetchedSearch.value = search
       isFetched.value = true
     } catch (err: any) {
       error.value = err.message || 'Gagal memuat data'
