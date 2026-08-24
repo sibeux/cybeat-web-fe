@@ -31,12 +31,18 @@ async function attemptTokenRefresh(): Promise<string | null> {
 
   if (!refreshPromise) {
     refreshPromise = apiClient
-      .post<AuthResponse>('/auth/refresh', null, {
+      .post<AuthResponse>('/auth/refresh', { refresh_token: refreshToken }, {
         headers: { Authorization: `Bearer ${refreshToken}` },
       })
       .then(({ data }) => {
+        if (data.status !== 'success' || !data.access_token) {
+          throw new Error(data.message || 'Unable to refresh session')
+        }
+
         authStorage.setAccessToken(data.access_token)
-        authStorage.setRefreshToken(data.refresh_token)
+        if (data.refresh_token) {
+          authStorage.setRefreshToken(data.refresh_token)
+        }
         return data.access_token
       })
       .catch(() => null)
