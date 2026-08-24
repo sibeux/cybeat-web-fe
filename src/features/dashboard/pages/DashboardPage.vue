@@ -18,6 +18,7 @@
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const search = ref('')
   const debouncedSearch = useDebounce(search, 350)
+  const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
 
   watchEffect(() => {
     document.title = currentSong.value
@@ -85,30 +86,74 @@
   <AppLayout>
     <template #sidebar>
       <div class="dashboard__sidebar">
-        <div class="dashboard__sidebar-header">Kategori</div>
-        <div v-if="isLoading" class="dashboard__sidebar-loading">Memuat...</div>
-        <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">Tidak ada kategori</div>
-        <ul v-else class="dashboard__sidebar-list">
-          <li
-            v-for="item in categories"
-            :key="item.id"
-            class="dashboard__sidebar-item"
-            :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
-            @click="goToAlbum(item)"
-          >
-            <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-              <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
-                <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sc-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+        <!-- Tab bar -->
+        <div class="dashboard__sidebar-tabs">
+          <button
+            class="dashboard__sidebar-tab"
+            :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'kategori' }"
+            @click="sidebarTab = 'kategori'"
+          >Kategori</button>
+          <button
+            class="dashboard__sidebar-tab"
+            :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'playlist' }"
+            @click="sidebarTab = 'playlist'"
+          >Playlist</button>
+        </div>
+
+        <!-- Kategori -->
+        <template v-if="sidebarTab === 'kategori'">
+          <div v-if="isLoading" class="dashboard__sidebar-loading">Memuat...</div>
+          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">Tidak ada kategori</div>
+          <ul v-else class="dashboard__sidebar-list">
+            <li
+              v-for="item in categories"
+              :key="item.id"
+              class="dashboard__sidebar-item"
+              :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
+              @click="goToAlbum(item)"
+            >
+              <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sc-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                </div>
+                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img v-else :src="DEFAULT_COVER" :alt="item.title" />
               </div>
-              <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-              <img v-else :src="DEFAULT_COVER" :alt="item.title" />
-            </div>
-            <div class="dashboard__sidebar-info">
-              <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
-            </div>
-            <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-          </li>
-        </ul>
+              <div class="dashboard__sidebar-info">
+                <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+              </div>
+              <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            </li>
+          </ul>
+        </template>
+
+        <!-- Playlist -->
+        <template v-else>
+          <div v-if="isLoading" class="dashboard__sidebar-loading">Memuat...</div>
+          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">Tidak ada playlist</div>
+          <ul v-else class="dashboard__sidebar-list">
+            <li
+              v-for="item in playlists"
+              :key="item.id"
+              class="dashboard__sidebar-item"
+              :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
+              @click="goToAlbum(item)"
+            >
+              <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+                <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sp-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                </div>
+                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img v-else :src="DEFAULT_COVER" :alt="item.title" />
+              </div>
+              <div class="dashboard__sidebar-info">
+                <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                <span v-if="item.author" class="dashboard__sidebar-sub" :title="item.author">{{ item.author }}</span>
+              </div>
+              <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            </li>
+          </ul>
+        </template>
       </div>
     </template>
 
@@ -130,7 +175,7 @@
         </div>
       </div>
 
-      <div class="dashboard__cards">
+      <!-- <div class="dashboard__cards">
         <div class="dashboard__card">
           <div class="dashboard__card-icon dashboard__card-icon--blue" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -172,7 +217,7 @@
             <span class="dashboard__card-value">—</span>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div class="dashboard__search">
         <label for="dashboard-search" class="dashboard__search-label">Cari musik</label>
@@ -209,31 +254,6 @@
         {{ error }}
       </div>
       <template v-else>
-        <!-- Playlist Section -->
-        <div class="dashboard__albums-section" v-if="playlists.length > 0">
-          <h2 class="dashboard__section-title">Playlist</h2>
-          <div class="dashboard__album-grid">
-            <div v-for="item in playlists" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
-              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
-                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
-                  <img :src="DEFAULT_COVER" :alt="item.title" />
-                </div>
-                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
-                </div>
-                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              </div>
-              <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
-                <p v-if="item.author" class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Album Section -->
         <div class="dashboard__albums-section" v-if="albums.length > 0">
           <h2 class="dashboard__section-title">Album Terbaru</h2>
