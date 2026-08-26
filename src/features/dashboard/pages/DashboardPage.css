@@ -265,6 +265,38 @@
   color: var(--color-text-placeholder);
 }
 
+.dashboard__search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.dashboard__search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.5rem;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.dashboard__search-clear:hover {
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+}
+
+.dashboard__search-clear svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
 .dashboard__card-icon {
   width: 2.5rem;
   height: 2.5rem;
