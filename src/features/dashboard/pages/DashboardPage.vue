@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { onMounted, watchEffect, watch, ref } from 'vue'
+import { onMounted, watch, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -8,6 +8,7 @@
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDebounce } from '@/core/shared/composables/useDebounce'
   import { useDashboardStore } from '../store/dashboard.store'
+  import { useTitle } from '@/core/shared/composables/useTitle'
 
   const authStore = useAuthStore()
   const router = useRouter()
@@ -19,11 +20,10 @@
   const debouncedSearch = useDebounce(searchQuery, 350)
   const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
 
-  watchEffect(() => {
-    document.title = currentSong.value
-      ? `${currentSong.value.title} • ${currentSong.value.artist}`
-      : APP_NAME
-  })
+  useTitle(() => currentSong.value
+    ? `${currentSong.value.title} • ${currentSong.value.artist}`
+    : APP_NAME
+  )
 
   onMounted(async () => {
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())

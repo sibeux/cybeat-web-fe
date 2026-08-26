@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watchEffect } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { APP_NAME } from '@/core/app/config/app.config'
@@ -7,6 +7,7 @@ import { albumApi } from '../api/album.api'
 import type { Song } from '../types/song.types'
 import { usePlayerStore } from '../store/player.store'
 import { storeToRefs } from 'pinia'
+import { useTitle } from '@/core/shared/composables/useTitle'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,17 +24,16 @@ const id = Number(route.params.id)
 const stateAlbumName = history.state?.albumName as string | undefined
 const stateArtistName = history.state?.artistName as string | undefined
 
-watchEffect(() => {
+useTitle(() => {
   if (currentSong.value) {
-    document.title = `${currentSong.value.title} • ${currentSong.value.artist}`
+    return `${currentSong.value.title} • ${currentSong.value.artist}`
   } else if (stateAlbumName) {
-    document.title = stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
+    return stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
   } else if (songs.value.length > 0) {
     const firstSong = songs.value[0]
-    document.title = `${firstSong.album} • ${firstSong.artist}`
-  } else {
-    document.title = APP_NAME
+    return `${firstSong.album} • ${firstSong.artist}`
   }
+  return APP_NAME
 })
 
 onMounted(async () => {
