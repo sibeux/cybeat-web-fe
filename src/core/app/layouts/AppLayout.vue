@@ -5,7 +5,7 @@
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { APP_NAME } from '@/core/app/config/app.config'
 
-  const props = defineProps<{
+  defineProps<{
     overrideBrand?: boolean
     navBackground?: string
   }>()
