@@ -31,17 +31,18 @@ async function bootstrap(): Promise<void> {
   const pinia = createPinia()
   app.use(pinia)
 
-  // 2. Install Router
-  app.use(router)
-
-  // 3. Set up HTTP interceptors (no store dependency — reads storage only)
+  // 2. Set up HTTP interceptors (no store dependency — reads storage only)
   setupInterceptors()
 
-  // 4. Restore auth session from persisted storage
-  //    This MUST complete before mount so the router guard
+  // 3. Restore auth session from persisted storage
+  //    This MUST complete before router installation so the router guard
   //    can make correct decisions on first navigation.
   const authStore = useAuthStore()
   await authStore.restoreSession()
+
+  // 4. Install Router AFTER auth state is resolved
+  //    This triggers the initial navigation with isInitializing = false
+  app.use(router)
 
   // 5. Wait for the lazy-loaded initial route before mounting the view.
   //    This prevents RouterView from rendering an empty shell on first load.
