@@ -12,7 +12,22 @@ const audioRef = ref<HTMLAudioElement | null>(null)
 const currentTime = ref(0)
 const duration = ref(0)
 const bufferedTime = ref(0)
-const volume = ref(1)
+const getCookie = (name: string) => {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) return parts.pop()?.split(';').shift()
+  return null
+}
+
+const setCookie = (name: string, value: string, days = 365) => {
+  const d = new Date()
+  d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000))
+  const expires = `expires=${d.toUTCString()}`
+  document.cookie = `${name}=${value};${expires};path=/`
+}
+
+const initialVolume = getCookie('cybeat_volume') !== null ? Number(getCookie('cybeat_volume')) : 1
+const volume = ref(initialVolume)
 const loadRequestId = ref(0)
 
 const formatTime = (time: number) => {
@@ -65,6 +80,7 @@ const loadSong = async (newSong: Song | null) => {
 
     if (data.success && data.stream_url) {
       audioRef.value.src = data.stream_url
+      audioRef.value.volume = volume.value
       audioRef.value.play().catch(e => console.error('Playback failed', e))
       isPlaying.value = true
     } else {
@@ -193,6 +209,7 @@ const changeVolume = (e: Event) => {
   if (audioRef.value) {
     audioRef.value.volume = vol
     volume.value = vol
+    setCookie('cybeat_volume', vol.toString())
   }
 }
 
