@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Song } from '../types/song.types'
+import { albumApi } from '../api/album.api'
 
 export interface PlaybackAlbum {
   type: string
@@ -17,6 +18,9 @@ export const usePlayerStore = defineStore('player', () => {
   const isShuffle = ref<boolean>(false)
   const isPlaying = ref(false)
   const playbackToggleRequest = ref(0)
+  
+  const codecData = ref<{ bits_per_raw_sample: string, sample_rate: string, bit_rate: string, codec_name: string } | null>(null)
+  const dominantColor = ref<{ bg_color: string, text_color: string } | null>(null)
 
   const activePlaylist = computed(() => isShuffle.value ? shuffledPlaylist.value : playlist.value)
 
@@ -27,6 +31,31 @@ export const usePlayerStore = defineStore('player', () => {
       [arr[i], arr[j]] = [arr[j], arr[i]]
     }
     return arr
+  }
+
+  const setRecentsCodecDominantColor = async (song: Song, album: PlaybackAlbum | null) => {
+    // Reset state before fetching
+    codecData.value = null
+    dominantColor.value = null
+    
+    try {
+      const response = await albumApi.setRecentMusic({
+        music_id: song.id_music,
+        album_id: album?.id ?? 0, // Fallback to 0 if no album
+        album_type: album?.type ?? 'song' // Fallback to 'song' if no album type
+      })
+      
+      if (response.data.status === 'success') {
+        if (response.data.codec) {
+          codecData.value = response.data.codec
+        }
+        if (response.data.dominant_color) {
+          dominantColor.value = response.data.dominant_color
+        }
+      }
+    } catch (e) {
+      console.error('Error setting recent music / fetching codec:', e)
+    }
   }
 
   const playSong = (song: Song, contextPlaylist: Song[] = [], album: PlaybackAlbum | null = null) => {
@@ -45,6 +74,9 @@ export const usePlayerStore = defineStore('player', () => {
       const others = playlist.value.filter(s => s.id_music !== song.id_music)
       shuffledPlaylist.value = [song, ...shuffleArray(others)]
     }
+    
+    // Fire and forget
+    setRecentsCodecDominantColor(song, currentAlbum.value)
   }
 
   const togglePlayback = () => {
@@ -108,12 +140,15 @@ export const usePlayerStore = defineStore('player', () => {
     isShuffle,
     isPlaying,
     playbackToggleRequest,
+    codecData,
+    dominantColor,
     playSong,
     togglePlayback,
     playNext,
     playPrev,
     toggleShuffle,
     toggleRepeat,
-    closePlayer
+    closePlayer,
+    setRecentsCodecDominantColor
   }
 })
