@@ -89,6 +89,11 @@ const goBack = () => {
 }
 
 const playSong = (song: Song) => {
+  if (song.codec_name?.toLowerCase() === 'alac') {
+    alert('Format ALAC tidak dapat diputar karena masalah kompatibilitas browser.')
+    return
+  }
+
   if (currentSong.value?.id_music === song.id_music) {
     playerStore.togglePlayback()
     return
@@ -146,14 +151,15 @@ const playSong = (song: Song) => {
             <tr v-for="(song, index) in songs" :key="song.id_music" class="song-list__tr">
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
-                <div class="song-list__cover-wrapper" @click="playSong(song)">
+                <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'Format ALAC tidak dapat diputar' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
                   <div class="song-list__cover-surface">
                     <img v-if="resolveCoverUrl(song.cover)" v-img-cache="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
                     <div v-else class="song-list__cover-placeholder">
                       <img v-img-cache="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
                     </div>
-                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying }">
+                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying, 'song-list__play-overlay--disabled': song.codec_name?.toLowerCase() === 'alac' }">
                       <svg v-if="currentSong?.id_music === song.id_music && isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                      <svg v-else-if="song.codec_name?.toLowerCase() === 'alac'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
                       <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </div>
                   </div>
