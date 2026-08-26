@@ -7,6 +7,7 @@
 
   const props = defineProps<{
     overrideBrand?: boolean
+    navBackground?: string
   }>()
 
   const router = useRouter()
@@ -51,7 +52,7 @@
 
 <template>
   <div class="app-layout">
-    <header class="app-layout__nav">
+    <header class="app-layout__nav" :style="{ background: navBackground || '' }">
       <div class="app-layout__nav-inner">
         <!-- Brand -->
         <div class="app-layout__brand-container">
@@ -176,6 +177,7 @@
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
     backdrop-filter: blur(8px);
+    transition: background 0.3s ease;
   }
 
   .app-layout__nav-inner {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { APP_NAME } from '@/core/app/config/app.config'
@@ -15,6 +15,7 @@ const playerStore = usePlayerStore()
 const { currentSong, isPlaying } = storeToRefs(playerStore)
 
 const songs = ref<Song[]>([])
+const totalSongs = ref(0)
 const isLoading = ref(true)
 const error = ref<string | null>(null)
 
@@ -57,6 +58,9 @@ onMounted(async () => {
     isLoading.value = true
     const response = await albumApi.getSongs(type, id)
     songs.value = response.data.data || []
+    // TODO: Jika API sudah mendukung pagination, ganti 'any' dengan tipe meta API Anda
+    // Saat ini fallback ke array length jika 'total' belum ada di response backend
+    totalSongs.value = (response.data as any).total || songs.value.length
   } catch (err: any) {
     error.value = err.response?.data?.message || err.message || 'Gagal memuat data'
   } finally {
@@ -117,10 +121,66 @@ const playSong = (song: Song) => {
 
   playerStore.playSong(song, songs.value, { type, id: Number(id) })
 }
+
+const albumCovers = computed<string[]>(() => {
+  if (songs.value.length === 0) return []
+
+  if (['playlist', 'category'].includes(type)) {
+    const covers = new Set<string>()
+    for (const song of songs.value) {
+      if (song.cover) {
+        covers.add(resolveCoverUrl(song.cover))
+      }
+      if (covers.size === 4) break
+    }
+    
+    const coverUrls = Array.from(covers)
+    // Jika tidak genap 4 cover unik, gunakan cover urutan terakhir (index terbesar)
+    // Sesuai dengan logika getCoverUrls di Dashboard: coverUrls.length < 4 ? coverUrls.slice(-1) : coverUrls
+    return coverUrls.length < 4 && coverUrls.length > 0 ? coverUrls.slice(-1) : coverUrls
+  }
+  
+  if (songs.value[0].cover) {
+    return [resolveCoverUrl(songs.value[0].cover)]
+  }
+  return [DEFAULT_COVER]
+})
+
+const albumCover = computed(() => {
+  if (albumCovers.value.length > 0) {
+    return albumCovers.value[0]
+  }
+  return DEFAULT_COVER
+})
+
+const albumType = computed(() => {
+  return type === 'playlist' ? 'Playlist' : 'Album'
+})
+
+const displayAlbumName = computed(() => {
+  return stateAlbumName || (songs.value.length > 0 ? songs.value[0].album : 'Unknown')
+})
+
+const displayArtistName = computed(() => {
+  return stateArtistName || (songs.value.length > 0 ? songs.value[0].artist : 'Unknown Artist')
+})
+
+const headerStyle = computed(() => {
+  const bg = songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
+  return {
+    background: `linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.7) 100%), ${bg}`
+  }
+})
+
+const stickyNavBackground = computed(() => {
+  const bg = songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
+  return `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), ${bg}`
+})
+
 </script>
 
 <template>
-  <AppLayout :overrideBrand="isStickyVisible">
+  <AppLayout :overrideBrand="isStickyVisible" :navBackground="isStickyVisible ? stickyNavBackground : undefined">
     <template #nav-brand>
       <div class="album-page__sticky-brand">
         <button class="album-page__back-btn album-page__back-btn--sticky" aria-label="Go back" @click="goBack">
@@ -136,15 +196,37 @@ const playSong = (song: Song) => {
     </template>
 
     <div class="album-page">
-      <div class="album-page__header">
-        <button class="album-page__back-btn" aria-label="Go back" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-        </button>
-        <h1 class="album-page__title">{{ stateAlbumName }}</h1>
+      <div class="album-page__hero" :style="headerStyle">
+        <div class="album-page__hero-topbar">
+          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Go back" @click="goBack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div class="album-page__hero-content">
+          <div class="album-page__hero-cover-wrapper">
+            <div v-if="albumCovers.length === 4" class="album-page__hero-cover-grid">
+              <img v-for="(coverUrl, index) in albumCovers" :key="`hero-grid-${index}`" v-img-cache="coverUrl" :alt="`Cover ${index + 1}`" @error="handleCoverError" />
+            </div>
+            <img v-else v-img-cache="albumCover" alt="Album Cover" class="album-page__hero-cover" @error="handleCoverError" />
+          </div>
+          <div class="album-page__hero-details">
+            <span class="album-page__hero-type">{{ albumType }}</span>
+            <h1 class="album-page__hero-title">{{ displayAlbumName }}</h1>
+            <div class="album-page__hero-meta">
+              <div class="album-page__hero-artist-avatar-wrapper">
+                <img v-img-cache="albumCover" alt="Artist" class="album-page__hero-artist-avatar" @error="handleCoverError" />
+              </div>
+              <span class="album-page__hero-artist">{{ displayArtistName }}</span>
+              <span class="album-page__hero-dot">•</span>
+              <span class="album-page__hero-tracks">{{ totalSongs }} lagu</span>
+            </div>
+          </div>
+        </div>
       </div>
+
 
       <div v-if="isLoading" class="album-page__state">
         <svg class="album-page__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

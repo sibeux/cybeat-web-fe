@@ -4,10 +4,138 @@
   gap: 2rem;
 }
 
-.album-page__header {
+.album-page__hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  border-radius: var(--radius-lg);
+  color: #ffffff;
+}
+
+.album-page__hero-topbar {
+  margin-bottom: 2rem;
+}
+
+.album-page__hero-content {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 1.5rem;
+}
+
+.album-page__hero-cover-wrapper {
+  width: 232px;
+  height: 232px;
+  flex-shrink: 0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.album-page__hero-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.album-page__hero-cover-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  background: var(--color-surface);
+}
+
+.album-page__hero-cover-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.album-page__hero-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.album-page__hero-type {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.album-page__hero-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  word-break: break-word;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.album-page__hero-meta {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.album-page__hero-artist-avatar-wrapper {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.album-page__hero-artist-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.album-page__hero-artist {
+  font-weight: 700;
+}
+
+.album-page__hero-dot {
+  opacity: 0.7;
+}
+
+.album-page__hero-tracks {
+  opacity: 0.7;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .album-page__hero-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .album-page__hero-cover-wrapper {
+    width: 192px;
+    height: 192px;
+  }
+  
+  .album-page__hero-details {
+    align-items: center;
+  }
+  
+  .album-page__hero-meta {
+    justify-content: center;
+  }
 }
 
 .album-page__back-btn {
@@ -32,12 +160,17 @@
   height: 1.5rem;
 }
 
-.album-page__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-  letter-spacing: -0.02em;
+.album-page__back-btn--hero {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  color: #ffffff;
+}
+
+.album-page__back-btn--hero:hover {
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .album-page__sticky-brand {
