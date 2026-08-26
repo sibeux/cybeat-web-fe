@@ -267,7 +267,7 @@ onBeforeUnmount(() => {
       <div class="player-widget__track-details">
         <h4 class="player-widget__title">{{ song.title }}</h4>
         <span class="player-widget__artist">{{ song.artist }}</span>
-        <span class="player-widget__codec" v-if="song.codec_name">
+        <span v-if="song.codec_name" class="player-widget__codec">
           {{ song.codec_name }} • {{ song.bit_rate || 'Unknown' }} bps
         </span>
       </div>
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
 
     <div class="player-widget__controls-container">
       <div class="player-widget__buttons">
-        <button class="player-btn player-btn--small" :class="{ 'is-active-repeat-all': repeatMode === 1, 'is-active-repeat-one': repeatMode === 2 }" @click="playerStore.toggleRepeat()" aria-label="Repeat">
+        <button class="player-btn player-btn--small" :class="{ 'is-active-repeat-all': repeatMode === 1, 'is-active-repeat-one': repeatMode === 2 }" aria-label="Repeat" @click="playerStore.toggleRepeat()">
           <svg v-if="repeatMode === 0 || repeatMode === 1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="17 1 21 5 17 9"></polyline>
             <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
@@ -290,20 +290,20 @@ onBeforeUnmount(() => {
             <path d="M11 10h1v4"></path>
           </svg>
         </button>
-        <button class="player-btn" @click="playerStore.playPrev()" aria-label="Previous">
+        <button class="player-btn" aria-label="Previous" @click="playerStore.playPrev()">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         </button>
-        <button class="player-btn player-btn--play" @click="togglePlay" aria-label="Play/Pause" :disabled="isLoadingStream">
+        <button class="player-btn player-btn--play" aria-label="Play/Pause" :disabled="isLoadingStream" @click="togglePlay">
           <svg v-if="isLoadingStream" class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
           </svg>
           <svg v-else-if="!isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-        <button class="player-btn" @click="playerStore.playNext()" aria-label="Next">
+        <button class="player-btn" aria-label="Next" @click="playerStore.playNext()">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
         </button>
-        <button class="player-btn player-btn--small" :class="{ 'is-active-shuffle': isShuffle }" @click="playerStore.toggleShuffle()" aria-label="Shuffle">
+        <button class="player-btn player-btn--small" :class="{ 'is-active-shuffle': isShuffle }" aria-label="Shuffle" @click="playerStore.toggleShuffle()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="16 3 21 3 21 8"></polyline>
             <line x1="4" y1="20" x2="21" y2="3"></line>
@@ -322,9 +322,9 @@ onBeforeUnmount(() => {
           :min="0" 
           :max="duration || 100" 
           :value="currentTime" 
-          @input="seek" 
-          :style="progressStyle"
+          :style="progressStyle" 
           :disabled="isLoadingStream || !duration"
+          @input="seek"
         />
         <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(duration) }}</span>
       </div>
@@ -342,10 +342,10 @@ onBeforeUnmount(() => {
         max="1" 
         step="0.01" 
         :value="volume" 
-        @input="changeVolume" 
-        :style="volumeStyle"
+        :style="volumeStyle" 
+        @input="changeVolume"
       />
-      <button class="player-btn player-btn--close" @click="playerStore.closePlayer()" aria-label="Close Player">
+      <button class="player-btn player-btn--close" aria-label="Close Player" @click="playerStore.closePlayer()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>

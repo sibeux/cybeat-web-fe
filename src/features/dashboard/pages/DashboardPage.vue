@@ -254,7 +254,7 @@ import { onMounted, watch, ref } from 'vue'
       </div>
       <template v-else>
         <!-- Album Section -->
-        <div class="dashboard__albums-section" v-if="albums.length > 0">
+        <div v-if="albums.length > 0" class="dashboard__albums-section">
           <h2 class="dashboard__section-title">Album Terbaru</h2>
           <div class="dashboard__album-grid">
             <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">

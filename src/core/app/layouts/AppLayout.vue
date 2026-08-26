@@ -65,9 +65,9 @@
               id="logout-button"
               class="app-layout__logout"
               type="button"
-              @click="requestLogout"
               :disabled="isLoggingOut"
               :class="{ 'app-layout__btn--loading': isLoggingOut }"
+              @click="requestLogout"
             >
               <svg v-if="isLoggingOut" class="app-layout__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="2" x2="12" y2="6"></line>
@@ -91,9 +91,9 @@
             <button
               class="app-layout__login"
               type="button"
-              @click="handleLogin"
               :disabled="isLoggingIn"
               :class="{ 'app-layout__btn--loading': isLoggingIn }"
+              @click="handleLogin"
             >
               <svg v-if="isLoggingIn" class="app-layout__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="2" x2="12" y2="6"></line>
