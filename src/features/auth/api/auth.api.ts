@@ -42,7 +42,7 @@ export const authApi = {
       password: payload.password,
     })
 
-    const response = await apiClient.post<AuthResponse>('', params, {
+    const response = await apiClient.post<AuthResponse>('/auth/register', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
     return response.data
@@ -62,7 +62,7 @@ export const authApi = {
       email,
     })
 
-    const response = await apiClient.post<EmailCheckResponse>('', params, {
+    const response = await apiClient.post<EmailCheckResponse>('/auth/register', params, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
     return response.data

@@ -118,9 +118,19 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const response = await authApi.register(payload)
+
+      if (response.status === 'failed') {
+        error.value = response.message === 'Email sudah terdaftar' 
+          ? 'Email sudah terdaftar. Gunakan email lain atau masuk ke akun Anda.' 
+          : (response.message || 'Registrasi gagal')
+        throw new Error(error.value)
+      }
+
       applySession(response.access_token, response.refresh_token)
     } catch (err) {
-      error.value = normalizeError(err)
+      if (!error.value) {
+        error.value = normalizeError(err)
+      }
       throw err
     } finally {
       isLoading.value = false
