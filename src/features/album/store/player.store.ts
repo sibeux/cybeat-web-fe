@@ -19,7 +19,7 @@ export const usePlayerStore = defineStore('player', () => {
   const isPlaying = ref(false)
   const playbackToggleRequest = ref(0)
   
-  const codecData = ref<{ bits_per_raw_sample: string, sample_rate: string, bit_rate: string, codec_name: string } | null>(null)
+  const codecData = ref<{ bits_per_raw_sample: string, sample_rate: string, bit_rate: string, codec_name: string, music_quality: string } | null>(null)
   const dominantColor = ref<{ bg_color: string, text_color: string } | null>(null)
 
   const activePlaylist = computed(() => isShuffle.value ? shuffledPlaylist.value : playlist.value)

@@ -16,6 +16,7 @@ export interface SetRecentMusicResponse {
     sample_rate: string;
     bit_rate: string;
     codec_name: string;
+    music_quality: string;
   } | null;
   dominant_color?: {
     bg_color: string;
