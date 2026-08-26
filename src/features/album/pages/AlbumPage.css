@@ -40,6 +40,33 @@
   letter-spacing: -0.02em;
 }
 
+.album-page__sticky-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.album-page__back-btn--sticky {
+  padding: 0.25rem;
+  margin-left: -0.25rem;
+}
+
+.album-page__back-btn--sticky svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.album-page__sticky-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .album-page__state {
   padding: 3rem;
   text-align: center;

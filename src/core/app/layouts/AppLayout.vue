@@ -5,6 +5,10 @@
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { APP_NAME } from '@/core/app/config/app.config'
 
+  const props = defineProps<{
+    overrideBrand?: boolean
+  }>()
+
   const router = useRouter()
   const authStore = useAuthStore()
   const playerStore = usePlayerStore()
@@ -50,9 +54,14 @@
     <header class="app-layout__nav">
       <div class="app-layout__nav-inner">
         <!-- Brand -->
-        <div class="app-layout__brand">
-          <img src="/assets/images/logo.png" alt="Logo" class="app-layout__brand-logo" />
-          <span class="app-layout__brand-name">{{ APP_NAME }}</span>
+        <div class="app-layout__brand-container">
+          <div class="app-layout__brand" :class="{ 'app-layout__brand--hidden': overrideBrand }">
+            <img src="/assets/images/logo.png" alt="Logo" class="app-layout__brand-logo" />
+            <span class="app-layout__brand-name">{{ APP_NAME }}</span>
+          </div>
+          <div class="app-layout__brand-override" :class="{ 'app-layout__brand-override--visible': overrideBrand }">
+            <slot name="nav-brand" />
+          </div>
         </div>
 
         <!-- Right side: user info + auth actions -->
@@ -178,10 +187,48 @@
     justify-content: space-between;
   }
 
+  .app-layout__brand-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin-right: 1.5rem;
+  }
+
   .app-layout__brand {
     display: flex;
     align-items: center;
     gap: 0.625rem;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .app-layout__brand--hidden {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+  }
+
+  .app-layout__brand-override {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(calc(-50% + 10px));
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+  }
+
+  .app-layout__brand-override--visible {
+    opacity: 1;
+    transform: translateY(-50%);
+    pointer-events: auto;
   }
 
   .app-layout__brand-logo {

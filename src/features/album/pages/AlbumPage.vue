@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { APP_NAME } from '@/core/app/config/app.config'
@@ -24,6 +24,9 @@ const id = Number(route.params.id)
 const stateAlbumName = history.state?.albumName as string | undefined
 const stateArtistName = history.state?.artistName as string | undefined
 
+const isStickyVisible = ref(false)
+let scrollHandler: (() => void) | null = null
+
 useTitle(() => {
   if (currentSong.value) {
     return `${currentSong.value.title} • ${currentSong.value.artist}`
@@ -37,6 +40,13 @@ useTitle(() => {
 })
 
 onMounted(async () => {
+  scrollHandler = () => {
+    // Show sticky title when scrolled down past the header (e.g., 80px)
+    isStickyVisible.value = window.scrollY > 80
+  }
+  
+  window.addEventListener('scroll', scrollHandler, { passive: true })
+  
   if (!type || !id) {
     error.value = 'Invalid album parameters'
     isLoading.value = false
@@ -51,6 +61,12 @@ onMounted(async () => {
     error.value = err.response?.data?.message || err.message || 'Gagal memuat data'
   } finally {
     isLoading.value = false
+  }
+})
+
+onUnmounted(() => {
+  if (scrollHandler) {
+    window.removeEventListener('scroll', scrollHandler)
   }
 })
 
@@ -104,7 +120,21 @@ const playSong = (song: Song) => {
 </script>
 
 <template>
-  <AppLayout>
+  <AppLayout :overrideBrand="isStickyVisible">
+    <template #nav-brand>
+      <div class="album-page__sticky-brand">
+        <button class="album-page__back-btn album-page__back-btn--sticky" aria-label="Go back" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </button>
+        <div class="album-page__sticky-title">
+          {{ stateAlbumName }}
+        </div>
+      </div>
+    </template>
+
     <div class="album-page">
       <div class="album-page__header">
         <button class="album-page__back-btn" aria-label="Go back" @click="goBack">
