@@ -40,6 +40,13 @@ import { onMounted, watch, ref } from 'vue'
   const resolveCoverUrl = (cover: unknown) => {
     if (typeof cover !== 'string' || !cover) return ''
     if (cover.startsWith('http') || cover.startsWith('data:')) return cover
+    
+    // Bypass non-cacheable API redirect to allow native browser caching
+    if (cover.includes('cover_url=cdncloudflare/')) {
+      const match = cover.match(/cover_url=cdncloudflare\/(.*)/);
+      if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`;
+    }
+    
     return `https://${cover}`
   }
 
@@ -113,10 +120,10 @@ import { onMounted, watch, ref } from 'vue'
             >
               <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sc-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sc-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-                <img v-else :src="DEFAULT_COVER" :alt="item.title" />
+                <img v-else-if="getCoverUrls(item).length" v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
                 <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
@@ -140,10 +147,10 @@ import { onMounted, watch, ref } from 'vue'
             >
               <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sp-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sp-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-                <img v-else :src="DEFAULT_COVER" :alt="item.title" />
+                <img v-else-if="getCoverUrls(item).length" v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
                 <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
@@ -260,12 +267,12 @@ import { onMounted, watch, ref } from 'vue'
             <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
                 <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
-                  <img :src="DEFAULT_COVER" :alt="item.title" />
+                  <img v-img-cache="DEFAULT_COVER" :alt="item.title" />
                 </div>
                 <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" :src="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
-                <img v-else :src="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img v-else v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
                 <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>

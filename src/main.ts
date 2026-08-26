@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './core/app/router/index'
 import { setupInterceptors } from './core/infrastructure/http/interceptors'
 import { useAuthStore } from './features/auth/index'
+import { imageCacheDirective } from './core/directives/imageCache'
 import './style.css'
 
 /**
@@ -30,6 +31,8 @@ async function bootstrap(): Promise<void> {
   // 1. Install Pinia before using any store
   const pinia = createPinia()
   app.use(pinia)
+
+  app.directive('img-cache', imageCacheDirective)
 
   // 2. Set up HTTP interceptors (no store dependency — reads storage only)
   setupInterceptors()

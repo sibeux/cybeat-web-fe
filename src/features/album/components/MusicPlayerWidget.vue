@@ -68,7 +68,7 @@ const loadSong = async (newSong: Song | null) => {
     isPlaying.value = false
     isLoadingStream.value = true
     
-    const response = await apiClient.get('/music/stream', {
+    const response = await apiClient.get('/music/stream/', {
       params: {
         music_id: newSong.id_music,
         file_type: 'audio'
@@ -216,6 +216,12 @@ const changeVolume = (e: Event) => {
 const resolveCoverUrl = (cover: string | null) => {
   if (!cover) return ''
   if (cover.startsWith('http') || cover.startsWith('data:')) return cover
+  
+  if (cover.includes('cover_url=cdncloudflare/')) {
+    const match = cover.match(/cover_url=cdncloudflare\/(.*)/);
+    if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`;
+  }
+  
   return `https://${cover}`
 }
 
@@ -259,7 +265,7 @@ onBeforeUnmount(() => {
 
     <div class="player-widget__info">
       <img 
-        :src="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
+        v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
         alt="Cover" 
         class="player-widget__cover" 
         @error="handleCoverError"
