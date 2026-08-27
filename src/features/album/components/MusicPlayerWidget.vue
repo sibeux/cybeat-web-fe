@@ -1,143 +1,26 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player.store'
-import type { Song } from '../types/song.types'
-import apiClient from '@/core/infrastructure/http/axios'
 
 const playerStore = usePlayerStore()
-const { currentSong: song, repeatMode, isShuffle, isPlaying, playbackToggleRequest } = storeToRefs(playerStore)
-
-const audioRef = ref<HTMLAudioElement | null>(null)
-const currentTime = ref(0)
-const duration = ref(0)
-const bufferedTime = ref(0)
-const getCookie = (name: string) => {
-  const value = `; ${document.cookie}`
-  const parts = value.split(`; ${name}=`)
-  if (parts.length === 2) return parts.pop()?.split(';').shift()
-  return null
-}
-
-const setCookie = (name: string, value: string, days = 365) => {
-  const d = new Date()
-  d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000))
-  const expires = `expires=${d.toUTCString()}`
-  document.cookie = `${name}=${value};${expires};path=/`
-}
-
-const initialVolume = getCookie('cybeat_volume') !== null ? Number(getCookie('cybeat_volume')) : 1
-const volume = ref(initialVolume)
-const loadRequestId = ref(0)
+const { 
+  currentSong: song, 
+  repeatMode, 
+  isShuffle, 
+  isPlaying, 
+  currentTime,
+  duration,
+  bufferedTime,
+  isLoadingStream,
+  volume
+} = storeToRefs(playerStore)
 
 const formatTime = (time: number) => {
   if (isNaN(time)) return '0:00'
   const m = Math.floor(time / 60)
   const s = Math.floor(time % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-const isLoadingStream = ref(false)
-
-const clearAudio = () => {
-  loadRequestId.value++
-  isLoadingStream.value = false
-  currentTime.value = 0
-  duration.value = 0
-  bufferedTime.value = 0
-
-  if (audioRef.value) {
-    audioRef.value.pause()
-    audioRef.value.removeAttribute('src')
-    audioRef.value.load()
-  }
-}
-
-const loadSong = async (newSong: Song | null) => {
-  if (!newSong || !audioRef.value) return
-
-  const requestId = ++loadRequestId.value
-  currentTime.value = 0
-  duration.value = 0
-  bufferedTime.value = 0
-  audioRef.value.pause()
-  audioRef.value.removeAttribute('src')
-  audioRef.value.load()
-  
-  try {
-    isPlaying.value = false
-    isLoadingStream.value = true
-    
-    const response = await apiClient.get('/music/stream/', {
-      params: {
-        music_id: newSong.id_music,
-        file_type: 'audio'
-      }
-    })
-    
-    const data = response.data
-    if (requestId !== loadRequestId.value || newSong.id_music !== song.value?.id_music) return
-
-    if (data.success && data.stream_url) {
-      audioRef.value.src = data.stream_url
-      audioRef.value.volume = volume.value
-      audioRef.value.play().catch(e => console.error('Playback failed', e))
-      isPlaying.value = true
-    } else {
-      console.error('Failed to resolve stream URL:', data)
-    }
-  } catch (err) {
-    if (requestId === loadRequestId.value) {
-      console.error('Error fetching stream URL:', err)
-    }
-  } finally {
-    if (requestId === loadRequestId.value && !audioRef.value?.src) {
-      isLoadingStream.value = false
-    }
-  }
-}
-
-// Watch for song changes to autoplay
-watch(() => song.value?.id_music, async (songId, previousSongId) => {
-  if (!song.value) {
-    clearAudio()
-    return
-  }
-  if (songId === previousSongId) return
-  await nextTick()
-  loadSong(song.value)
-})
-
-watch(playbackToggleRequest, () => {
-  togglePlay()
-})
-
-const togglePlay = () => {
-  if (!audioRef.value || !song.value || isLoadingStream.value) return
-  if (isPlaying.value) {
-    audioRef.value.pause()
-  } else {
-    audioRef.value.play().catch(e => console.error('Playback failed', e))
-  }
-  isPlaying.value = !isPlaying.value
-}
-
-const onTimeUpdate = () => {
-  if (audioRef.value) {
-    currentTime.value = audioRef.value.currentTime
-  }
-}
-
-const onProgress = () => {
-  if (audioRef.value && audioRef.value.buffered.length > 0) {
-    let maxBuffered = 0
-    for (let i = 0; i < audioRef.value.buffered.length; i++) {
-      if (audioRef.value.buffered.end(i) > maxBuffered) {
-        maxBuffered = audioRef.value.buffered.end(i)
-      }
-    }
-    bufferedTime.value = maxBuffered
-  }
 }
 
 const progressStyle = computed(() => {
@@ -167,65 +50,24 @@ const volumeStyle = computed(() => {
   }
 })
 
-const onLoadedMetadata = () => {
-  if (audioRef.value) {
-    duration.value = audioRef.value.duration
-    isLoadingStream.value = false
-  }
-}
-
-const onEnded = () => {
-  if (repeatMode.value === 2) {
-    if (audioRef.value) {
-      audioRef.value.currentTime = 0
-      audioRef.value.play().catch(e => console.error('Playback failed', e))
-      isPlaying.value = true
-      
-      if (song.value) {
-        playerStore.setRecentsCodecDominantColor(song.value, playerStore.currentAlbum)
-      }
-    }
-  } else {
-    const endedSongId = song.value?.id_music
-    isPlaying.value = false
-    playerStore.playNext()
-
-    if (repeatMode.value === 1 && song.value?.id_music === endedSongId && audioRef.value) {
-      audioRef.value.currentTime = 0
-      audioRef.value.play().catch(e => console.error('Playback failed', e))
-      isPlaying.value = true
-    }
-  }
-}
-
 const seek = (e: Event) => {
   const target = e.target as HTMLInputElement
-  const time = Number(target.value)
-  if (audioRef.value) {
-    audioRef.value.currentTime = time
-    currentTime.value = time
-  }
+  playerStore.seek(Number(target.value))
 }
 
 const changeVolume = (e: Event) => {
   const target = e.target as HTMLInputElement
-  const vol = Number(target.value)
-  if (audioRef.value) {
-    audioRef.value.volume = vol
-    volume.value = vol
-    setCookie('cybeat_volume', vol.toString())
-  }
+  playerStore.changeVolume(Number(target.value))
 }
 
+// Minimal local fallback for cover resolving in template
 const resolveCoverUrl = (cover: string | null) => {
   if (!cover) return ''
   if (cover.startsWith('http') || cover.startsWith('data:')) return cover
-  
   if (cover.includes('cover_url=cdncloudflare/')) {
     const match = cover.match(/cover_url=cdncloudflare\/(.*)/);
     if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`;
   }
-  
   return `https://${cover}`
 }
 
@@ -237,36 +79,10 @@ const handleCoverError = (e: Event) => {
   img.dataset.fallbackApplied = 'true'
   img.src = DEFAULT_COVER
 }
-
-onMounted(() => {
-  if (audioRef.value) {
-    audioRef.value.volume = volume.value
-  }
-  if (song.value) {
-    loadSong(song.value)
-  }
-})
-
-onBeforeUnmount(() => {
-  if (audioRef.value) {
-    audioRef.value.pause()
-    audioRef.value.src = ''
-  }
-})
 </script>
 
 <template>
   <div v-if="song" class="player-widget">
-    <audio 
-      ref="audioRef"
-      @timeupdate="onTimeUpdate"
-      @progress="onProgress"
-      @loadedmetadata="onLoadedMetadata"
-      @ended="onEnded"
-      @play="isPlaying = true"
-      @pause="isPlaying = false"
-    ></audio>
-
     <div class="player-widget__info">
       <img 
         v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
@@ -303,7 +119,7 @@ onBeforeUnmount(() => {
         <button class="player-btn" aria-label="Previous" @click="playerStore.playPrev()">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         </button>
-        <button class="player-btn player-btn--play" aria-label="Play/Pause" :disabled="isLoadingStream" @click="togglePlay">
+        <button class="player-btn player-btn--play" aria-label="Play/Pause" :disabled="isLoadingStream" @click="playerStore.togglePlayback()">
           <svg v-if="isLoadingStream" class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
           </svg>
