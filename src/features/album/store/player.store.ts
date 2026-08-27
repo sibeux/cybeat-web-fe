@@ -91,8 +91,10 @@ export const usePlayerStore = defineStore('player', () => {
     if (idx !== -1) {
       if (idx < currentList.length - 1) {
         currentSong.value = currentList[idx + 1]
+        setRecentsCodecDominantColor(currentSong.value, currentAlbum.value)
       } else if (repeatMode.value === 1 || repeatMode.value === 2) {
         currentSong.value = currentList[0]
+        setRecentsCodecDominantColor(currentSong.value, currentAlbum.value)
       }
     }
   }
@@ -104,8 +106,10 @@ export const usePlayerStore = defineStore('player', () => {
     
     if (idx > 0) {
       currentSong.value = currentList[idx - 1]
+      setRecentsCodecDominantColor(currentSong.value, currentAlbum.value)
     } else if (repeatMode.value === 1 || repeatMode.value === 2) {
       currentSong.value = currentList[currentList.length - 1]
+      setRecentsCodecDominantColor(currentSong.value, currentAlbum.value)
     }
   }
 

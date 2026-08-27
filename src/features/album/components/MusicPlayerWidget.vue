@@ -180,6 +180,10 @@ const onEnded = () => {
       audioRef.value.currentTime = 0
       audioRef.value.play().catch(e => console.error('Playback failed', e))
       isPlaying.value = true
+      
+      if (song.value) {
+        playerStore.setRecentsCodecDominantColor(song.value, playerStore.currentAlbum)
+      }
     }
   } else {
     const endedSongId = song.value?.id_music
