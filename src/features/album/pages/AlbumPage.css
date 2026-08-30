@@ -52,6 +52,8 @@
 .album-page__hero-cover-grid img {
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   object-fit: cover;
   display: block;
 }
