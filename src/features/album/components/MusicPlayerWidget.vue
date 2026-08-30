@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player.store'
 
@@ -23,9 +23,13 @@ const formatTime = (time: number) => {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+const isDragging = ref(false)
+const localTime = ref(0)
+const displayTime = computed(() => isDragging.value ? localTime.value : currentTime.value)
+
 const progressStyle = computed(() => {
   const dur = duration.value || 100
-  const currentPct = (currentTime.value / dur) * 100
+  const currentPct = (displayTime.value / dur) * 100
   const bufferedPct = (bufferedTime.value / dur) * 100
   
   return {
@@ -50,9 +54,16 @@ const volumeStyle = computed(() => {
   }
 })
 
-const seek = (e: Event) => {
+const onSeekInput = (e: Event) => {
+  isDragging.value = true
+  const target = e.target as HTMLInputElement
+  localTime.value = Number(target.value)
+}
+
+const onSeekChange = (e: Event) => {
   const target = e.target as HTMLInputElement
   playerStore.seek(Number(target.value))
+  isDragging.value = false
 }
 
 const changeVolume = (e: Event) => {
@@ -141,16 +152,18 @@ const handleCoverError = (e: Event) => {
       </div>
 
       <div class="player-widget__progress">
-        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(currentTime) }}</span>
+        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(displayTime) }}</span>
         <input 
           type="range" 
           class="player-widget__seek" 
           :min="0" 
           :max="duration || 100" 
-          :value="currentTime" 
+          step="0.01"
+          :value="displayTime" 
           :style="progressStyle" 
           :disabled="isLoadingStream || !duration"
-          @input="seek"
+          @input="onSeekInput"
+          @change="onSeekChange"
         />
         <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(duration) }}</span>
       </div>
