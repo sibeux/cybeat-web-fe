@@ -522,3 +522,83 @@
 .dashboard__album-artist--playing {
   color: var(--color-primary);
 }
+
+/* ── Scroll To Top Button ─────────────────────────────────────── */
+.dashboard__scroll-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 2.875rem;
+  height: 2.875rem;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #121212;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 90;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease;
+}
+
+.dashboard__scroll-top:hover {
+  background-color: #f4f4f5;
+  color: #000000;
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 255, 255, 0.3);
+}
+
+.dashboard__scroll-top:active {
+  transform: translateY(0) scale(0.96);
+  background-color: #e4e4e7;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.dashboard__scroll-top svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  stroke-width: 2.5;
+  transition: transform 0.2s ease;
+}
+
+.dashboard__scroll-top:hover svg {
+  transform: translateY(-2px);
+}
+
+/* ── Transitions for Scroll To Top ───────────────────────────── */
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(14px) scale(0.8);
+}
+
+/* ── Responsive adjustments ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .dashboard__scroll-top {
+    bottom: 1.5rem;
+    right: 1.25rem;
+    width: 2.625rem;
+    height: 2.625rem;
+  }
+
+  .dashboard__scroll-top svg {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .dashboard__scroll-top--player-active {
+    bottom: 5.25rem;
+  }
+}

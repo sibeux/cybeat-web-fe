@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch, ref } from 'vue'
+import { onMounted, onUnmounted, watch, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -19,6 +19,18 @@ import { onMounted, watch, ref } from 'vue'
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const debouncedSearch = useDebounce(searchQuery, 350)
   const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
+  const showScrollTop = ref(false)
+
+  const handleScroll = () => {
+    showScrollTop.value = window.scrollY > 300
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
 
   useTitle(() => currentSong.value
     ? `${currentSong.value.title} • ${currentSong.value.artist}`
@@ -26,7 +38,12 @@ import { onMounted, watch, ref } from 'vue'
   )
 
   onMounted(async () => {
+    window.addEventListener('scroll', handleScroll, { passive: true })
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('scroll', handleScroll)
   })
 
   watch(debouncedSearch, async (value) => {
@@ -297,6 +314,23 @@ import { onMounted, watch, ref } from 'vue'
         </div>
       </template>
     </div>
+
+    <!-- Scroll To Top Button -->
+    <Transition name="scroll-top-fade">
+      <button
+        v-if="showScrollTop"
+        class="dashboard__scroll-top"
+        :class="{ 'dashboard__scroll-top--player-active': !!currentSong }"
+        type="button"
+        aria-label="Kembali ke atas"
+        title="Kembali ke atas"
+        @click="scrollToTop"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="18 15 12 9 6 15" />
+        </svg>
+      </button>
+    </Transition>
   </AppLayout>
 </template>
 
