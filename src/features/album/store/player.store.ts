@@ -119,6 +119,11 @@ export const usePlayerStore = defineStore('player', () => {
     return false
   }
 
+  const isUnsupportedCodec = (song?: Song | null) => {
+    if (!song || !song.codec_name) return false
+    return song.codec_name.trim().toLowerCase() === 'alac'
+  }
+
   audio.addEventListener('play', () => { isPlaying.value = true })
   audio.addEventListener('pause', () => { isPlaying.value = false })
   audio.addEventListener('playing', () => {
@@ -141,6 +146,11 @@ export const usePlayerStore = defineStore('player', () => {
     console.error('Audio native error:', mediaError?.code, mediaError?.message || mediaError)
     isLoadingStream.value = false
     isPlaying.value = false
+
+    // Auto-skip to next playable song if current track encounters format/decoding error
+    if (currentSong.value && activePlaylist.value.length > 0) {
+      playNext(true)
+    }
   })
 
   // === Media Session API Integration ===
@@ -304,16 +314,41 @@ export const usePlayerStore = defineStore('player', () => {
     setCookie('cybeat_volume', vol.toString())
   }
 
-  const playNext = () => {
+  const playNext = (autoTriggered = false) => {
     if (!currentSong.value || activePlaylist.value.length === 0) return
     const currentList = activePlaylist.value
     const idx = currentList.findIndex(s => s.id_music === currentSong.value?.id_music)
     
     if (idx !== -1) {
-      if (idx < currentList.length - 1) {
-        playSong(currentList[idx + 1])
-      } else if (repeatMode.value === 1 || repeatMode.value === 2) {
-        playSong(currentList[0])
+      let nextIdx = -1
+      let count = 0
+      let i = idx
+
+      while (count < currentList.length) {
+        i++
+        count++
+        if (i >= currentList.length) {
+          if (repeatMode.value === 1 || repeatMode.value === 2) {
+            i = 0
+          } else {
+            break
+          }
+        }
+
+        if (i === idx) break
+
+        const candidate = currentList[i]
+        if (!isUnsupportedCodec(candidate)) {
+          nextIdx = i
+          break
+        }
+      }
+
+      if (nextIdx !== -1) {
+        playSong(currentList[nextIdx])
+      } else if (autoTriggered) {
+        isPlaying.value = false
+        isLoadingStream.value = false
       }
     }
   }
@@ -323,10 +358,34 @@ export const usePlayerStore = defineStore('player', () => {
     const currentList = activePlaylist.value
     const idx = currentList.findIndex(s => s.id_music === currentSong.value?.id_music)
     
-    if (idx > 0) {
-      playSong(currentList[idx - 1])
-    } else if (repeatMode.value === 1 || repeatMode.value === 2) {
-      playSong(currentList[currentList.length - 1])
+    if (idx !== -1) {
+      let prevIdx = -1
+      let count = 0
+      let i = idx
+
+      while (count < currentList.length) {
+        i--
+        count++
+        if (i < 0) {
+          if (repeatMode.value === 1 || repeatMode.value === 2) {
+            i = currentList.length - 1
+          } else {
+            break
+          }
+        }
+
+        if (i === idx) break
+
+        const candidate = currentList[i]
+        if (!isUnsupportedCodec(candidate)) {
+          prevIdx = i
+          break
+        }
+      }
+
+      if (prevIdx !== -1) {
+        playSong(currentList[prevIdx])
+      }
     }
   }
 
