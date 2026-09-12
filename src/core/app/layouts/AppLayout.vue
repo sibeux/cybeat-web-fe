@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
@@ -13,6 +13,7 @@
   const router = useRouter()
   const authStore = useAuthStore()
   const playerStore = usePlayerStore()
+  const hasActivePlayer = computed(() => !!playerStore.currentSong)
 
   const isLoggingOut = ref(false)
   const isLoggingIn = ref(false)
@@ -130,7 +131,7 @@
       <aside v-if="$slots.sidebar" class="app-layout__sidebar">
         <slot name="sidebar" />
       </aside>
-      <main class="app-layout__content">
+      <main class="app-layout__content" :class="{ 'app-layout__content--has-player': hasActivePlayer }">
         <slot />
       </main>
     </div>
@@ -334,8 +335,13 @@
   .app-layout__content {
     flex: 1;
     min-width: 0;
-    padding: 2rem 1.5rem 7.5rem 1.5rem;
+    padding: 2rem 1.5rem 2rem 1.5rem;
     margin-left: 260px;
+    transition: padding-bottom 0.25s ease;
+  }
+
+  .app-layout__content--has-player {
+    padding-bottom: 6.5rem;
   }
 
   /* when no sidebar slot, remove the margin */

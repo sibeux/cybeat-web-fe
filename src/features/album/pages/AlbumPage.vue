@@ -198,11 +198,12 @@ const stickyNavBackground = computed(() => {
     <div class="album-page">
       <div class="album-page__hero" :style="headerStyle">
         <div class="album-page__hero-topbar">
-          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Go back" @click="goBack">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Kembali" title="Kembali" @click="goBack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
+            <span class="album-page__back-text">Kembali</span>
           </button>
         </div>
         <div class="album-page__hero-content">
