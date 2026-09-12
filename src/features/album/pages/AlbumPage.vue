@@ -261,7 +261,12 @@ const stickyNavBackground = computed(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(song, index) in songs" :key="song.id_music" class="song-list__tr">
+            <tr 
+              v-for="(song, index) in songs" 
+              :key="song.id_music" 
+              class="song-list__tr"
+              :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
+            >
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
                 <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'Format ALAC tidak dapat diputar' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">

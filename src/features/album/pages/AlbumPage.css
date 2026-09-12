@@ -285,11 +285,25 @@
 }
 
 .song-list__tr {
-  transition: background-color 0.2s;
+  transition: background 0.25s ease, background-color 0.25s ease;
 }
 
 .song-list__tr:hover {
   background-color: var(--color-surface-raised);
+}
+
+.song-list__tr--active {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.18) 0%, rgba(16, 185, 129, 0.08) 45%, rgba(16, 185, 129, 0) 100%);
+  position: relative;
+}
+
+.song-list__tr--active:hover {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.12) 45%, rgba(16, 185, 129, 0.04) 100%);
+}
+
+.song-list__tr--active .song-list__td--index {
+  color: var(--color-primary, #10b981);
+  font-weight: 700;
 }
 
 .song-list__tr:not(:last-child) {
