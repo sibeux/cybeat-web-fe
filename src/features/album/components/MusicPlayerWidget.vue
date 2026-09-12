@@ -25,7 +25,7 @@ const formatTime = (time: number) => {
 
 const isDragging = ref(false)
 const localTime = ref(0)
-const displayTime = computed(() => isDragging.value ? localTime.value : (isLoadingStream.value ? 0 : currentTime.value))
+const displayTime = computed(() => isDragging.value ? localTime.value : currentTime.value)
 
 // Reset drag & local seek state whenever active song changes
 watch(() => song.value?.id_music, () => {
@@ -35,7 +35,7 @@ watch(() => song.value?.id_music, () => {
 
 const progressStyle = computed(() => {
   const dur = duration.value
-  if (!dur || dur <= 0 || isLoadingStream.value) {
+  if (!dur || dur <= 0) {
     return {
       background: 'rgba(255, 255, 255, 0.2)'
     }
@@ -105,7 +105,8 @@ const handleCoverError = (e: Event) => {
 </script>
 
 <template>
-  <div v-if="song" class="player-widget">
+  <Transition name="player-slide">
+    <div v-if="song" class="player-widget">
     <div class="player-widget__info">
       <img 
         v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
@@ -164,20 +165,20 @@ const handleCoverError = (e: Event) => {
       </div>
 
       <div class="player-widget__progress">
-        <span class="player-widget__time">{{ isLoadingStream || !duration ? '0:00' : formatTime(displayTime) }}</span>
+        <span class="player-widget__time">{{ !duration ? '0:00' : formatTime(displayTime) }}</span>
         <input 
           type="range" 
           class="player-widget__seek" 
           :min="0" 
           :max="duration || 100" 
           step="0.01"
-          :value="isLoadingStream || !duration ? 0 : displayTime" 
+          :value="!duration ? 0 : displayTime" 
           :style="progressStyle" 
-          :disabled="isLoadingStream || !duration"
+          :disabled="isLoadingStream && !duration"
           @input="onSeekInput"
           @change="onSeekChange"
         />
-        <span class="player-widget__time">{{ isLoadingStream || !duration ? '--:--' : formatTime(duration) }}</span>
+        <span class="player-widget__time">{{ !duration ? '--:--' : formatTime(duration) }}</span>
       </div>
     </div>
 
@@ -201,6 +202,7 @@ const handleCoverError = (e: Event) => {
       </button>
     </div>
   </div>
+  </Transition>
 </template>
 
 <style scoped src="./MusicPlayerWidget.css"></style>

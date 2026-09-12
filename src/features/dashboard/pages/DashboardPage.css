@@ -51,7 +51,7 @@
 .dashboard__sidebar-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 7.5rem 0;
   overflow-y: auto;
   flex: 1;
   display: flex;

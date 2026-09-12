@@ -334,7 +334,7 @@
   .app-layout__content {
     flex: 1;
     min-width: 0;
-    padding: 2rem 1.5rem;
+    padding: 2rem 1.5rem 7.5rem 1.5rem;
     margin-left: 260px;
   }
 

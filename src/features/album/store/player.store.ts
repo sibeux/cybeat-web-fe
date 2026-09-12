@@ -63,7 +63,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   // === Native Audio Event Listeners ===
   audio.addEventListener('timeupdate', () => {
-    if (!isLoadingStream.value && audio.src) {
+    if (audio.src) {
       currentTime.value = audio.currentTime
     }
   })
@@ -107,9 +107,34 @@ export const usePlayerStore = defineStore('player', () => {
     }
   })
 
+  const isTimeBuffered = (time: number) => {
+    try {
+      for (let i = 0; i < audio.buffered.length; i++) {
+        // Buffer margin of 0.25s
+        if (time >= audio.buffered.start(i) && time <= audio.buffered.end(i) + 0.25) {
+          return true
+        }
+      }
+    } catch {}
+    return false
+  }
+
   audio.addEventListener('play', () => { isPlaying.value = true })
   audio.addEventListener('pause', () => { isPlaying.value = false })
-  audio.addEventListener('waiting', () => { isLoadingStream.value = true })
+  audio.addEventListener('playing', () => {
+    isLoadingStream.value = false
+    isPlaying.value = true
+  })
+  audio.addEventListener('waiting', () => {
+    if (!isTimeBuffered(audio.currentTime)) {
+      isLoadingStream.value = true
+    }
+  })
+  audio.addEventListener('seeked', () => {
+    if (isTimeBuffered(audio.currentTime)) {
+      isLoadingStream.value = false
+    }
+  })
   audio.addEventListener('canplay', () => { isLoadingStream.value = false })
   audio.addEventListener('error', (e) => {
     const mediaError = (e.target as HTMLAudioElement)?.error
@@ -262,8 +287,15 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   const seek = (time: number) => {
-    audio.currentTime = time
+    try {
+      audio.currentTime = time
+    } catch (e) {
+      console.error('Seek error:', e)
+    }
     currentTime.value = time
+    if (isTimeBuffered(time)) {
+      isLoadingStream.value = false
+    }
   }
 
   const changeVolume = (vol: number) => {
