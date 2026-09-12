@@ -341,7 +341,7 @@
   }
 
   .app-layout__content--has-player {
-    padding-bottom: 6.5rem;
+    padding-bottom: 9.5rem;
   }
 
   /* when no sidebar slot, remove the margin */
