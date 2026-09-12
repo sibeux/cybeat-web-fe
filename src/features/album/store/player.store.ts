@@ -167,16 +167,9 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   let loadRequestId = 0
-  let activeAbortController: AbortController | null = null
 
   const loadAudioStream = async (song: Song) => {
     const requestId = ++loadRequestId
-    
-    // Abort previous stream request if any
-    if (activeAbortController) {
-      activeAbortController.abort()
-      activeAbortController = null
-    }
 
     // Reset player state immediately
     currentTime.value = 0
@@ -192,58 +185,10 @@ export const usePlayerStore = defineStore('player', () => {
     isPlaying.value = false
     isLoadingStream.value = true
 
-    const controller = new AbortController()
-    activeAbortController = controller
-    
     try {
-      const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string || '').replace(/\/+$/, '')
-      const streamEndpoint = `${apiBaseUrl}/music/stream/?music_id=${song.id_music}&file_type=audio`
-      
-      // Fetch headers and immediate body chunk without waiting for server connection close
-      const res = await fetch(streamEndpoint, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        },
-        signal: controller.signal
-      })
+      const response = await albumApi.getStreamUrl(song.id_music, 'audio')
+      const data = response.data
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`)
-      }
-
-      // Read the first chunk immediately where JSON payload arrives
-      const reader = res.body?.getReader()
-      let rawJson = ''
-      
-      if (reader) {
-        const decoder = new TextDecoder()
-        while (true) {
-          const { done, value } = await reader.read()
-          if (value) {
-            rawJson += decoder.decode(value, { stream: true })
-          }
-          // As soon as valid JSON object is received, stop waiting and abort hanging connection
-          if (rawJson.includes('stream_url') || done) {
-            break
-          }
-        }
-        controller.abort() // Immediately release hanging server connection
-      } else {
-        rawJson = await res.text()
-      }
-
-      let data: any = null
-      try {
-        data = JSON.parse(rawJson)
-      } catch {
-        // Fallback in case rawJson has trailing characters
-        const match = rawJson.match(/\{[\s\S]*"stream_url"\s*:\s*"([^"]+)"[\s\S]*\}/)
-        if (match && match[1]) {
-          data = { stream_url: match[1] }
-        }
-      }
-      
       if (requestId !== loadRequestId || song.id_music !== currentSong.value?.id_music) return
 
       const directUrl = 
@@ -269,18 +214,13 @@ export const usePlayerStore = defineStore('player', () => {
             isLoadingStream.value = false
           })
       } else {
-        console.error('No stream URL found in API response:', rawJson)
+        console.error('No stream URL found in API response:', data)
         isLoadingStream.value = false
       }
     } catch (err: any) {
-      if (err?.name === 'AbortError') return
       if (requestId === loadRequestId) {
         console.error('Error fetching stream URL:', err)
         isLoadingStream.value = false
-      }
-    } finally {
-      if (activeAbortController === controller) {
-        activeAbortController = null
       }
     }
   }
