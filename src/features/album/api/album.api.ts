@@ -44,5 +44,13 @@ export const albumApi = {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     })
+  },
+  getStreamUrl(musicId: number, fileType = 'audio') {
+    return apiClient.get(`/music/stream/`, {
+      params: {
+        music_id: musicId,
+        file_type: fileType
+      }
+    })
   }
 }

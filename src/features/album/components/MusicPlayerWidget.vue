@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player.store'
 
@@ -9,15 +9,15 @@ const {
   repeatMode, 
   isShuffle, 
   isPlaying, 
-  currentTime,
-  duration,
-  bufferedTime,
-  isLoadingStream,
-  volume
+  currentTime, 
+  duration, 
+  bufferedTime, 
+  isLoadingStream, 
+  volume 
 } = storeToRefs(playerStore)
 
 const formatTime = (time: number) => {
-  if (isNaN(time)) return '0:00'
+  if (isNaN(time) || time <= 0) return '0:00'
   const m = Math.floor(time / 60)
   const s = Math.floor(time % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
@@ -25,12 +25,24 @@ const formatTime = (time: number) => {
 
 const isDragging = ref(false)
 const localTime = ref(0)
-const displayTime = computed(() => isDragging.value ? localTime.value : currentTime.value)
+const displayTime = computed(() => isDragging.value ? localTime.value : (isLoadingStream.value ? 0 : currentTime.value))
+
+// Reset drag & local seek state whenever active song changes
+watch(() => song.value?.id_music, () => {
+  isDragging.value = false
+  localTime.value = 0
+})
 
 const progressStyle = computed(() => {
-  const dur = duration.value || 100
-  const currentPct = (displayTime.value / dur) * 100
-  const bufferedPct = (bufferedTime.value / dur) * 100
+  const dur = duration.value
+  if (!dur || dur <= 0 || isLoadingStream.value) {
+    return {
+      background: 'rgba(255, 255, 255, 0.2)'
+    }
+  }
+  
+  const currentPct = Math.min(100, Math.max(0, (displayTime.value / dur) * 100))
+  const bufferedPct = Math.min(100, Math.max(0, (bufferedTime.value / dur) * 100))
   
   return {
     background: `linear-gradient(to right, 
@@ -152,20 +164,20 @@ const handleCoverError = (e: Event) => {
       </div>
 
       <div class="player-widget__progress">
-        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(displayTime) }}</span>
+        <span class="player-widget__time">{{ isLoadingStream || !duration ? '0:00' : formatTime(displayTime) }}</span>
         <input 
           type="range" 
           class="player-widget__seek" 
           :min="0" 
           :max="duration || 100" 
           step="0.01"
-          :value="displayTime" 
+          :value="isLoadingStream || !duration ? 0 : displayTime" 
           :style="progressStyle" 
           :disabled="isLoadingStream || !duration"
           @input="onSeekInput"
           @change="onSeekChange"
         />
-        <span class="player-widget__time">{{ isLoadingStream ? '--:--' : formatTime(duration) }}</span>
+        <span class="player-widget__time">{{ isLoadingStream || !duration ? '--:--' : formatTime(duration) }}</span>
       </div>
     </div>
 

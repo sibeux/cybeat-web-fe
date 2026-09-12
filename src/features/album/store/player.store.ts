@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Song } from '../types/song.types'
 import { albumApi } from '../api/album.api'
-import apiClient from '@/core/infrastructure/http/axios'
 
 export interface PlaybackAlbum {
   type: string
@@ -64,7 +63,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   // === Native Audio Event Listeners ===
   audio.addEventListener('timeupdate', () => {
-    currentTime.value = audio.currentTime
+    if (!isLoadingStream.value && audio.src) {
+      currentTime.value = audio.currentTime
+    }
   })
 
   audio.addEventListener('progress', () => {
@@ -80,7 +81,8 @@ export const usePlayerStore = defineStore('player', () => {
   })
 
   audio.addEventListener('loadedmetadata', () => {
-    duration.value = audio.duration
+    duration.value = audio.duration || 0
+    currentTime.value = audio.currentTime || 0
     isLoadingStream.value = false
   })
 
@@ -110,8 +112,10 @@ export const usePlayerStore = defineStore('player', () => {
   audio.addEventListener('waiting', () => { isLoadingStream.value = true })
   audio.addEventListener('canplay', () => { isLoadingStream.value = false })
   audio.addEventListener('error', (e) => {
-    console.error('Audio native error:', e)
+    const mediaError = (e.target as HTMLAudioElement)?.error
+    console.error('Audio native error:', mediaError?.code, mediaError?.message || mediaError)
     isLoadingStream.value = false
+    isPlaying.value = false
   })
 
   // === Media Session API Integration ===
@@ -163,47 +167,120 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   let loadRequestId = 0
+  let activeAbortController: AbortController | null = null
+
   const loadAudioStream = async (song: Song) => {
     const requestId = ++loadRequestId
     
-    // Reset player state
+    // Abort previous stream request if any
+    if (activeAbortController) {
+      activeAbortController.abort()
+      activeAbortController = null
+    }
+
+    // Reset player state immediately
     currentTime.value = 0
     duration.value = 0
     bufferedTime.value = 0
     audio.pause()
     audio.removeAttribute('src')
     audio.load()
+    try {
+      audio.currentTime = 0
+    } catch {}
     
     isPlaying.value = false
     isLoadingStream.value = true
+
+    const controller = new AbortController()
+    activeAbortController = controller
     
     try {
-      const response = await apiClient.get('/music/stream/', {
-        params: {
-          music_id: song.id_music,
-          file_type: 'audio'
-        }
-      })
+      const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string || '').replace(/\/+$/, '')
+      const streamEndpoint = `${apiBaseUrl}/music/stream/?music_id=${song.id_music}&file_type=audio`
       
-      const data = response.data
+      // Fetch headers and immediate body chunk without waiting for server connection close
+      const res = await fetch(streamEndpoint, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        signal: controller.signal
+      })
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`)
+      }
+
+      // Read the first chunk immediately where JSON payload arrives
+      const reader = res.body?.getReader()
+      let rawJson = ''
+      
+      if (reader) {
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (value) {
+            rawJson += decoder.decode(value, { stream: true })
+          }
+          // As soon as valid JSON object is received, stop waiting and abort hanging connection
+          if (rawJson.includes('stream_url') || done) {
+            break
+          }
+        }
+        controller.abort() // Immediately release hanging server connection
+      } else {
+        rawJson = await res.text()
+      }
+
+      let data: any = null
+      try {
+        data = JSON.parse(rawJson)
+      } catch {
+        // Fallback in case rawJson has trailing characters
+        const match = rawJson.match(/\{[\s\S]*"stream_url"\s*:\s*"([^"]+)"[\s\S]*\}/)
+        if (match && match[1]) {
+          data = { stream_url: match[1] }
+        }
+      }
+      
       if (requestId !== loadRequestId || song.id_music !== currentSong.value?.id_music) return
 
-      if (data.success && data.stream_url) {
-        audio.src = data.stream_url
+      const directUrl = 
+        data?.stream_url || 
+        data?.url || 
+        data?.data?.stream_url || 
+        data?.data?.url || 
+        (typeof data === 'string' ? data : null)
+
+      if (directUrl) {
+        audio.src = directUrl
         audio.volume = volume.value
         setupMediaSession(song)
-        audio.play().catch(e => console.error('Playback failed', e))
-        isPlaying.value = true
+        
+        audio.play()
+          .then(() => {
+            isPlaying.value = true
+            isLoadingStream.value = false
+          })
+          .catch((playErr) => {
+            console.error('Audio playback failed:', playErr)
+            isPlaying.value = false
+            isLoadingStream.value = false
+          })
       } else {
-        console.error('Failed to resolve stream URL:', data)
+        console.error('No stream URL found in API response:', rawJson)
+        isLoadingStream.value = false
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return
       if (requestId === loadRequestId) {
         console.error('Error fetching stream URL:', err)
+        isLoadingStream.value = false
       }
     } finally {
-      if (requestId === loadRequestId && !audio.src) {
-        isLoadingStream.value = false
+      if (activeAbortController === controller) {
+        activeAbortController = null
       }
     }
   }
@@ -226,6 +303,9 @@ export const usePlayerStore = defineStore('player', () => {
     }
     
     if (song.id_music !== previousSongId) {
+      currentTime.value = 0
+      duration.value = 0
+      bufferedTime.value = 0
       loadAudioStream(song)
     }
     
