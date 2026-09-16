@@ -95,7 +95,7 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
     router.push({ 
       name: 'album', 
       params: { type: item.type, id: item.id },
-      state: { albumName: item.title, artistName: item.author || '' }
+      state: { albumName: item.title, artistName: item.author || '', isPinned: Boolean(item.pin_at) }
     })
   }
 
@@ -143,7 +143,19 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                 <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
-                <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                <div class="dashboard__sidebar-title-row">
+                  <svg
+                    v-if="item.pin_at"
+                    class="dashboard__sidebar-pin-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-label="Disematkan"
+                    title="Disematkan"
+                  >
+                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+                  </svg>
+                  <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                </div>
               </div>
               <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
             </li>
@@ -170,7 +182,19 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                 <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
-                <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                <div class="dashboard__sidebar-title-row">
+                  <svg
+                    v-if="item.pin_at"
+                    class="dashboard__sidebar-pin-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-label="Disematkan"
+                    title="Disematkan"
+                  >
+                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+                  </svg>
+                  <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                </div>
                 <span v-if="item.author" class="dashboard__sidebar-sub" :title="item.author">{{ item.author }}</span>
               </div>
               <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
@@ -197,50 +221,6 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
           </p>
         </div>
       </div>
-
-      <!-- <div class="dashboard__cards">
-        <div class="dashboard__card">
-          <div class="dashboard__card-icon dashboard__card-icon--blue" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7" />
-              <rect x="14" y="3" width="7" height="7" />
-              <rect x="14" y="14" width="7" height="7" />
-              <rect x="3" y="14" width="7" height="7" />
-            </svg>
-          </div>
-          <div class="dashboard__card-content">
-            <span class="dashboard__card-label">Proyek</span>
-            <span class="dashboard__card-value">—</span>
-          </div>
-        </div>
-
-        <div class="dashboard__card">
-          <div class="dashboard__card-icon dashboard__card-icon--purple" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-          </div>
-          <div class="dashboard__card-content">
-            <span class="dashboard__card-label">Anggota Tim</span>
-            <span class="dashboard__card-value">—</span>
-          </div>
-        </div>
-
-        <div class="dashboard__card">
-          <div class="dashboard__card-icon dashboard__card-icon--green" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-          </div>
-          <div class="dashboard__card-content">
-            <span class="dashboard__card-label">Aktivitas</span>
-            <span class="dashboard__card-value">—</span>
-          </div>
-        </div>
-      </div> -->
 
       <div class="dashboard__search">
         <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
@@ -301,12 +281,31 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                   <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
                 </div>
                 <img v-else v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                
+                <div v-if="item.pin_at" class="dashboard__album-pin-badge" title="Disematkan" aria-label="Disematkan">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+                  </svg>
+                </div>
+
                 <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
               </div>
               <div class="dashboard__album-info">
-                <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                <div class="dashboard__album-title-row">
+                  <svg
+                    v-if="item.pin_at"
+                    class="dashboard__album-pin-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    title="Disematkan"
+                    aria-label="Disematkan"
+                  >
+                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+                  </svg>
+                  <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                </div>
                 <p class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
               </div>
             </div>

@@ -68,18 +68,44 @@
   flex: 1;
 }
 
+.album-page__hero-tag-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
 .album-page__hero-type {
   font-size: 0.8125rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.375rem;
   padding: 0.2rem 0.6rem;
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(4px);
   border-radius: var(--radius-sm);
   display: inline-block;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.album-page__hero-pinned {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-sm);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.album-page__hero-pinned svg {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .album-page__hero-title {

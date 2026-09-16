@@ -33,8 +33,20 @@ export interface Category {
   created_at: string
 }
 
+export interface Playlist {
+  id: number
+  type: string
+  title: string
+  cover: string | CategoryCoverObject | null
+  bg_color: string | null
+  author: string | null
+  played_at: string | null
+  pin_at: string | null
+  created_at: string
+}
+
 export interface MusicDashboardData {
   album: Album[]
   category?: Category[]
-  playlist?: any[]
+  playlist?: Playlist[]
 }

@@ -24,6 +24,7 @@ const id = Number(route.params.id)
 
 const stateAlbumName = history.state?.albumName as string | undefined
 const stateArtistName = history.state?.artistName as string | undefined
+const isPinned = ref(Boolean(history.state?.isPinned))
 
 const isStickyVisible = ref(false)
 let scrollHandler: (() => void) | null = null
@@ -214,7 +215,15 @@ const stickyNavBackground = computed(() => {
             <img v-else v-img-cache="albumCover" alt="Album Cover" class="album-page__hero-cover" @error="handleCoverError" />
           </div>
           <div class="album-page__hero-details">
-            <span class="album-page__hero-type">{{ albumType }}</span>
+            <div class="album-page__hero-tag-row">
+              <span class="album-page__hero-type">{{ albumType }}</span>
+              <span v-if="isPinned" class="album-page__hero-pinned" title="Disematkan">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+                </svg>
+                Pinned
+              </span>
+            </div>
             <h1 class="album-page__hero-title">{{ displayAlbumName }}</h1>
             <div class="album-page__hero-meta">
               <div class="album-page__hero-artist-avatar-wrapper">

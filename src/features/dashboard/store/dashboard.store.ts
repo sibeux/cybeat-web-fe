@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { dashboardApi } from '../api/dashboard.api'
-import type { Album, Category } from '../types/album.types'
+import type { Album, Category, Playlist } from '../types/album.types'
 import { useAuthStore } from '@/features/auth'
 
 export const useDashboardStore = defineStore('dashboard', () => {
   const albums = ref<Album[]>([])
   const categories = ref<Category[]>([])
-  const playlists = ref<any[]>([])
+  const playlists = ref<Playlist[]>([])
   const isLoading = ref(false)
   const isFetched = ref(false)
   const error = ref<string | null>(null)
