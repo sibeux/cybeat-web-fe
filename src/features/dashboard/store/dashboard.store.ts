@@ -32,8 +32,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
       error.value = null
       const response = await dashboardApi.getMusicDashboard(search)
       albums.value = response.data.data.album || []
-      categories.value = response.data.data.category || []
-      playlists.value = response.data.data.playlist || []
+      if (!search.trim()) {
+        categories.value = response.data.data.category || []
+        playlists.value = response.data.data.playlist || []
+      }
       fetchedSearch.value = search
       isFetched.value = true
     } catch (err: any) {

@@ -125,7 +125,7 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
 
         <!-- Kategori -->
         <template v-if="sidebarTab === 'kategori'">
-          <div v-if="isLoading" class="dashboard__sidebar-loading">Memuat...</div>
+          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">Memuat...</div>
           <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">Tidak ada kategori</div>
           <ul v-else class="dashboard__sidebar-list">
             <li
@@ -152,7 +152,7 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
 
         <!-- Playlist -->
         <template v-else>
-          <div v-if="isLoading" class="dashboard__sidebar-loading">Memuat...</div>
+          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">Memuat...</div>
           <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">Tidak ada playlist</div>
           <ul v-else class="dashboard__sidebar-list">
             <li

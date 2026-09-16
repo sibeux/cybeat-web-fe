@@ -35,6 +35,6 @@ export interface Category {
 
 export interface MusicDashboardData {
   album: Album[]
-  category: Category[]
-  playlist: any[]
+  category?: Category[]
+  playlist?: any[]
 }
