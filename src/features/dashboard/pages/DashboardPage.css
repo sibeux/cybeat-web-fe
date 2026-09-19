@@ -230,10 +230,20 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
+.dashboard__actions-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .dashboard__search {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex: 1;
+  min-width: 240px;
 }
 
 .dashboard__search-label {
@@ -257,6 +267,58 @@
 .dashboard__search-input-wrapper:focus-within {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
+.dashboard__refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding: 0 1.125rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.dashboard__refresh-btn:hover:not(:disabled) {
+  background: var(--color-surface-raised);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.dashboard__refresh-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.dashboard__refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.dashboard__refresh-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.dashboard__refresh-btn:hover:not(:disabled) .dashboard__refresh-icon {
+  transform: rotate(60deg);
+}
+
+.dashboard__refresh-btn--loading .dashboard__refresh-icon {
+  animation: spin 1s linear infinite;
 }
 
 .dashboard__search-icon {
@@ -404,6 +466,25 @@
 .dashboard__error {
   color: #ef4444;
   border-color: #ef4444;
+}
+
+.dashboard__retry-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.dashboard__retry-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .dashboard__album-grid {

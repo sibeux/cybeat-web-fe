@@ -54,6 +54,10 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
     await dashboardStore.fetchDashboardData(debouncedSearch.value.trim(), true)
   })
 
+  const handleRefresh = async () => {
+    await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim(), true)
+  }
+
   const resolveCoverUrl = (cover: unknown) => {
     if (typeof cover !== 'string' || !cover) return ''
     if (cover.startsWith('http') || cover.startsWith('data:')) return cover
@@ -222,33 +226,59 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         </div>
       </div>
 
-      <div class="dashboard__search">
-        <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
-        <div class="dashboard__search-input-wrapper">
-          <svg class="dashboard__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            id="dashboard-search"
-            v-model="searchQuery"
-            type="search"
-            class="dashboard__search-input"
-            placeholder="Search by title or artist..."
-            autocomplete="off"
-          />
-          <button
-            v-if="searchQuery"
-            class="dashboard__search-clear"
-            @click="searchQuery = ''"
-            aria-label="Clear search"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+      <div class="dashboard__actions-bar">
+        <div class="dashboard__search">
+          <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
+          <div class="dashboard__search-input-wrapper">
+            <svg class="dashboard__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
             </svg>
-          </button>
+            <input
+              id="dashboard-search"
+              v-model="searchQuery"
+              type="search"
+              class="dashboard__search-input"
+              placeholder="Search by title or artist..."
+              autocomplete="off"
+            />
+            <button
+              v-if="searchQuery"
+              class="dashboard__search-clear"
+              @click="searchQuery = ''"
+              aria-label="Clear search"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
         </div>
+
+        <button
+          type="button"
+          class="dashboard__refresh-btn"
+          :class="{ 'dashboard__refresh-btn--loading': isLoading }"
+          :disabled="isLoading"
+          title="Segarkan data"
+          aria-label="Segarkan data"
+          @click="handleRefresh"
+        >
+          <svg
+            class="dashboard__refresh-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span class="dashboard__refresh-text">Refresh</span>
+        </button>
       </div>
 
       <div v-if="isLoading" class="dashboard__loading">
@@ -265,7 +295,14 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         Memuat data...
       </div>
       <div v-else-if="error" class="dashboard__error">
-        {{ error }}
+        <p>{{ error }}</p>
+        <button
+          type="button"
+          class="dashboard__retry-btn"
+          @click="handleRefresh"
+        >
+          Coba Lagi
+        </button>
       </div>
       <template v-else>
         <!-- Album Section -->
