@@ -45,12 +45,14 @@ export const albumApi = {
       }
     })
   },
-  getStreamUrl(musicId: number, fileType = 'audio') {
+  getStreamUrl(musicId: number, fileType = 'audio', signal?: AbortSignal) {
     return apiClient.get(`/music/stream/`, {
       params: {
         music_id: musicId,
-        file_type: fileType
-      }
+        file_type: fileType,
+      },
+      signal,
+      timeout: 30000,
     })
-  }
+  },
 }

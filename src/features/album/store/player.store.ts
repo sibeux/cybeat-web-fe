@@ -202,9 +202,23 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   let loadRequestId = 0
+  let currentAbortController: AbortController | null = null
+  let currentBlobUrl: string | null = null
 
   const loadAudioStream = async (song: Song) => {
     const requestId = ++loadRequestId
+
+    // Cancel pending stream request if any
+    if (currentAbortController) {
+      currentAbortController.abort()
+    }
+    currentAbortController = new AbortController()
+
+    // Clean up previous blob URL to prevent memory leaks
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl)
+      currentBlobUrl = null
+    }
 
     // Reset player state immediately
     currentTime.value = 0
@@ -221,17 +235,26 @@ export const usePlayerStore = defineStore('player', () => {
     isLoadingStream.value = true
 
     try {
-      const response = await albumApi.getStreamUrl(song.id_music, 'audio')
+      const response = await albumApi.getStreamUrl(song.id_music, 'audio', currentAbortController.signal)
       const data = response.data
 
       if (requestId !== loadRequestId || song.id_music !== currentSong.value?.id_music) return
 
-      const directUrl = 
-        data?.stream_url || 
-        data?.url || 
-        data?.data?.stream_url || 
-        data?.data?.url || 
-        (typeof data === 'string' ? data : null)
+      let directUrl: string | null = null
+
+      if (data instanceof Blob) {
+        currentBlobUrl = URL.createObjectURL(data)
+        directUrl = currentBlobUrl
+      } else if (typeof data === 'object') {
+        directUrl = 
+          data?.stream_url || 
+          data?.url || 
+          data?.data?.stream_url || 
+          data?.data?.url || 
+          null
+      } else if (typeof data === 'string') {
+        directUrl = data
+      }
 
       if (directUrl) {
         audio.src = directUrl
@@ -253,6 +276,10 @@ export const usePlayerStore = defineStore('player', () => {
         isLoadingStream.value = false
       }
     } catch (err: any) {
+      if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+        // Request intentionally aborted, ignore
+        return
+      }
       if (requestId === loadRequestId) {
         console.error('Error fetching stream URL:', err)
         isLoadingStream.value = false
@@ -402,6 +429,15 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   const closePlayer = () => {
+    if (currentAbortController) {
+      currentAbortController.abort()
+      currentAbortController = null
+    }
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl)
+      currentBlobUrl = null
+    }
+
     currentSong.value = null
     isPlaying.value = false
     currentAlbum.value = null
