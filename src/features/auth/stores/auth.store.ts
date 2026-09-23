@@ -5,6 +5,7 @@ import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 import { extractUserFromToken, isTokenExpired } from '@/features/auth/utils/jwt'
 import { normalizeError } from '@/core/shared/utils/error-normalizer'
 import { refreshAccessToken } from '@/core/infrastructure/http/interceptors'
+import { logger } from '@/core/infrastructure/logger'
 import type { LoginRequest, RegisterRequest, AuthUser } from '@/features/auth/types/auth.types'
 
 /**
@@ -96,12 +97,18 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(payload: LoginRequest): Promise<void> {
     isLoading.value = true
     error.value = null
+    logger.info('AuthService', `Attempting login for: ${payload.email}`)
 
     try {
       const response = await authApi.login(payload)
       applySession(response.access_token, response.refresh_token)
+      logger.info('AuthService', `User signed in successfully: ${payload.email}`, {
+        email: user.value?.email,
+        name: user.value?.name,
+      })
     } catch (err) {
       error.value = normalizeError(err)
+      logger.error('AuthService', `Login failed for: ${payload.email}`, err)
       throw err
     } finally {
       isLoading.value = false
@@ -115,22 +122,26 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(payload: RegisterRequest): Promise<void> {
     isLoading.value = true
     error.value = null
+    logger.info('AuthService', `Attempting registration for: ${payload.email}`)
 
     try {
       const response = await authApi.register(payload)
 
       if (response.status === 'failed') {
         error.value = response.message === 'Email sudah terdaftar' 
-          ? 'Email sudah terdaftar. Gunakan email lain atau masuk ke akun Anda.' 
-          : (response.message || 'Registrasi gagal')
+          ? 'Email already registered. Please sign in or use another email.' 
+          : (response.message || 'Registration failed')
+        logger.warn('AuthService', `Registration rejected: ${error.value}`)
         throw new Error(error.value)
       }
 
       applySession(response.access_token, response.refresh_token)
+      logger.info('AuthService', `User registered and session initialized: ${payload.email}`)
     } catch (err) {
       if (!error.value) {
         error.value = normalizeError(err)
       }
+      logger.error('AuthService', `Registration error for: ${payload.email}`, err)
       throw err
     } finally {
       isLoading.value = false
@@ -144,7 +155,7 @@ export const useAuthStore = defineStore('auth', () => {
    * add the API call here before clearSession().
    */
   async function logout(): Promise<void> {
-    // Future: await authApi.logout() — add when backend provides endpoint
+    logger.info('AuthService', `User logged out: ${user.value?.email || 'authenticated user'}`)
     clearSession()
   }
 

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Song } from '../types/song.types'
 import { albumApi } from '../api/album.api'
+import { logger } from '@/core/infrastructure/logger'
 
 export interface PlaybackAlbum {
   type: string
@@ -265,13 +266,23 @@ export const usePlayerStore = defineStore('player', () => {
           .then(() => {
             isPlaying.value = true
             isLoadingStream.value = false
+            logger.info('AudioPlayer', `Playing track: "${song.title}" by ${song.artist}`, {
+              songId: song.id_music,
+              title: song.title,
+              artist: song.artist,
+              codec: song.codec_name,
+            })
           })
           .catch((playErr) => {
+            logger.error('AudioPlayer', `Playback initiation failed for "${song.title}"`, playErr, {
+              songId: song.id_music,
+            })
             console.error('Audio playback failed:', playErr)
             isPlaying.value = false
             isLoadingStream.value = false
           })
       } else {
+        logger.warn('AudioPlayer', `No stream URL returned for song "${song.title}"`, { data })
         console.error('No stream URL found in API response:', data)
         isLoadingStream.value = false
       }
@@ -281,6 +292,9 @@ export const usePlayerStore = defineStore('player', () => {
         return
       }
       if (requestId === loadRequestId) {
+        logger.error('AudioPlayer', `Failed to fetch stream URL for "${song.title}"`, err, {
+          songId: song.id_music,
+        })
         console.error('Error fetching stream URL:', err)
         isLoadingStream.value = false
       }
@@ -288,6 +302,12 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   const playSong = (song: Song, contextPlaylist: Song[] = [], album: PlaybackAlbum | null = null) => {
+    logger.info('AudioPlayer', `Requested song play: "${song.title}"`, {
+      songId: song.id_music,
+      artist: song.artist,
+      albumId: album?.id,
+      albumType: album?.type,
+    })
     const previousSongId = currentSong.value?.id_music
     currentSong.value = song
     
@@ -318,8 +338,16 @@ export const usePlayerStore = defineStore('player', () => {
     if (!currentSong.value || isLoadingStream.value) return
     if (isPlaying.value) {
       audio.pause()
+      logger.info('AudioPlayer', `Paused playback: "${currentSong.value.title}"`)
     } else {
-      audio.play().catch(e => console.error('Playback failed', e))
+      audio.play()
+        .then(() => {
+          logger.info('AudioPlayer', `Resumed playback: "${currentSong.value?.title}"`)
+        })
+        .catch(e => {
+          logger.error('AudioPlayer', 'Resume playback failed', e)
+          console.error('Playback failed', e)
+        })
     }
   }
 
