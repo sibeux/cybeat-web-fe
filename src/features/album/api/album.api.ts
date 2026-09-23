@@ -52,7 +52,7 @@ export const albumApi = {
         file_type: fileType,
       },
       signal,
-      timeout: 30000,
+      timeout: 60000,
     })
   },
 }
