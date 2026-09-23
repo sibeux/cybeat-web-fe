@@ -14,7 +14,7 @@ import {
 import { useTitle } from '@/core/shared/composables/useTitle'
 
 const router = useRouter()
-useTitle(() => 'System Logs • CyBeat')
+useTitle(() => 'Logs • CyBeat')
 
 const activeTab = ref<'frontend' | 'backend'>('frontend')
 const logs = ref<LogEntry[]>([])
@@ -143,7 +143,7 @@ const logCounts = computed(() => {
             </svg>
           </button>
           <div>
-            <h1 class="logs-page__title">System Logs</h1>
+            <h1 class="logs-page__title">Logs</h1>
             <p class="logs-page__subtitle">Structured local diagnostics & runtime log inspector</p>
           </div>
         </div>
