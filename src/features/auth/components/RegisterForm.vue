@@ -59,9 +59,9 @@
 
   const emailHint = computed<string | undefined>(() => {
     const map: Record<typeof emailCheckStatus.value, string | undefined> = {
-      checking: 'Memeriksa ketersediaan email...',
-      taken: 'Email sudah terdaftar.',
-      available: 'Email tersedia.',
+      checking: 'Checking email availability...',
+      taken: 'Email is already registered.',
+      available: 'Email is available.',
       idle: undefined,
     }
     return map[emailCheckStatus.value]
@@ -105,7 +105,7 @@
       <BaseInput
         id="register-name"
         v-model="values.name"
-        label="Nama Lengkap"
+        label="Full Name"
         type="text"
         placeholder="John Doe"
         autocomplete="name"
@@ -119,11 +119,11 @@
       <BaseInput
         id="register-email"
         v-model="values.email"
-        label="Email"
+        label="Email Address"
         type="email"
-        placeholder="nama@perusahaan.com"
+        placeholder="name@company.com"
         autocomplete="email"
-        :error="errors.email || (emailCheckStatus === 'taken' ? 'Email sudah terdaftar.' : undefined)"
+        :error="errors.email || (emailCheckStatus === 'taken' ? 'Email is already registered.' : undefined)"
         :hint="emailCheckStatus !== 'taken' ? emailHint : undefined"
         :disabled="authStore.isLoading"
         required
@@ -136,7 +136,7 @@
         v-model="values.password"
         label="Password"
         :type="showPassword ? 'text' : 'password'"
-        placeholder="Minimal 8 karakter"
+        placeholder="Minimum 8 characters"
         autocomplete="new-password"
         :error="errors.password"
         :disabled="authStore.isLoading"
@@ -147,7 +147,7 @@
           <button
             type="button"
             class="register-form__toggle"
-            :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
@@ -168,9 +168,9 @@
       <BaseInput
         id="register-confirm-password"
         v-model="values.confirmPassword"
-        label="Konfirmasi Password"
+        label="Confirm Password"
         :type="showConfirmPassword ? 'text' : 'password'"
-        placeholder="Ulangi password"
+        placeholder="Repeat your password"
         autocomplete="new-password"
         :error="errors.confirmPassword"
         :disabled="authStore.isLoading"
@@ -181,7 +181,7 @@
           <button
             type="button"
             class="register-form__toggle"
-            :aria-label="showConfirmPassword ? 'Sembunyikan konfirmasi password' : 'Tampilkan konfirmasi password'"
+            :aria-label="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'"
             :aria-pressed="showConfirmPassword"
             @click="showConfirmPassword = !showConfirmPassword"
           >
@@ -217,12 +217,12 @@
       :loading="authStore.isLoading"
       :disabled="authStore.isLoading"
     >
-      Buat Akun
+      Create Account
     </BaseButton>
 
     <p class="register-form__footer">
-      Sudah punya akun?
-      <router-link to="/login" class="register-form__link">Masuk di sini</router-link>
+      Already have an account?
+      <router-link to="/login" class="register-form__link">Sign in here</router-link>
     </p>
   </form>
 </template>

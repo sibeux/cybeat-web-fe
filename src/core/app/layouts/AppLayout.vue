@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
@@ -18,8 +18,53 @@
   const isLoggingOut = ref(false)
   const isLoggingIn = ref(false)
   const isLogoutConfirmationOpen = ref(false)
+  const isUserMenuOpen = ref(false)
+  const isSettingsMenuOpen = ref(false)
+
+  const userMenuRef = ref<HTMLElement | null>(null)
+  const settingsMenuRef = ref<HTMLElement | null>(null)
+
+  function toggleUserMenu(): void {
+    isUserMenuOpen.value = !isUserMenuOpen.value
+    if (isUserMenuOpen.value) {
+      isSettingsMenuOpen.value = false
+    }
+  }
+
+  function toggleSettingsMenu(): void {
+    isSettingsMenuOpen.value = !isSettingsMenuOpen.value
+    if (isSettingsMenuOpen.value) {
+      isUserMenuOpen.value = false
+    }
+  }
+
+  function closeAllMenus(): void {
+    isUserMenuOpen.value = false
+    isSettingsMenuOpen.value = false
+  }
+
+  function handleClickOutside(event: MouseEvent): void {
+    const target = event.target as Node | null
+    if (!target) return
+
+    if (userMenuRef.value && !userMenuRef.value.contains(target)) {
+      isUserMenuOpen.value = false
+    }
+    if (settingsMenuRef.value && !settingsMenuRef.value.contains(target)) {
+      isSettingsMenuOpen.value = false
+    }
+  }
+
+  onMounted(() => {
+    window.addEventListener('click', handleClickOutside)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('click', handleClickOutside)
+  })
 
   function requestLogout(): void {
+    isUserMenuOpen.value = false
     if (!isLoggingOut.value) isLogoutConfirmationOpen.value = true
   }
 
@@ -49,6 +94,11 @@
       isLoggingIn.value = false
     }
   }
+
+  function navigateToLogs(): void {
+    closeAllMenus()
+    router.push('/logs')
+  }
 </script>
 
 <template>
@@ -66,38 +116,97 @@
           </div>
         </div>
 
-        <!-- Right side: user info + auth actions -->
+        <!-- Right side: settings + user info dropdown / login -->
         <div class="app-layout__nav-actions">
-          <template v-if="authStore.isAuthenticated">
-            <span v-if="authStore.user?.name" class="app-layout__user-name">
-              {{ authStore.user.name }}
-            </span>
+          <!-- Settings Dropdown Button -->
+          <div ref="settingsMenuRef" class="app-layout__menu-container">
             <button
-              id="logout-button"
-              class="app-layout__logout"
+              class="app-layout__settings-btn"
+              :class="{ 'app-layout__settings-btn--active': isSettingsMenuOpen }"
               type="button"
-              :disabled="isLoggingOut"
-              :class="{ 'app-layout__btn--loading': isLoggingOut }"
-              @click="requestLogout"
+              title="Settings"
+              aria-label="Settings"
+              @click.stop="toggleSettingsMenu"
             >
-              <svg v-if="isLoggingOut" class="app-layout__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              {{ isLoggingOut ? 'Keluar...' : 'Keluar' }}
             </button>
+
+            <!-- Settings Menu Popup -->
+            <div v-if="isSettingsMenuOpen" class="app-layout__dropdown-menu app-layout__dropdown-menu--right">
+              <div class="app-layout__dropdown-header">
+                <span>System Settings</span>
+              </div>
+              <button
+                class="app-layout__dropdown-item"
+                type="button"
+                @click="navigateToLogs"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <div class="app-layout__dropdown-item-text">
+                  <span class="app-layout__dropdown-item-title">Logs</span>
+                  <span class="app-layout__dropdown-item-desc">System Diagnostics</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Authenticated User Menu -->
+          <template v-if="authStore.isAuthenticated">
+            <div ref="userMenuRef" class="app-layout__menu-container">
+              <button
+                class="app-layout__user-btn"
+                :class="{ 'app-layout__user-btn--active': isUserMenuOpen }"
+                type="button"
+                aria-haspopup="true"
+                :aria-expanded="isUserMenuOpen"
+                @click.stop="toggleUserMenu"
+              >
+                <div class="app-layout__user-avatar">
+                  {{ authStore.user?.name ? authStore.user.name.charAt(0).toUpperCase() : 'U' }}
+                </div>
+                <span class="app-layout__user-name">
+                  {{ authStore.user?.name || 'User' }}
+                </span>
+                <svg class="app-layout__user-chevron" :class="{ 'app-layout__user-chevron--open': isUserMenuOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+
+              <!-- User Dropdown Menu -->
+              <div v-if="isUserMenuOpen" class="app-layout__dropdown-menu app-layout__dropdown-menu--right">
+                <div class="app-layout__dropdown-user-info">
+                  <span class="app-layout__dropdown-user-name">{{ authStore.user?.name }}</span>
+                  <span v-if="authStore.user?.email" class="app-layout__dropdown-user-email">{{ authStore.user.email }}</span>
+                </div>
+                <div class="app-layout__dropdown-divider"></div>
+                <button
+                  id="logout-button"
+                  class="app-layout__dropdown-item app-layout__dropdown-item--danger"
+                  type="button"
+                  :disabled="isLoggingOut"
+                  @click="requestLogout"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>{{ isLoggingOut ? 'Logging out...' : 'Log out' }}</span>
+                </button>
+              </div>
+            </div>
           </template>
+
+          <!-- Guest Login Button -->
           <template v-else>
             <button
               class="app-layout__login"
@@ -120,7 +229,7 @@
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              {{ isLoggingIn ? 'Memuat...' : 'Masuk' }}
+              {{ isLoggingIn ? 'Loading...' : 'Sign In' }}
             </button>
           </template>
         </div>
@@ -148,14 +257,14 @@
         aria-labelledby="logout-dialog-title"
         aria-describedby="logout-dialog-description"
       >
-        <h2 id="logout-dialog-title">Konfirmasi keluar</h2>
-        <p id="logout-dialog-description">Apakah Anda yakin ingin keluar dari akun?</p>
+        <h2 id="logout-dialog-title">Confirm Sign Out</h2>
+        <p id="logout-dialog-description">Are you sure you want to log out of your account?</p>
         <div class="app-layout__dialog-actions">
           <button class="app-layout__dialog-cancel" type="button" @click="cancelLogout">
-            Batal
+            Cancel
           </button>
           <button class="app-layout__dialog-confirm" type="button" @click="confirmLogout">
-            Keluar
+            Log Out
           </button>
         </div>
       </section>
@@ -249,13 +358,220 @@
   .app-layout__nav-actions {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+  }
+
+  /* ── Menu Container & Dropdowns ──────────────────────── */
+  .app-layout__menu-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .app-layout__settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .app-layout__settings-btn:hover,
+  .app-layout__settings-btn--active {
+    color: var(--color-text);
+    background: var(--color-surface-raised);
+    border-color: var(--color-primary);
+  }
+
+  .app-layout__settings-btn svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    transition: transform 0.25s ease;
+  }
+
+  .app-layout__settings-btn:hover svg {
+    transform: rotate(30deg);
+  }
+
+  /* ── User Profile Button ─────────────────────────────── */
+  .app-layout__user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.3125rem 0.625rem 0.3125rem 0.375rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .app-layout__user-btn:hover,
+  .app-layout__user-btn--active {
+    background: var(--color-surface-raised);
+    border-color: var(--color-primary);
+  }
+
+  .app-layout__user-avatar {
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-primary), #8b5cf6);
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .app-layout__user-name {
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--color-text);
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-layout__user-chevron {
+    width: 0.875rem;
+    height: 0.875rem;
     color: var(--color-text-muted);
+    transition: transform 0.2s ease;
+  }
+
+  .app-layout__user-chevron--open {
+    transform: rotate(180deg);
+  }
+
+  /* ── Dropdown Popups ─────────────────────────────────── */
+  .app-layout__dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    z-index: 100;
+    min-width: 220px;
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    padding: 0.375rem;
+    animation: dropdownFade 0.15s ease;
+  }
+
+  .app-layout__dropdown-menu--right {
+    right: 0;
+  }
+
+  @keyframes dropdownFade {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .app-layout__dropdown-header {
+    padding: 0.5rem 0.75rem 0.375rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+
+  .app-layout__dropdown-user-info {
+    padding: 0.625rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .app-layout__dropdown-user-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .app-layout__dropdown-user-email {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .app-layout__dropdown-divider {
+    height: 1px;
+    background: var(--color-border);
+    margin: 0.25rem 0;
+  }
+
+  .app-layout__dropdown-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .app-layout__dropdown-item:hover {
+    background: var(--color-surface);
+    color: var(--color-primary);
+  }
+
+  .app-layout__dropdown-item svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
+
+  .app-layout__dropdown-item:hover svg {
+    color: var(--color-primary);
+  }
+
+  .app-layout__dropdown-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+  }
+
+  .app-layout__dropdown-item-title {
+    font-weight: 600;
+  }
+
+  .app-layout__dropdown-item-desc {
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+  }
+
+  .app-layout__dropdown-item--danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--color-danger);
+  }
+
+  .app-layout__dropdown-item--danger:hover svg {
+    color: var(--color-danger);
   }
 
   .app-layout__login,

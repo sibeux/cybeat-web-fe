@@ -119,18 +119,18 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'kategori' }"
             @click="sidebarTab = 'kategori'"
-          >Kategori</button>
+          >Categories</button>
           <button
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'playlist' }"
             @click="sidebarTab = 'playlist'"
-          >Playlist</button>
+          >Playlists</button>
         </div>
 
-        <!-- Kategori -->
+        <!-- Categories -->
         <template v-if="sidebarTab === 'kategori'">
-          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">Memuat...</div>
-          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">Tidak ada kategori</div>
+          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">Loading...</div>
+          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">No categories available</div>
           <ul v-else class="dashboard__sidebar-list">
             <li
               v-for="item in categories"
@@ -153,8 +153,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                     class="dashboard__sidebar-pin-icon"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    aria-label="Disematkan"
-                    title="Disematkan"
+                    aria-label="Pinned"
+                    title="Pinned"
                   >
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
@@ -168,8 +168,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
 
         <!-- Playlist -->
         <template v-else>
-          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">Memuat...</div>
-          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">Tidak ada playlist</div>
+          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">Loading...</div>
+          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">No playlists available</div>
           <ul v-else class="dashboard__sidebar-list">
             <li
               v-for="item in playlists"
@@ -192,8 +192,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                     class="dashboard__sidebar-pin-icon"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    aria-label="Disematkan"
-                    title="Disematkan"
+                    aria-label="Pinned"
+                    title="Pinned"
                   >
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
@@ -213,14 +213,14 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         <div class="dashboard__welcome-icon" aria-hidden="true">👋</div>
         <div>
           <h1 class="dashboard__title">
-            Selamat datang<template v-if="authStore.user?.name">, {{ authStore.user.name }}</template><template v-else> di Cybeat</template>!
+            Welcome<template v-if="authStore.user?.name">, {{ authStore.user.name }}</template><template v-else> to Cybeat</template>!
           </h1>
           <p class="dashboard__subtitle">
             <template v-if="authStore.isAuthenticated">
-              Anda berhasil masuk ke Cybeat. Dashboard sedang dalam pengembangan.
+              You are signed in to Cybeat. Dashboard is currently under active development.
             </template>
             <template v-else>
-              Silakan masuk untuk mengakses fitur penuh Cybeat. Dashboard sedang dalam pengembangan.
+              Please sign in to access all features. Dashboard is currently under active development.
             </template>
           </p>
         </div>
@@ -261,8 +261,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
           class="dashboard__refresh-btn"
           :class="{ 'dashboard__refresh-btn--loading': isLoading }"
           :disabled="isLoading"
-          title="Segarkan data"
-          aria-label="Segarkan data"
+          title="Refresh data"
+          aria-label="Refresh data"
           @click="handleRefresh"
         >
           <svg
@@ -292,7 +292,7 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
           <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
           <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
         </svg>
-        Memuat data...
+        Loading data...
       </div>
       <div v-else-if="error" class="dashboard__error">
         <p>{{ error }}</p>
@@ -301,13 +301,13 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
           class="dashboard__retry-btn"
           @click="handleRefresh"
         >
-          Coba Lagi
+          Try Again
         </button>
       </div>
       <template v-else>
         <!-- Album Section -->
         <div v-if="albums.length > 0" class="dashboard__albums-section">
-          <h2 class="dashboard__section-title">Album Terbaru</h2>
+          <h2 class="dashboard__section-title">Latest Albums</h2>
           <div class="dashboard__album-grid">
             <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
               <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
@@ -319,13 +319,13 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                 </div>
                 <img v-else v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
                 
-                <div v-if="item.pin_at" class="dashboard__album-pin-badge" title="Disematkan" aria-label="Disematkan">
+                <div v-if="item.pin_at" class="dashboard__album-pin-badge" title="Pinned" aria-label="Pinned">
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
                 </div>
 
-                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Sedang diputar">
+                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Playing now">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
               </div>
@@ -336,8 +336,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                     class="dashboard__album-pin-icon"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    title="Disematkan"
-                    aria-label="Disematkan"
+                    title="Pinned"
+                    aria-label="Pinned"
                   >
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
@@ -358,8 +358,8 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         class="dashboard__scroll-top"
         :class="{ 'dashboard__scroll-top--player-active': !!currentSong }"
         type="button"
-        aria-label="Kembali ke atas"
-        title="Kembali ke atas"
+        aria-label="Scroll to top"
+        title="Scroll to top"
         @click="scrollToTop"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

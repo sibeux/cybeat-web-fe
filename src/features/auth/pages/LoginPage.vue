@@ -16,23 +16,23 @@
         </div>
 
         <div class="login-page__panel-content">
-          <h2 class="login-page__panel-title">Platform Enterprise<br />untuk Tim Modern</h2>
+          <h2 class="login-page__panel-title">Enterprise Platform<br />for Modern Teams</h2>
           <p class="login-page__panel-desc">
-            Kelola proyek, tim, dan aset bisnis Anda dalam satu platform terintegrasi yang dirancang untuk skala enterprise.
+            Manage your projects, teams, and high-fidelity audio streams in one integrated platform designed for enterprise scale.
           </p>
 
           <ul class="login-page__features">
             <li class="login-page__feature">
               <span class="login-page__feature-icon">✦</span>
-              Manajemen proyek real-time
+              Real-time media playback & sync
             </li>
             <li class="login-page__feature">
               <span class="login-page__feature-icon">✦</span>
-              Laporan analitik mendalam
+              Lossless & Hi-Res audio experience
             </li>
             <li class="login-page__feature">
               <span class="login-page__feature-icon">✦</span>
-              Keamanan enterprise-grade
+              Enterprise-grade security
             </li>
           </ul>
         </div>
@@ -53,8 +53,8 @@
         </div>
 
         <div class="login-page__header">
-          <h1 class="login-page__title">Selamat datang kembali</h1>
-          <p class="login-page__subtitle">Masuk ke akun Anda untuk melanjutkan</p>
+          <h1 class="login-page__title">Welcome back</h1>
+          <p class="login-page__subtitle">Sign in to your account to continue</p>
         </div>
 
         <LoginForm />

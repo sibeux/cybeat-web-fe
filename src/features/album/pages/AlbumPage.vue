@@ -63,7 +63,7 @@ onMounted(async () => {
     // Saat ini fallback ke array length jika 'total' belum ada di response backend
     totalSongs.value = (response.data as any).total || songs.value.length
   } catch (err: any) {
-    error.value = err.response?.data?.message || err.message || 'Gagal memuat data'
+    error.value = err.response?.data?.message || err.message || 'Failed to load data'
   } finally {
     isLoading.value = false
   }
@@ -111,7 +111,7 @@ const goBack = () => {
 
 const playSong = (song: Song) => {
   if (song.codec_name?.toLowerCase() === 'alac') {
-    alert('Format ALAC tidak dapat diputar karena masalah kompatibilitas browser.')
+    alert('ALAC audio format cannot be played due to browser compatibility.')
     return
   }
 
@@ -136,8 +136,6 @@ const albumCovers = computed<string[]>(() => {
     }
     
     const coverUrls = Array.from(covers)
-    // Jika tidak genap 4 cover unik, gunakan cover urutan terakhir (index terbesar)
-    // Sesuai dengan logika getCoverUrls di Dashboard: coverUrls.length < 4 ? coverUrls.slice(-1) : coverUrls
     return coverUrls.length < 4 && coverUrls.length > 0 ? coverUrls.slice(-1) : coverUrls
   }
   
@@ -199,12 +197,12 @@ const stickyNavBackground = computed(() => {
     <div class="album-page">
       <div class="album-page__hero" :style="headerStyle">
         <div class="album-page__hero-topbar">
-          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Kembali" title="Kembali" @click="goBack">
+          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Go back" title="Go back" @click="goBack">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
-            <span class="album-page__back-text">Kembali</span>
+            <span class="album-page__back-text">Back</span>
           </button>
         </div>
         <div class="album-page__hero-content">
@@ -217,7 +215,7 @@ const stickyNavBackground = computed(() => {
           <div class="album-page__hero-details">
             <div class="album-page__hero-tag-row">
               <span class="album-page__hero-type">{{ albumType }}</span>
-              <span v-if="isPinned" class="album-page__hero-pinned" title="Disematkan">
+              <span v-if="isPinned" class="album-page__hero-pinned" title="Pinned">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                 </svg>
@@ -231,7 +229,7 @@ const stickyNavBackground = computed(() => {
               </div>
               <span class="album-page__hero-artist">{{ displayArtistName }}</span>
               <span class="album-page__hero-dot">•</span>
-              <span class="album-page__hero-tracks">{{ totalSongs }} lagu</span>
+              <span class="album-page__hero-tracks">{{ totalSongs }} songs</span>
             </div>
           </div>
         </div>
@@ -249,7 +247,7 @@ const stickyNavBackground = computed(() => {
           <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
           <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
         </svg>
-        Memuat lagu...
+        Loading songs...
       </div>
 
       <div v-else-if="error" class="album-page__state album-page__state--error">
@@ -257,7 +255,7 @@ const stickyNavBackground = computed(() => {
       </div>
 
       <div v-else-if="songs.length === 0" class="album-page__state">
-        Belum ada lagu.
+        No songs found.
       </div>
 
       <div v-else class="album-page__content">
@@ -265,8 +263,8 @@ const stickyNavBackground = computed(() => {
           <thead>
             <tr>
               <th class="song-list__th song-list__th--index">#</th>
-              <th class="song-list__th song-list__th--title">Judul</th>
-              <th class="song-list__th song-list__th--artist">Artis</th>
+              <th class="song-list__th song-list__th--title">Title</th>
+              <th class="song-list__th song-list__th--artist">Artist</th>
             </tr>
           </thead>
           <tbody>
@@ -278,7 +276,7 @@ const stickyNavBackground = computed(() => {
             >
               <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
               <td class="song-list__td song-list__td--title-cover">
-                <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'Format ALAC tidak dapat diputar' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
+                <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
                   <div class="song-list__cover-surface">
                     <img v-if="resolveCoverUrl(song.cover)" v-img-cache="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
                     <div v-else class="song-list__cover-placeholder">

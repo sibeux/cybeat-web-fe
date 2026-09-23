@@ -18,13 +18,13 @@ export function validateLoginForm(values: LoginFormValues): FormErrors<LoginForm
   const errors: FormErrors<LoginFormValues> = {}
 
   if (!values.email.trim()) {
-    errors.email = 'Email wajib diisi.'
+    errors.email = 'Email address is required.'
   } else if (!EMAIL_REGEX.test(values.email)) {
-    errors.email = 'Format email tidak valid.'
+    errors.email = 'Invalid email address format.'
   }
 
   if (!values.password) {
-    errors.password = 'Password wajib diisi.'
+    errors.password = 'Password is required.'
   }
 
   return errors
@@ -34,27 +34,27 @@ export function validateRegisterForm(values: RegisterFormValues): FormErrors<Reg
   const errors: FormErrors<RegisterFormValues> = {}
 
   if (!values.name.trim()) {
-    errors.name = 'Nama wajib diisi.'
+    errors.name = 'Full name is required.'
   } else if (values.name.trim().length < 2) {
-    errors.name = 'Nama minimal 2 karakter.'
+    errors.name = 'Name must be at least 2 characters.'
   }
 
   if (!values.email.trim()) {
-    errors.email = 'Email wajib diisi.'
+    errors.email = 'Email address is required.'
   } else if (!EMAIL_REGEX.test(values.email)) {
-    errors.email = 'Format email tidak valid.'
+    errors.email = 'Invalid email address format.'
   }
 
   if (!values.password) {
-    errors.password = 'Password wajib diisi.'
+    errors.password = 'Password is required.'
   } else if (values.password.length < MIN_PASSWORD_LENGTH) {
-    errors.password = `Password minimal ${MIN_PASSWORD_LENGTH} karakter.`
+    errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`
   }
 
   if (!values.confirmPassword) {
-    errors.confirmPassword = 'Konfirmasi password wajib diisi.'
+    errors.confirmPassword = 'Password confirmation is required.'
   } else if (values.password !== values.confirmPassword) {
-    errors.confirmPassword = 'Password tidak cocok.'
+    errors.confirmPassword = 'Passwords do not match.'
   }
 
   return errors

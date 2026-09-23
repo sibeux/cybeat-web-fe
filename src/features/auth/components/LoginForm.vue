@@ -53,9 +53,9 @@
       <BaseInput
         id="login-email"
         v-model="values.email"
-        label="Email"
+        label="Email Address"
         type="email"
-        placeholder="nama@perusahaan.com"
+        placeholder="name@company.com"
         autocomplete="email"
         :error="errors.email"
         :disabled="authStore.isLoading"
@@ -68,7 +68,7 @@
         v-model="values.password"
         label="Password"
         :type="showPassword ? 'text' : 'password'"
-        placeholder="Masukkan password"
+        placeholder="Enter your password"
         autocomplete="current-password"
         :error="errors.password"
         :disabled="authStore.isLoading"
@@ -79,7 +79,7 @@
           <button
             type="button"
             class="login-form__toggle"
-            :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+            :aria-label="showPassword ? 'Hide password' : 'Show password'"
             :aria-pressed="showPassword"
             @click="showPassword = !showPassword"
           >
@@ -115,12 +115,12 @@
       :loading="authStore.isLoading"
       :disabled="authStore.isLoading"
     >
-      Masuk
+      Sign In
     </BaseButton>
 
     <p class="login-form__footer">
-      Belum punya akun?
-      <router-link to="/register" class="login-form__link">Daftar sekarang</router-link>
+      Don't have an account?
+      <router-link to="/register" class="login-form__link">Create one now</router-link>
     </p>
   </form>
 </template>

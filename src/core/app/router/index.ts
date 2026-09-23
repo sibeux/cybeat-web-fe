@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/index'
 import { isTokenExpired } from '@/features/auth/utils/jwt'
+import { logger } from '@/core/infrastructure/logger'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -55,6 +56,13 @@ const router = createRouter({
       component: () => import('@/features/album/pages/AlbumPage.vue'),
     },
 
+    // ─── Logs Route ───────────────────────────────────────────────────────────
+    {
+      path: '/logs',
+      name: 'logs',
+      component: () => import('@/features/logs/pages/LogsPage.vue'),
+    },
+
     // ─── 404 Fallback ─────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
@@ -83,6 +91,7 @@ router.beforeEach(async (to) => {
   // Safety net: if somehow called before session is restored, block navigation.
   // This should not happen in normal flow given the startup sequence in main.ts.
   if (authStore.isInitializing) {
+    logger.warn('RouterGuard', `Blocked navigation to ${to.path} because session is initializing`)
     return false
   }
 
@@ -90,12 +99,14 @@ router.beforeEach(async (to) => {
     if (isTokenExpired(authStore.accessToken)) {
       const refreshed = await authStore.refreshSession()
       if (!refreshed) {
+        logger.warn('RouterGuard', 'Session expired during navigation guard. Redirecting to login')
         return { name: 'login', query: { redirect: to.fullPath } }
       }
     }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    logger.info('RouterGuard', `Protected route ${to.path} requires authentication. Redirecting to login`)
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
@@ -106,12 +117,15 @@ router.beforeEach(async (to) => {
   return true
 })
 
-router.afterEach(() => {
+router.afterEach((to) => {
   NProgress.done()
+  logger.info('Router', `Navigated to ${to.fullPath} (${String(to.name || 'unnamed')})`)
 })
 
-router.onError(() => {
+router.onError((error) => {
   NProgress.done()
+  logger.error('Router', 'Router navigation error', error)
 })
 
 export default router
+

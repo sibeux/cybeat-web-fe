@@ -5,6 +5,7 @@ import router from './core/app/router/index'
 import { setupInterceptors } from './core/infrastructure/http/interceptors'
 import { useAuthStore } from './features/auth/index'
 import { imageCacheDirective } from './core/directives/imageCache'
+import { logger } from './core/infrastructure/logger'
 import './style.css'
 
 /**
@@ -27,6 +28,30 @@ import './style.css'
  */
 async function bootstrap(): Promise<void> {
   const app = createApp(App)
+
+  // Global Vue error handler
+  app.config.errorHandler = (err, instance, info) => {
+    logger.error('VueErrorHandler', `Unhandled error in component: ${info}`, err, {
+      component: instance?.$options?.name || 'AnonymousComponent',
+      info,
+    })
+  }
+
+  // Global window unhandled error listener
+  window.addEventListener('error', (event) => {
+    logger.fatal('WindowError', event.message || 'Unhandled script error', event.error, {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    })
+  })
+
+  // Global unhandled promise rejection listener
+  window.addEventListener('unhandledrejection', (event) => {
+    logger.error('UnhandledRejection', 'Unhandled Promise Rejection', event.reason)
+  })
+
+  logger.info('Bootstrap', 'Starting CyBeat Web Application...')
 
   // 1. Install Pinia before using any store
   const pinia = createPinia()
@@ -53,8 +78,11 @@ async function bootstrap(): Promise<void> {
 
   // 6. Mount the fully resolved initial route
   app.mount('#app')
+  logger.info('Bootstrap', 'CyBeat Web Application mounted successfully.')
 }
 
 bootstrap().catch((err: unknown) => {
+  logger.fatal('Bootstrap', 'Application failed to start', err)
   console.error('Application failed to start:', err)
 })
+

@@ -3,6 +3,7 @@ import apiClient from './axios'
 import { authStorage } from '@/core/infrastructure/storage/auth-storage'
 import { isTokenExpired } from '@/features/auth/utils/jwt'
 import type { AuthResponse } from '@/features/auth/types/auth.types'
+import { logger } from '@/core/infrastructure/logger'
 
 /**
  * SESSION EXPIRATION EVENT
@@ -27,7 +28,12 @@ type RetriableRequestConfig = InternalAxiosRequestConfig & {
 
 async function attemptTokenRefresh(): Promise<string | null> {
   const refreshToken = authStorage.getRefreshToken()
-  if (!refreshToken) return null
+  if (!refreshToken) {
+    logger.warn('HttpAuth', 'Refresh token not found during refresh attempt')
+    return null
+  }
+
+  logger.info('HttpAuth', 'Attempting to refresh access token...')
 
   if (!refreshPromise) {
     refreshPromise = apiClient
@@ -39,13 +45,17 @@ async function attemptTokenRefresh(): Promise<string | null> {
           throw new Error(data.message || 'Unable to refresh session')
         }
 
+        logger.info('HttpAuth', 'Session access token refreshed successfully')
         authStorage.setAccessToken(data.access_token)
         if (data.refresh_token) {
           authStorage.setRefreshToken(data.refresh_token)
         }
         return data.access_token
       })
-      .catch(() => null)
+      .catch((err) => {
+        logger.warn('HttpAuth', 'Token refresh failed', undefined, err)
+        return null
+      })
       .finally(() => {
         refreshPromise = null
       })
@@ -53,6 +63,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
 
   const accessToken = await refreshPromise
   if (!accessToken) {
+    logger.warn('HttpAuth', 'Session expired. Broadcasting expiration event')
     authStorage.clearAll()
     window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT))
   }
@@ -76,6 +87,7 @@ export function setupInterceptors(): void {
     (config: InternalAxiosRequestConfig) => {
       const token = authStorage.getAccessToken()
       if (token && !isRefreshRequest(config) && isTokenExpired(token)) {
+        logger.info('HttpInterceptor', `Token expired for ${config.method?.toUpperCase()} ${config.url}. Refreshing...`)
         return attemptTokenRefresh().then((newAccessToken) => {
           if (!newAccessToken) {
             return Promise.reject(new axios.Cancel('Unable to refresh token'))
@@ -90,7 +102,10 @@ export function setupInterceptors(): void {
       }
       return config
     },
-    (error: AxiosError) => Promise.reject(error),
+    (error: AxiosError) => {
+      logger.error('HttpInterceptor', 'Request configuration error', error)
+      return Promise.reject(error)
+    },
   )
 
   // ─── Response Interceptor ───────────────────────────────────────────────────
@@ -98,12 +113,17 @@ export function setupInterceptors(): void {
   // Clears persisted tokens and notifies the app layer via a DOM event.
   // Does NOT import useAuthStore() — zero feature coupling.
   apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+      return response
+    },
     (error: AxiosError) => {
       const status = error.response?.status
       const requestConfig = error.config as RetriableRequestConfig | undefined
+      const url = requestConfig?.url || 'unknown'
+      const method = requestConfig?.method?.toUpperCase() || 'GET'
 
       if (status === 401 && !isRefreshRequest(requestConfig) && !requestConfig?.__cybeatRetried) {
+        logger.warn('HttpInterceptor', `Received 401 for ${method} ${url}. Retrying with fresh token...`)
         return attemptTokenRefresh().then((newAccessToken) => {
           if (!newAccessToken || !requestConfig) {
             return Promise.reject(error)
@@ -115,7 +135,24 @@ export function setupInterceptors(): void {
         })
       }
 
+      if (status && status >= 500) {
+        logger.error('HttpInterceptor', `Server Error (${status}) on ${method} ${url}`, error, {
+          status,
+          responseData: error.response?.data,
+        })
+      } else if (status && status >= 400 && status !== 401) {
+        logger.warn('HttpInterceptor', `Client Error (${status}) on ${method} ${url}`, {
+          status,
+          responseData: error.response?.data,
+        }, error)
+      } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        logger.error('HttpInterceptor', `Request timeout on ${method} ${url}`, error)
+      } else if (!error.response) {
+        logger.error('HttpInterceptor', `Network error on ${method} ${url}`, error)
+      }
+
       return Promise.reject(error)
     },
   )
 }
+

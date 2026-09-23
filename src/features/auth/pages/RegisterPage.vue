@@ -16,20 +16,20 @@
         </div>
 
         <div class="register-page__panel-content">
-          <h2 class="register-page__panel-title">Mulai perjalanan<br />Anda bersama kami</h2>
+          <h2 class="register-page__panel-title">Start your journey<br />with us today</h2>
           <p class="register-page__panel-desc">
-            Bergabunglah dengan ribuan tim yang sudah menggunakan Cybeat untuk meningkatkan produktivitas dan efisiensi bisnis mereka.
+            Join thousands of users and creators using Cybeat to experience superior audio playback and enterprise performance.
           </p>
 
           <div class="register-page__stats">
             <div class="register-page__stat">
               <span class="register-page__stat-value">500+</span>
-              <span class="register-page__stat-label">Perusahaan</span>
+              <span class="register-page__stat-label">Companies</span>
             </div>
             <div class="register-page__stat-divider" />
             <div class="register-page__stat">
               <span class="register-page__stat-value">10K+</span>
-              <span class="register-page__stat-label">Pengguna aktif</span>
+              <span class="register-page__stat-label">Active users</span>
             </div>
             <div class="register-page__stat-divider" />
             <div class="register-page__stat">
@@ -54,8 +54,8 @@
         </div>
 
         <div class="register-page__header">
-          <h1 class="register-page__title">Buat akun baru</h1>
-          <p class="register-page__subtitle">Daftarkan diri Anda dan mulai dalam hitungan menit</p>
+          <h1 class="register-page__title">Create an account</h1>
+          <p class="register-page__subtitle">Sign up and get started in minutes</p>
         </div>
 
         <RegisterForm />
