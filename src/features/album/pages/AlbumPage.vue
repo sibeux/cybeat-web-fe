@@ -32,6 +32,7 @@ let scrollHandler: (() => void) | null = null
 type SortMode = 'default' | 'alphabetical'
 type SortDirection = 'asc' | 'desc'
 
+const searchQuery = ref('')
 const sortMode = ref<SortMode>('default')
 const sortDirection = ref<SortDirection>('asc')
 const isSortDropdownOpen = ref(false)
@@ -48,7 +49,17 @@ const sortedSongs = computed<Song[]>(() => {
     return songs.value
   }
 
-  const list = [...songs.value]
+  let list = [...songs.value]
+
+  const query = searchQuery.value.trim().toLowerCase()
+  if (query) {
+    list = list.filter((song) => {
+      const titleMatch = (song.title || '').toLowerCase().includes(query)
+      const artistMatch = (song.artist || '').toLowerCase().includes(query)
+      return titleMatch || artistMatch
+    })
+  }
+
   const isAsc = sortDirection.value === 'asc'
 
   if (sortMode.value === 'alphabetical') {
@@ -324,8 +335,35 @@ const stickyNavBackground = computed(() => {
       </div>
 
       <div v-else class="album-page__song-section">
-        <!-- Sort bar (Only for type "album") -->
+        <!-- Sort & Search bar (Only for type "album") -->
         <div v-if="isAlbumType" class="album-page__toolbar">
+          <div class="album-page__search-wrapper">
+            <svg class="album-page__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              v-model="searchQuery"
+              type="search"
+              class="album-page__search-input"
+              placeholder="Search songs..."
+              aria-label="Search songs in album"
+              autocomplete="off"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="album-page__search-clear"
+              @click="searchQuery = ''"
+              aria-label="Clear search"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
           <div class="album-page__sort-wrapper" ref="sortDropdownRef">
             <button
               type="button"
@@ -435,7 +473,13 @@ const stickyNavBackground = computed(() => {
               </tr>
             </thead>
             <tbody>
+              <tr v-if="sortedSongs.length === 0" class="album-page__no-results-row">
+                <td colspan="3" class="album-page__no-results">
+                  No songs found matching "{{ searchQuery }}"
+                </td>
+              </tr>
               <tr 
+                v-else
                 v-for="(song, index) in sortedSongs" 
                 :key="song.id_music" 
                 class="song-list__tr"
@@ -457,9 +501,9 @@ const stickyNavBackground = computed(() => {
                     </div>
                     <img v-if="resolveQualityBadge(song)" v-img-cache="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
                   </div>
-                  <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }">{{ song.title }}</span>
+                  <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }" :title="song.title">{{ song.title }}</span>
                 </td>
-                <td class="song-list__td song-list__td--artist">{{ song.artist }}</td>
+                <td class="song-list__td song-list__td--artist" :title="song.artist">{{ song.artist }}</td>
               </tr>
             </tbody>
           </table>
