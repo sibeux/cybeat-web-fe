@@ -1,272 +1,311 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import AppLayout from '@/core/app/layouts/AppLayout.vue'
-import { APP_NAME } from '@/core/app/config/app.config'
-import { albumApi } from '../api/album.api'
-import type { Song } from '../types/song.types'
-import { usePlayerStore } from '../store/player.store'
-import { storeToRefs } from 'pinia'
-import { useTitle } from '@/core/shared/composables/useTitle'
+  import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  import AppLayout from '@/core/app/layouts/AppLayout.vue'
+  import { APP_NAME } from '@/core/app/config/app.config'
+  import { albumApi } from '../api/album.api'
+  import type { Song } from '../types/song.types'
+  import { usePlayerStore } from '../store/player.store'
+  import { storeToRefs } from 'pinia'
+  import { useTitle } from '@/core/shared/composables/useTitle'
 
-const route = useRoute()
-const router = useRouter()
-const playerStore = usePlayerStore()
-const { currentSong, isPlaying } = storeToRefs(playerStore)
+  const route = useRoute()
+  const router = useRouter()
+  const playerStore = usePlayerStore()
+  const { currentSong, isPlaying } = storeToRefs(playerStore)
 
-const songs = ref<Song[]>([])
-const totalSongs = ref(0)
-const isLoading = ref(true)
-const error = ref<string | null>(null)
+  const songs = ref<Song[]>([])
+  const totalSongs = ref(0)
+  const isLoading = ref(true)
+  const error = ref<string | null>(null)
 
-const type = route.params.type as string
-const id = Number(route.params.id)
+  const type = computed(() =>
+    String(route.params.type || 'album')
+      .trim()
+      .toLowerCase(),
+  )
+  const id = computed(() => Number(route.params.id))
 
-const stateAlbumName = history.state?.albumName as string | undefined
-const stateArtistName = history.state?.artistName as string | undefined
-const isPinned = ref(Boolean(history.state?.isPinned))
+  const stateAlbumName = history.state?.albumName as string | undefined
+  const stateArtistName = history.state?.artistName as string | undefined
+  const isPinned = ref(Boolean(history.state?.isPinned))
 
-const isStickyVisible = ref(false)
-let scrollHandler: (() => void) | null = null
+  const isStickyVisible = ref(false)
+  let scrollHandler: (() => void) | null = null
 
-type SortMode = 'default' | 'alphabetical'
-type SortDirection = 'asc' | 'desc'
+  type SortMode = 'default' | 'alphabetical'
+  type SortDirection = 'asc' | 'desc'
 
-const searchQuery = ref('')
-const sortMode = ref<SortMode>('default')
-const sortDirection = ref<SortDirection>('asc')
-const isSortDropdownOpen = ref(false)
-const sortDropdownRef = ref<HTMLElement | null>(null)
+  const searchQuery = ref('')
+  const sortMode = ref<SortMode>('default')
+  const sortDirection = ref<SortDirection>('asc')
+  const isSortDropdownOpen = ref(false)
+  const sortDropdownRef = ref<HTMLElement | null>(null)
 
-const isAlbumType = computed(() => type === 'album')
+  const isAlbumType = computed(
+    () => ['album', 'playlist', 'category'].includes(type.value) || !type.value,
+  )
 
-const sortLabel = computed(() => {
-  return sortMode.value === 'alphabetical' ? 'Alphabetical' : 'Default (ID)'
-})
+  const sortLabel = computed(() => {
+    return sortMode.value === 'alphabetical' ? 'Alphabetical' : 'Default (ID)'
+  })
 
-const sortedSongs = computed<Song[]>(() => {
-  if (!isAlbumType.value) {
-    return songs.value
-  }
+  const sortedSongs = computed<Song[]>(() => {
+    let list = [...songs.value]
 
-  let list = [...songs.value]
-
-  const query = searchQuery.value.trim().toLowerCase()
-  if (query) {
-    list = list.filter((song) => {
-      const titleMatch = (song.title || '').toLowerCase().includes(query)
-      const artistMatch = (song.artist || '').toLowerCase().includes(query)
-      return titleMatch || artistMatch
-    })
-  }
-
-  const isAsc = sortDirection.value === 'asc'
-
-  if (sortMode.value === 'alphabetical') {
-    list.sort((a, b) => {
-      const cmp = a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })
-      if (cmp !== 0) {
-        return isAsc ? cmp : -cmp
-      }
-      return isAsc ? a.id_music - b.id_music : b.id_music - a.id_music
-    })
-  } else {
-    // default (id)
-    list.sort((a, b) => (isAsc ? a.id_music - b.id_music : b.id_music - a.id_music))
-  }
-
-  return list
-})
-
-const toggleSortDropdown = () => {
-  isSortDropdownOpen.value = !isSortDropdownOpen.value
-}
-
-const selectSortMode = (mode: SortMode) => {
-  if (sortMode.value === mode) {
-    // Toggle direction if same sort mode is clicked
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortMode.value = mode
-    sortDirection.value = 'asc'
-  }
-}
-
-const selectSortDirection = (direction: SortDirection) => {
-  sortDirection.value = direction
-}
-
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as Node | null
-  if (!target) return
-  if (sortDropdownRef.value && !sortDropdownRef.value.contains(target)) {
-    isSortDropdownOpen.value = false
-  }
-}
-
-useTitle(() => {
-  if (currentSong.value) {
-    return `${currentSong.value.title} • ${currentSong.value.artist}`
-  } else if (stateAlbumName) {
-    return stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
-  } else if (songs.value.length > 0) {
-    const firstSong = songs.value[0]
-    return `${firstSong.album} • ${firstSong.artist}`
-  }
-  return APP_NAME
-})
-
-onMounted(async () => {
-  scrollHandler = () => {
-    // Show sticky title when scrolled down past the header (e.g., 80px)
-    isStickyVisible.value = window.scrollY > 80
-  }
-  
-  window.addEventListener('scroll', scrollHandler, { passive: true })
-  window.addEventListener('click', handleClickOutside)
-  
-  if (!type || !id) {
-    error.value = 'Invalid album parameters'
-    isLoading.value = false
-    return
-  }
-
-  try {
-    isLoading.value = true
-    const response = await albumApi.getSongs(type, id)
-    songs.value = response.data.data || []
-    // TODO: Jika API sudah mendukung pagination, ganti 'any' dengan tipe meta API Anda
-    // Saat ini fallback ke array length jika 'total' belum ada di response backend
-    totalSongs.value = (response.data as any).total || songs.value.length
-  } catch (err: any) {
-    error.value = err.response?.data?.message || err.message || 'Failed to load data'
-  } finally {
-    isLoading.value = false
-  }
-})
-
-onUnmounted(() => {
-  if (scrollHandler) {
-    window.removeEventListener('scroll', scrollHandler)
-  }
-  window.removeEventListener('click', handleClickOutside)
-})
-
-const resolveCoverUrl = (cover: string | null) => {
-  if (!cover) return ''
-  if (cover.startsWith('http') || cover.startsWith('data:')) return cover
-  
-  if (cover.includes('cover_url=cdncloudflare/')) {
-    const match = cover.match(/cover_url=cdncloudflare\/(.*)/);
-    if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`;
-  }
-  
-  return `https://${cover}`
-}
-
-const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
-
-const resolveQualityBadge = (song: Song) => {
-  if (song.codec_name?.toLowerCase() === 'alac') return '/assets/images/badge-alac.png'
-
-  const sampleRate = Number.parseFloat(song.sample_rate)
-  if (sampleRate >= 96) return '/assets/images/badge-en-hires.png'
-  if (sampleRate > 0 && song.music_quality?.toLowerCase() === 'lossless') return '/assets/images/badge-en-lossless.png'
-  return undefined
-}
-
-const handleCoverError = (e: Event) => {
-  const img = e.target as HTMLImageElement
-  if (img.dataset.fallbackApplied) return
-  img.dataset.fallbackApplied = 'true'
-  img.src = DEFAULT_COVER
-}
-
-const goBack = () => {
-  router.back()
-}
-
-const playSong = (song: Song) => {
-  if (song.codec_name?.toLowerCase() === 'alac') {
-    alert('ALAC audio format cannot be played due to browser compatibility.')
-    return
-  }
-
-  if (currentSong.value?.id_music === song.id_music) {
-    playerStore.togglePlayback()
-    return
-  }
-
-  playerStore.playSong(song, sortedSongs.value, { type, id: Number(id) })
-}
-
-const albumCovers = computed<string[]>(() => {
-  if (songs.value.length === 0) return []
-
-  if (['playlist', 'category'].includes(type)) {
-    const covers = new Set<string>()
-    for (const song of songs.value) {
-      if (song.cover) {
-        covers.add(resolveCoverUrl(song.cover))
-      }
-      if (covers.size === 4) break
+    const query = searchQuery.value.trim().toLowerCase()
+    if (query) {
+      list = list.filter((song) => {
+        const titleMatch = (song.title || '').toLowerCase().includes(query)
+        const artistMatch = (song.artist || '').toLowerCase().includes(query)
+        return titleMatch || artistMatch
+      })
     }
-    
-    const coverUrls = Array.from(covers)
-    return coverUrls.length < 4 && coverUrls.length > 0 ? coverUrls.slice(-1) : coverUrls
+
+    const isAsc = sortDirection.value === 'asc'
+
+    if (sortMode.value === 'alphabetical') {
+      list.sort((a, b) => {
+        const cmp = a.title.localeCompare(b.title, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        })
+        if (cmp !== 0) {
+          return isAsc ? cmp : -cmp
+        }
+        return isAsc ? a.id_music - b.id_music : b.id_music - a.id_music
+      })
+    } else {
+      // default (id)
+      list.sort((a, b) => (isAsc ? a.id_music - b.id_music : b.id_music - a.id_music))
+    }
+
+    return list
+  })
+
+  const toggleSortDropdown = () => {
+    isSortDropdownOpen.value = !isSortDropdownOpen.value
   }
-  
-  if (songs.value[0].cover) {
-    return [resolveCoverUrl(songs.value[0].cover)]
+
+  const selectSortMode = (mode: SortMode) => {
+    if (sortMode.value === mode) {
+      // Toggle direction if same sort mode is clicked
+      sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+    } else {
+      sortMode.value = mode
+      sortDirection.value = 'asc'
+    }
   }
-  return [DEFAULT_COVER]
-})
 
-const albumCover = computed(() => {
-  if (albumCovers.value.length > 0) {
-    return albumCovers.value[0]
+  const selectSortDirection = (direction: SortDirection) => {
+    sortDirection.value = direction
   }
-  return DEFAULT_COVER
-})
 
-const albumType = computed(() => {
-  return type === 'playlist' ? 'Playlist' : 'Album'
-})
-
-const displayAlbumName = computed(() => {
-  return stateAlbumName || (songs.value.length > 0 ? songs.value[0].album : 'Unknown')
-})
-
-const displayArtistName = computed(() => {
-  return stateArtistName || (songs.value.length > 0 ? songs.value[0].artist : 'Unknown Artist')
-})
-
-const headerStyle = computed(() => {
-  const bg = songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
-  return {
-    background: `linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.7) 100%), ${bg}`
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as Node | null
+    if (!target) return
+    if (sortDropdownRef.value && !sortDropdownRef.value.contains(target)) {
+      isSortDropdownOpen.value = false
+    }
   }
-})
 
-const stickyNavBackground = computed(() => {
-  const bg = songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
-  return `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), ${bg}`
-})
+  useTitle(() => {
+    if (currentSong.value) {
+      return `${currentSong.value.title} • ${currentSong.value.artist}`
+    } else if (stateAlbumName) {
+      return stateArtistName ? `${stateAlbumName} • ${stateArtistName}` : stateAlbumName
+    } else if (songs.value.length > 0) {
+      const firstSong = songs.value[0]
+      return `${firstSong.album} • ${firstSong.artist}`
+    }
+    return APP_NAME
+  })
 
+  const loadSongs = async () => {
+    const currentType = type.value
+    const currentId = id.value
+
+    if (!currentType || !currentId || Number.isNaN(currentId)) {
+      error.value = 'Invalid album parameters'
+      isLoading.value = false
+      return
+    }
+
+    try {
+      isLoading.value = true
+      error.value = null
+      const response = await albumApi.getSongs(currentType, currentId)
+      songs.value = response.data.data || []
+      // Fallback to array length if 'total' is not present in response
+      totalSongs.value = (response.data as any).total || songs.value.length
+    } catch (err: any) {
+      error.value = err.response?.data?.message || err.message || 'Failed to load data'
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  onMounted(() => {
+    scrollHandler = () => {
+      // Show sticky title when scrolled down past the header (e.g., 80px)
+      isStickyVisible.value = window.scrollY > 80
+    }
+
+    window.addEventListener('scroll', scrollHandler, { passive: true })
+    window.addEventListener('click', handleClickOutside)
+
+    loadSongs()
+  })
+
+  watch(
+    () => [route.params.type, route.params.id],
+    ([newType, newId], [oldType, oldId]) => {
+      if (newType !== oldType || newId !== oldId) {
+        searchQuery.value = ''
+        isSortDropdownOpen.value = false
+        loadSongs()
+      }
+    },
+  )
+
+  onUnmounted(() => {
+    if (scrollHandler) {
+      window.removeEventListener('scroll', scrollHandler)
+    }
+    window.removeEventListener('click', handleClickOutside)
+  })
+
+  const resolveCoverUrl = (cover: string | null) => {
+    if (!cover) return ''
+    if (cover.startsWith('http') || cover.startsWith('data:')) return cover
+
+    if (cover.includes('cover_url=cdncloudflare/')) {
+      const match = cover.match(/cover_url=cdncloudflare\/(.*)/)
+      if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`
+    }
+
+    return `https://${cover}`
+  }
+
+  const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
+
+  const resolveQualityBadge = (song: Song) => {
+    if (song.codec_name?.toLowerCase() === 'alac') return '/assets/images/badge-alac.png'
+
+    const sampleRate = Number.parseFloat(song.sample_rate)
+    if (sampleRate >= 96) return '/assets/images/badge-en-hires.png'
+    if (sampleRate > 0 && song.music_quality?.toLowerCase() === 'lossless')
+      return '/assets/images/badge-en-lossless.png'
+    return undefined
+  }
+
+  const handleCoverError = (e: Event) => {
+    const img = e.target as HTMLImageElement
+    if (img.dataset.fallbackApplied) return
+    img.dataset.fallbackApplied = 'true'
+    img.src = DEFAULT_COVER
+  }
+
+  const goBack = () => {
+    router.back()
+  }
+
+  const playSong = (song: Song) => {
+    if (song.codec_name?.toLowerCase() === 'alac') {
+      alert('ALAC audio format cannot be played due to browser compatibility.')
+      return
+    }
+
+    if (currentSong.value?.id_music === song.id_music) {
+      playerStore.togglePlayback()
+      return
+    }
+
+    playerStore.playSong(song, sortedSongs.value, { type: type.value, id: id.value })
+  }
+
+  const albumCovers = computed<string[]>(() => {
+    if (songs.value.length === 0) return []
+
+    if (['playlist', 'category'].includes(type.value)) {
+      const covers = new Set<string>()
+      for (const song of songs.value) {
+        if (song.cover) {
+          covers.add(resolveCoverUrl(song.cover))
+        }
+        if (covers.size === 4) break
+      }
+
+      const coverUrls = Array.from(covers)
+      return coverUrls.length < 4 && coverUrls.length > 0 ? coverUrls.slice(-1) : coverUrls
+    }
+
+    if (songs.value[0].cover) {
+      return [resolveCoverUrl(songs.value[0].cover)]
+    }
+    return [DEFAULT_COVER]
+  })
+
+  const albumCover = computed(() => {
+    if (albumCovers.value.length > 0) {
+      return albumCovers.value[0]
+    }
+    return DEFAULT_COVER
+  })
+
+  const albumType = computed(() => {
+    return type.value === 'playlist' ? 'Playlist' : 'Album'
+  })
+
+  const displayAlbumName = computed(() => {
+    return stateAlbumName || (songs.value.length > 0 ? songs.value[0].album : 'Unknown')
+  })
+
+  const displayArtistName = computed(() => {
+    return stateArtistName || (songs.value.length > 0 ? songs.value[0].artist : 'Unknown Artist')
+  })
+
+  const headerStyle = computed(() => {
+    const bg =
+      songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
+    return {
+      background: `linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(0, 0, 0, 0.7) 100%), ${bg}`,
+    }
+  })
+
+  const stickyNavBackground = computed(() => {
+    const bg =
+      songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
+    return `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), ${bg}`
+  })
 </script>
 
 <template>
-  <AppLayout :overrideBrand="isStickyVisible" :navBackground="isStickyVisible ? stickyNavBackground : undefined">
+  <AppLayout
+    :overrideBrand="isStickyVisible"
+    :navBackground="isStickyVisible ? stickyNavBackground : undefined"
+  >
     <template #nav-brand>
       <div class="album-page__sticky-brand">
-        <button class="album-page__back-btn album-page__back-btn--sticky" aria-label="Go back" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button
+          class="album-page__back-btn album-page__back-btn--sticky"
+          aria-label="Go back"
+          @click="goBack"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
         <div class="album-page__sticky-title">
-          {{ stateAlbumName }}
+          {{ displayAlbumName }}
         </div>
       </div>
     </template>
@@ -274,8 +313,20 @@ const stickyNavBackground = computed(() => {
     <div class="album-page">
       <div class="album-page__hero" :style="headerStyle">
         <div class="album-page__hero-topbar">
-          <button class="album-page__back-btn album-page__back-btn--hero" aria-label="Go back" title="Go back" @click="goBack">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <button
+            class="album-page__back-btn album-page__back-btn--hero"
+            aria-label="Go back"
+            title="Go back"
+            @click="goBack"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
@@ -284,9 +335,21 @@ const stickyNavBackground = computed(() => {
         <div class="album-page__hero-content">
           <div class="album-page__hero-cover-wrapper">
             <div v-if="albumCovers.length === 4" class="album-page__hero-cover-grid">
-              <img v-for="(coverUrl, index) in albumCovers" :key="`hero-grid-${index}`" v-img-cache="coverUrl" :alt="`Cover ${index + 1}`" @error="handleCoverError" />
+              <img
+                v-for="(coverUrl, index) in albumCovers"
+                :key="`hero-grid-${index}`"
+                v-img-cache="coverUrl"
+                :alt="`Cover ${index + 1}`"
+                @error="handleCoverError"
+              />
             </div>
-            <img v-else v-img-cache="albumCover" alt="Album Cover" class="album-page__hero-cover" @error="handleCoverError" />
+            <img
+              v-else
+              v-img-cache="albumCover"
+              alt="Album Cover"
+              class="album-page__hero-cover"
+              @error="handleCoverError"
+            />
           </div>
           <div class="album-page__hero-details">
             <div class="album-page__hero-tag-row">
@@ -301,7 +364,12 @@ const stickyNavBackground = computed(() => {
             <h1 class="album-page__hero-title">{{ displayAlbumName }}</h1>
             <div class="album-page__hero-meta">
               <div class="album-page__hero-artist-avatar-wrapper">
-                <img v-img-cache="albumCover" alt="Artist" class="album-page__hero-artist-avatar" @error="handleCoverError" />
+                <img
+                  v-img-cache="albumCover"
+                  alt="Artist"
+                  class="album-page__hero-artist-avatar"
+                  @error="handleCoverError"
+                />
               </div>
               <span class="album-page__hero-artist">{{ displayArtistName }}</span>
               <span class="album-page__hero-dot">•</span>
@@ -311,9 +379,16 @@ const stickyNavBackground = computed(() => {
         </div>
       </div>
 
-
       <div v-if="isLoading" class="album-page__state">
-        <svg class="album-page__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          class="album-page__spinner"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <line x1="12" y1="2" x2="12" y2="6"></line>
           <line x1="12" y1="18" x2="12" y2="22"></line>
           <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -330,15 +405,22 @@ const stickyNavBackground = computed(() => {
         {{ error }}
       </div>
 
-      <div v-else-if="songs.length === 0" class="album-page__state">
-        No songs found.
-      </div>
+      <div v-else-if="songs.length === 0" class="album-page__state">No songs found.</div>
 
       <div v-else class="album-page__song-section">
         <!-- Sort & Search bar (Only for type "album") -->
         <div v-if="isAlbumType" class="album-page__toolbar">
           <div class="album-page__search-wrapper">
-            <svg class="album-page__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="album-page__search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
@@ -357,7 +439,14 @@ const stickyNavBackground = computed(() => {
               @click="searchQuery = ''"
               aria-label="Clear search"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -375,7 +464,16 @@ const stickyNavBackground = computed(() => {
               @click.stop="toggleSortDropdown"
             >
               <!-- Ascending icon -->
-              <svg v-if="sortDirection === 'asc'" class="album-page__sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                v-if="sortDirection === 'asc'"
+                class="album-page__sort-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="m3 8 4-4 4 4" />
                 <path d="M7 4v16" />
                 <path d="M11 12h4" />
@@ -383,7 +481,16 @@ const stickyNavBackground = computed(() => {
                 <path d="M11 20h10" />
               </svg>
               <!-- Descending icon -->
-              <svg v-else class="album-page__sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                v-else
+                class="album-page__sort-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="m3 16 4 4 4-4" />
                 <path d="M7 20V4" />
                 <path d="M11 4h10" />
@@ -391,8 +498,19 @@ const stickyNavBackground = computed(() => {
                 <path d="M11 12h4" />
               </svg>
               <span>Sort: {{ sortLabel }}</span>
-              <span class="album-page__sort-indicator">{{ sortDirection === 'asc' ? 'Asc' : 'Desc' }}</span>
-              <svg class="album-page__sort-chevron" :class="{ 'album-page__sort-chevron--open': isSortDropdownOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <span class="album-page__sort-indicator">{{
+                sortDirection === 'asc' ? 'Asc' : 'Desc'
+              }}</span>
+              <svg
+                class="album-page__sort-chevron"
+                :class="{ 'album-page__sort-chevron--open': isSortDropdownOpen }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
@@ -406,7 +524,16 @@ const stickyNavBackground = computed(() => {
                 @click="selectSortMode('default')"
               >
                 <span>Default (ID)</span>
-                <svg v-if="sortMode === 'default'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  v-if="sortMode === 'default'"
+                  class="album-page__sort-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
@@ -417,7 +544,16 @@ const stickyNavBackground = computed(() => {
                 @click="selectSortMode('alphabetical')"
               >
                 <span>Alphabetical</span>
-                <svg v-if="sortMode === 'alphabetical'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  v-if="sortMode === 'alphabetical'"
+                  class="album-page__sort-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
@@ -432,13 +568,30 @@ const stickyNavBackground = computed(() => {
                 @click="selectSortDirection('asc')"
               >
                 <div class="album-page__sort-option-content">
-                  <svg class="album-page__sort-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    class="album-page__sort-option-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="m3 8 4-4 4 4" />
                     <path d="M7 4v16" />
                   </svg>
                   <span>Ascending</span>
                 </div>
-                <svg v-if="sortDirection === 'asc'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  v-if="sortDirection === 'asc'"
+                  class="album-page__sort-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
@@ -449,13 +602,30 @@ const stickyNavBackground = computed(() => {
                 @click="selectSortDirection('desc')"
               >
                 <div class="album-page__sort-option-content">
-                  <svg class="album-page__sort-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    class="album-page__sort-option-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="m3 16 4 4 4-4" />
                     <path d="M7 20V4" />
                   </svg>
                   <span>Descending</span>
                 </div>
-                <svg v-if="sortDirection === 'desc'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  v-if="sortDirection === 'desc'"
+                  class="album-page__sort-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
@@ -478,32 +648,93 @@ const stickyNavBackground = computed(() => {
                   No songs found matching "{{ searchQuery }}"
                 </td>
               </tr>
-              <tr 
+              <tr
                 v-else
-                v-for="(song, index) in sortedSongs" 
-                :key="song.id_music" 
+                v-for="(song, index) in sortedSongs"
+                :key="song.id_music"
                 class="song-list__tr"
                 :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
               >
                 <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
                 <td class="song-list__td song-list__td--title-cover">
-                  <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
+                  <div
+                    class="song-list__cover-wrapper"
+                    @click="playSong(song)"
+                    :title="
+                      song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''
+                    "
+                    :style="
+                      song.codec_name?.toLowerCase() === 'alac'
+                        ? 'cursor: not-allowed; opacity: 0.7;'
+                        : ''
+                    "
+                  >
                     <div class="song-list__cover-surface">
-                      <img v-if="resolveCoverUrl(song.cover)" v-img-cache="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
+                      <img
+                        v-if="resolveCoverUrl(song.cover)"
+                        v-img-cache="resolveCoverUrl(song.cover)"
+                        :alt="song.title"
+                        class="song-list__cover"
+                        loading="lazy"
+                        @error="handleCoverError"
+                      />
                       <div v-else class="song-list__cover-placeholder">
-                        <img v-img-cache="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
+                        <img
+                          v-img-cache="DEFAULT_COVER"
+                          :alt="song.title"
+                          class="song-list__cover"
+                        />
                       </div>
-                      <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying, 'song-list__play-overlay--disabled': song.codec_name?.toLowerCase() === 'alac' }">
-                        <svg v-if="currentSong?.id_music === song.id_music && isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                        <svg v-else-if="song.codec_name?.toLowerCase() === 'alac'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                        <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      <div
+                        class="song-list__play-overlay"
+                        :class="{
+                          'song-list__play-overlay--active':
+                            currentSong?.id_music === song.id_music && isPlaying,
+                          'song-list__play-overlay--disabled':
+                            song.codec_name?.toLowerCase() === 'alac',
+                        }"
+                      >
+                        <svg
+                          v-if="currentSong?.id_music === song.id_music && isPlaying"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                        </svg>
+                        <svg
+                          v-else-if="song.codec_name?.toLowerCase() === 'alac'"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                        <svg v-else viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
                       </div>
                     </div>
-                    <img v-if="resolveQualityBadge(song)" v-img-cache="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
+                    <img
+                      v-if="resolveQualityBadge(song)"
+                      v-img-cache="resolveQualityBadge(song)"
+                      :alt="`${song.codec_name} quality badge`"
+                      class="song-list__quality-badge"
+                    />
                   </div>
-                  <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }" :title="song.title">{{ song.title }}</span>
+                  <span
+                    class="song-list__title"
+                    :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }"
+                    :title="song.title"
+                    >{{ song.title }}</span
+                  >
                 </td>
-                <td class="song-list__td song-list__td--artist" :title="song.artist">{{ song.artist }}</td>
+                <td class="song-list__td song-list__td--artist" :title="song.artist">
+                  {{ song.artist }}
+                </td>
               </tr>
             </tbody>
           </table>

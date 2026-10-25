@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch, ref } from 'vue'
+  import { onMounted, onUnmounted, watch, ref } from 'vue'
   import { useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -14,8 +14,9 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
   const router = useRouter()
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
-  
-  const { albums, categories, playlists, isLoading, error, searchQuery } = storeToRefs(dashboardStore)
+
+  const { albums, categories, playlists, isLoading, error, searchQuery } =
+    storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const debouncedSearch = useDebounce(searchQuery, 350)
   const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
@@ -28,13 +29,12 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: 'smooth',
     })
   }
 
-  useTitle(() => currentSong.value
-    ? `${currentSong.value.title} • ${currentSong.value.artist}`
-    : APP_NAME
+  useTitle(() =>
+    currentSong.value ? `${currentSong.value.title} • ${currentSong.value.artist}` : APP_NAME,
   )
 
   onMounted(async () => {
@@ -50,9 +50,12 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
     await dashboardStore.fetchDashboardData(value.trim(), true)
   })
 
-  watch(() => authStore.isAuthenticated, async () => {
-    await dashboardStore.fetchDashboardData(debouncedSearch.value.trim(), true)
-  })
+  watch(
+    () => authStore.isAuthenticated,
+    async () => {
+      await dashboardStore.fetchDashboardData(debouncedSearch.value.trim(), true)
+    },
+  )
 
   const handleRefresh = async () => {
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim(), true)
@@ -61,13 +64,13 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
   const resolveCoverUrl = (cover: unknown) => {
     if (typeof cover !== 'string' || !cover) return ''
     if (cover.startsWith('http') || cover.startsWith('data:')) return cover
-    
+
     // Bypass non-cacheable API redirect to allow native browser caching
     if (cover.includes('cover_url=cdncloudflare/')) {
-      const match = cover.match(/cover_url=cdncloudflare\/(.*)/);
-      if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`;
+      const match = cover.match(/cover_url=cdncloudflare\/(.*)/)
+      if (match && match[1]) return `https://cdn.sibeux.my.id/${match[1]}`
     }
-    
+
     return `https://${cover}`
   }
 
@@ -95,17 +98,25 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
   }
 
   const goToAlbum = (item: any) => {
-    if (!item.type || !item.id) return
-    router.push({ 
-      name: 'album', 
-      params: { type: item.type, id: item.id },
-      state: { albumName: item.title, artistName: item.author || '', isPinned: Boolean(item.pin_at) }
+    const rawType = item.type ? String(item.type).trim().toLowerCase() : 'album'
+    const id = Number(item.id)
+    if (!id) return
+    router.push({
+      name: 'album',
+      params: { type: rawType, id },
+      state: {
+        albumName: item.title,
+        artistName: item.author || '',
+        isPinned: Boolean(item.pin_at),
+      },
     })
   }
 
   const isPlayingAlbum = (item: any) => {
-    return String(currentAlbum.value?.type) === String(item.type)
-      && Number(currentAlbum.value?.id) === Number(item.id)
+    return (
+      String(currentAlbum.value?.type) === String(item.type) &&
+      Number(currentAlbum.value?.id) === Number(item.id)
+    )
   }
 </script>
 
@@ -119,18 +130,26 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'kategori' }"
             @click="sidebarTab = 'kategori'"
-          >Categories</button>
+          >
+            Categories
+          </button>
           <button
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'playlist' }"
             @click="sidebarTab = 'playlist'"
-          >Playlists</button>
+          >
+            Playlists
+          </button>
         </div>
 
         <!-- Categories -->
         <template v-if="sidebarTab === 'kategori'">
-          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">Loading...</div>
-          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">No categories available</div>
+          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">
+            Loading...
+          </div>
+          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">
+            No categories available
+          </div>
           <ul v-else class="dashboard__sidebar-list">
             <li
               v-for="item in categories"
@@ -139,11 +158,27 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
               :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
               @click="goToAlbum(item)"
             >
-              <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+              <div
+                class="dashboard__sidebar-cover"
+                :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }"
+              >
                 <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sc-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                  <img
+                    v-for="(coverUrl, index) in getCoverUrls(item)"
+                    :key="`${item.id}-sc-${index}`"
+                    v-img-cache="coverUrl"
+                    :alt="`${item.title} cover ${index + 1}`"
+                    loading="lazy"
+                    @error="handleCoverError"
+                  />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img
+                  v-else-if="getCoverUrls(item).length"
+                  v-img-cache="getCoverUrls(item)[0]"
+                  :alt="item.title"
+                  loading="lazy"
+                  @error="handleCoverError"
+                />
                 <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
@@ -161,15 +196,26 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                   <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
                 </div>
               </div>
-              <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              <svg
+                v-if="isPlayingAlbum(item)"
+                class="dashboard__sidebar-playing"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </li>
           </ul>
         </template>
 
         <!-- Playlist -->
         <template v-else>
-          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">Loading...</div>
-          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">No playlists available</div>
+          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">
+            Loading...
+          </div>
+          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">
+            No playlists available
+          </div>
           <ul v-else class="dashboard__sidebar-list">
             <li
               v-for="item in playlists"
@@ -178,11 +224,27 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
               :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
               @click="goToAlbum(item)"
             >
-              <div class="dashboard__sidebar-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+              <div
+                class="dashboard__sidebar-cover"
+                :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }"
+              >
                 <div v-if="getCoverUrls(item).length === 4" class="dashboard__sidebar-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-sp-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                  <img
+                    v-for="(coverUrl, index) in getCoverUrls(item)"
+                    :key="`${item.id}-sp-${index}`"
+                    v-img-cache="coverUrl"
+                    :alt="`${item.title} cover ${index + 1}`"
+                    loading="lazy"
+                    @error="handleCoverError"
+                  />
                 </div>
-                <img v-else-if="getCoverUrls(item).length" v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
+                <img
+                  v-else-if="getCoverUrls(item).length"
+                  v-img-cache="getCoverUrls(item)[0]"
+                  :alt="item.title"
+                  loading="lazy"
+                  @error="handleCoverError"
+                />
                 <img v-else v-img-cache="DEFAULT_COVER" :alt="item.title" />
               </div>
               <div class="dashboard__sidebar-info">
@@ -199,9 +261,18 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                   </svg>
                   <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
                 </div>
-                <span v-if="item.author" class="dashboard__sidebar-sub" :title="item.author">{{ item.author }}</span>
+                <span v-if="item.author" class="dashboard__sidebar-sub" :title="item.author">{{
+                  item.author
+                }}</span>
               </div>
-              <svg v-if="isPlayingAlbum(item)" class="dashboard__sidebar-playing" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              <svg
+                v-if="isPlayingAlbum(item)"
+                class="dashboard__sidebar-playing"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </li>
           </ul>
         </template>
@@ -213,14 +284,16 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         <div class="dashboard__welcome-icon" aria-hidden="true">👋</div>
         <div>
           <h1 class="dashboard__title">
-            Welcome<template v-if="authStore.user?.name">, {{ authStore.user.name }}</template><template v-else> to Cybeat</template>!
+            Welcome<template v-if="authStore.user?.name">, {{ authStore.user.name }}</template
+            ><template v-else> to Cybeat</template>!
           </h1>
           <p class="dashboard__subtitle">
             <template v-if="authStore.isAuthenticated">
               You are signed in to Cybeat. Dashboard is currently under active development.
             </template>
             <template v-else>
-              Please sign in to access all features. Dashboard is currently under active development.
+              Please sign in to access all features. Dashboard is currently under active
+              development.
             </template>
           </p>
         </div>
@@ -230,7 +303,16 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         <div class="dashboard__search">
           <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
           <div class="dashboard__search-input-wrapper">
-            <svg class="dashboard__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              class="dashboard__search-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
@@ -248,7 +330,14 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
               @click="searchQuery = ''"
               aria-label="Clear search"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
@@ -282,7 +371,15 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
       </div>
 
       <div v-if="isLoading" class="dashboard__loading">
-        <svg class="dashboard__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          class="dashboard__spinner"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <line x1="12" y1="2" x2="12" y2="6"></line>
           <line x1="12" y1="18" x2="12" y2="22"></line>
           <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
@@ -296,36 +393,64 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
       </div>
       <div v-else-if="error" class="dashboard__error">
         <p>{{ error }}</p>
-        <button
-          type="button"
-          class="dashboard__retry-btn"
-          @click="handleRefresh"
-        >
-          Try Again
-        </button>
+        <button type="button" class="dashboard__retry-btn" @click="handleRefresh">Try Again</button>
       </div>
       <template v-else>
         <!-- Album Section -->
         <div v-if="albums.length > 0" class="dashboard__albums-section">
           <h2 class="dashboard__section-title">Latest Albums</h2>
           <div class="dashboard__album-grid">
-            <div v-for="item in albums" :key="item.id" class="dashboard__album-card" :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }" @click="goToAlbum(item)">
-              <div class="dashboard__album-cover" :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }">
+            <div
+              v-for="item in albums"
+              :key="item.id"
+              class="dashboard__album-card"
+              :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }"
+              @click="goToAlbum(item)"
+            >
+              <div
+                class="dashboard__album-cover"
+                :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }"
+              >
                 <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
                   <img v-img-cache="DEFAULT_COVER" :alt="item.title" />
                 </div>
-                <div v-else-if="getCoverUrls(item).length === 4" class="dashboard__album-cover-grid">
-                  <img v-for="(coverUrl, index) in getCoverUrls(item)" :key="`${item.id}-cover-${index}`" v-img-cache="coverUrl" :alt="`${item.title} cover ${index + 1}`" loading="lazy" @error="handleCoverError" />
+                <div
+                  v-else-if="getCoverUrls(item).length === 4"
+                  class="dashboard__album-cover-grid"
+                >
+                  <img
+                    v-for="(coverUrl, index) in getCoverUrls(item)"
+                    :key="`${item.id}-cover-${index}`"
+                    v-img-cache="coverUrl"
+                    :alt="`${item.title} cover ${index + 1}`"
+                    loading="lazy"
+                    @error="handleCoverError"
+                  />
                 </div>
-                <img v-else v-img-cache="getCoverUrls(item)[0]" :alt="item.title" loading="lazy" @error="handleCoverError" />
-                
-                <div v-if="item.pin_at" class="dashboard__album-pin-badge" title="Pinned" aria-label="Pinned">
+                <img
+                  v-else
+                  v-img-cache="getCoverUrls(item)[0]"
+                  :alt="item.title"
+                  loading="lazy"
+                  @error="handleCoverError"
+                />
+
+                <div
+                  v-if="item.pin_at"
+                  class="dashboard__album-pin-badge"
+                  title="Pinned"
+                  aria-label="Pinned"
+                >
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
                 </div>
 
-                <div v-if="isPlayingAlbum(item)" class="dashboard__album-playing-indicator" aria-label="Playing now">
+                <div
+                  v-if="isPlayingAlbum(item)"
+                  class="dashboard__album-playing-indicator"
+                  aria-label="Playing now"
+                >
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </div>
               </div>
@@ -341,9 +466,21 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
                   >
                     <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
                   </svg>
-                  <h3 class="dashboard__album-title" :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }" :title="item.title">{{ item.title }}</h3>
+                  <h3
+                    class="dashboard__album-title"
+                    :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }"
+                    :title="item.title"
+                  >
+                    {{ item.title }}
+                  </h3>
                 </div>
-                <p class="dashboard__album-artist" :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }" :title="item.author">{{ item.author }}</p>
+                <p
+                  class="dashboard__album-artist"
+                  :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }"
+                  :title="item.author"
+                >
+                  {{ item.author }}
+                </p>
               </div>
             </div>
           </div>
@@ -362,7 +499,15 @@ import { onMounted, onUnmounted, watch, ref } from 'vue'
         title="Scroll to top"
         @click="scrollToTop"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <polyline points="18 15 12 9 6 15" />
         </svg>
       </button>
