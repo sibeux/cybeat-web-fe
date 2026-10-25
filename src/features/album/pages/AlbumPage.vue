@@ -29,6 +29,70 @@ const isPinned = ref(Boolean(history.state?.isPinned))
 const isStickyVisible = ref(false)
 let scrollHandler: (() => void) | null = null
 
+type SortMode = 'default' | 'alphabetical'
+type SortDirection = 'asc' | 'desc'
+
+const sortMode = ref<SortMode>('default')
+const sortDirection = ref<SortDirection>('asc')
+const isSortDropdownOpen = ref(false)
+const sortDropdownRef = ref<HTMLElement | null>(null)
+
+const isAlbumType = computed(() => type === 'album')
+
+const sortLabel = computed(() => {
+  return sortMode.value === 'alphabetical' ? 'Alphabetical' : 'Default (ID)'
+})
+
+const sortedSongs = computed<Song[]>(() => {
+  if (!isAlbumType.value) {
+    return songs.value
+  }
+
+  const list = [...songs.value]
+  const isAsc = sortDirection.value === 'asc'
+
+  if (sortMode.value === 'alphabetical') {
+    list.sort((a, b) => {
+      const cmp = a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })
+      if (cmp !== 0) {
+        return isAsc ? cmp : -cmp
+      }
+      return isAsc ? a.id_music - b.id_music : b.id_music - a.id_music
+    })
+  } else {
+    // default (id)
+    list.sort((a, b) => (isAsc ? a.id_music - b.id_music : b.id_music - a.id_music))
+  }
+
+  return list
+})
+
+const toggleSortDropdown = () => {
+  isSortDropdownOpen.value = !isSortDropdownOpen.value
+}
+
+const selectSortMode = (mode: SortMode) => {
+  if (sortMode.value === mode) {
+    // Toggle direction if same sort mode is clicked
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortMode.value = mode
+    sortDirection.value = 'asc'
+  }
+}
+
+const selectSortDirection = (direction: SortDirection) => {
+  sortDirection.value = direction
+}
+
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as Node | null
+  if (!target) return
+  if (sortDropdownRef.value && !sortDropdownRef.value.contains(target)) {
+    isSortDropdownOpen.value = false
+  }
+}
+
 useTitle(() => {
   if (currentSong.value) {
     return `${currentSong.value.title} • ${currentSong.value.artist}`
@@ -48,6 +112,7 @@ onMounted(async () => {
   }
   
   window.addEventListener('scroll', scrollHandler, { passive: true })
+  window.addEventListener('click', handleClickOutside)
   
   if (!type || !id) {
     error.value = 'Invalid album parameters'
@@ -73,6 +138,7 @@ onUnmounted(() => {
   if (scrollHandler) {
     window.removeEventListener('scroll', scrollHandler)
   }
+  window.removeEventListener('click', handleClickOutside)
 })
 
 const resolveCoverUrl = (cover: string | null) => {
@@ -120,7 +186,7 @@ const playSong = (song: Song) => {
     return
   }
 
-  playerStore.playSong(song, songs.value, { type, id: Number(id) })
+  playerStore.playSong(song, sortedSongs.value, { type, id: Number(id) })
 }
 
 const albumCovers = computed<string[]>(() => {
@@ -258,44 +324,147 @@ const stickyNavBackground = computed(() => {
         No songs found.
       </div>
 
-      <div v-else class="album-page__content">
-        <table class="song-list">
-          <thead>
-            <tr>
-              <th class="song-list__th song-list__th--index">#</th>
-              <th class="song-list__th song-list__th--title">Title</th>
-              <th class="song-list__th song-list__th--artist">Artist</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              v-for="(song, index) in songs" 
-              :key="song.id_music" 
-              class="song-list__tr"
-              :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
+      <div v-else class="album-page__song-section">
+        <!-- Sort bar (Only for type "album") -->
+        <div v-if="isAlbumType" class="album-page__toolbar">
+          <div class="album-page__sort-wrapper" ref="sortDropdownRef">
+            <button
+              type="button"
+              class="album-page__sort-btn"
+              :class="{ 'album-page__sort-btn--active': isSortDropdownOpen }"
+              aria-label="Sort songs"
+              aria-haspopup="true"
+              :aria-expanded="isSortDropdownOpen"
+              @click.stop="toggleSortDropdown"
             >
-              <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
-              <td class="song-list__td song-list__td--title-cover">
-                <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
-                  <div class="song-list__cover-surface">
-                    <img v-if="resolveCoverUrl(song.cover)" v-img-cache="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
-                    <div v-else class="song-list__cover-placeholder">
-                      <img v-img-cache="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
-                    </div>
-                    <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying, 'song-list__play-overlay--disabled': song.codec_name?.toLowerCase() === 'alac' }">
-                      <svg v-if="currentSong?.id_music === song.id_music && isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                      <svg v-else-if="song.codec_name?.toLowerCase() === 'alac'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-                      <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                  </div>
-                  <img v-if="resolveQualityBadge(song)" v-img-cache="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
+              <!-- Ascending icon -->
+              <svg v-if="sortDirection === 'asc'" class="album-page__sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 8 4-4 4 4" />
+                <path d="M7 4v16" />
+                <path d="M11 12h4" />
+                <path d="M11 16h7" />
+                <path d="M11 20h10" />
+              </svg>
+              <!-- Descending icon -->
+              <svg v-else class="album-page__sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 16 4 4 4-4" />
+                <path d="M7 20V4" />
+                <path d="M11 4h10" />
+                <path d="M11 8h7" />
+                <path d="M11 12h4" />
+              </svg>
+              <span>Sort: {{ sortLabel }}</span>
+              <span class="album-page__sort-indicator">{{ sortDirection === 'asc' ? 'Asc' : 'Desc' }}</span>
+              <svg class="album-page__sort-chevron" :class="{ 'album-page__sort-chevron--open': isSortDropdownOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            <div v-if="isSortDropdownOpen" class="album-page__sort-menu">
+              <div class="album-page__sort-menu-header">Sort By</div>
+              <button
+                type="button"
+                class="album-page__sort-option"
+                :class="{ 'album-page__sort-option--active': sortMode === 'default' }"
+                @click="selectSortMode('default')"
+              >
+                <span>Default (ID)</span>
+                <svg v-if="sortMode === 'default'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="album-page__sort-option"
+                :class="{ 'album-page__sort-option--active': sortMode === 'alphabetical' }"
+                @click="selectSortMode('alphabetical')"
+              >
+                <span>Alphabetical</span>
+                <svg v-if="sortMode === 'alphabetical'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+
+              <div class="album-page__sort-divider"></div>
+              <div class="album-page__sort-menu-header">Order</div>
+
+              <button
+                type="button"
+                class="album-page__sort-option"
+                :class="{ 'album-page__sort-option--active': sortDirection === 'asc' }"
+                @click="selectSortDirection('asc')"
+              >
+                <div class="album-page__sort-option-content">
+                  <svg class="album-page__sort-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 8 4-4 4 4" />
+                    <path d="M7 4v16" />
+                  </svg>
+                  <span>Ascending</span>
                 </div>
-                <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }">{{ song.title }}</span>
-              </td>
-              <td class="song-list__td song-list__td--artist">{{ song.artist }}</td>
-            </tr>
-          </tbody>
-        </table>
+                <svg v-if="sortDirection === 'asc'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="album-page__sort-option"
+                :class="{ 'album-page__sort-option--active': sortDirection === 'desc' }"
+                @click="selectSortDirection('desc')"
+              >
+                <div class="album-page__sort-option-content">
+                  <svg class="album-page__sort-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 16 4 4 4-4" />
+                    <path d="M7 20V4" />
+                  </svg>
+                  <span>Descending</span>
+                </div>
+                <svg v-if="sortDirection === 'desc'" class="album-page__sort-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="album-page__content">
+          <table class="song-list">
+            <thead>
+              <tr>
+                <th class="song-list__th song-list__th--index">#</th>
+                <th class="song-list__th song-list__th--title">Title</th>
+                <th class="song-list__th song-list__th--artist">Artist</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr 
+                v-for="(song, index) in sortedSongs" 
+                :key="song.id_music" 
+                class="song-list__tr"
+                :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
+              >
+                <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
+                <td class="song-list__td song-list__td--title-cover">
+                  <div class="song-list__cover-wrapper" @click="playSong(song)" :title="song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''" :style="song.codec_name?.toLowerCase() === 'alac' ? 'cursor: not-allowed; opacity: 0.7;' : ''">
+                    <div class="song-list__cover-surface">
+                      <img v-if="resolveCoverUrl(song.cover)" v-img-cache="resolveCoverUrl(song.cover)" :alt="song.title" class="song-list__cover" loading="lazy" @error="handleCoverError" />
+                      <div v-else class="song-list__cover-placeholder">
+                        <img v-img-cache="DEFAULT_COVER" :alt="song.title" class="song-list__cover" />
+                      </div>
+                      <div class="song-list__play-overlay" :class="{ 'song-list__play-overlay--active': currentSong?.id_music === song.id_music && isPlaying, 'song-list__play-overlay--disabled': song.codec_name?.toLowerCase() === 'alac' }">
+                        <svg v-if="currentSong?.id_music === song.id_music && isPlaying" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <svg v-else-if="song.codec_name?.toLowerCase() === 'alac'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        <svg v-else viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                    </div>
+                    <img v-if="resolveQualityBadge(song)" v-img-cache="resolveQualityBadge(song)" :alt="`${song.codec_name} quality badge`" class="song-list__quality-badge" />
+                  </div>
+                  <span class="song-list__title" :class="{ 'song-list__title--active': currentSong?.id_music === song.id_music }">{{ song.title }}</span>
+                </td>
+                <td class="song-list__td song-list__td--artist">{{ song.artist }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </AppLayout>
