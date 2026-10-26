@@ -50,18 +50,8 @@
     return sortMode.value === 'alphabetical' ? 'Alphabetical' : 'Default (ID)'
   })
 
-  const sortedSongs = computed<Song[]>(() => {
-    let list = [...songs.value]
-
-    const query = searchQuery.value.trim().toLowerCase()
-    if (query) {
-      list = list.filter((song) => {
-        const titleMatch = (song.title || '').toLowerCase().includes(query)
-        const artistMatch = (song.artist || '').toLowerCase().includes(query)
-        return titleMatch || artistMatch
-      })
-    }
-
+  const allSortedSongs = computed<Song[]>(() => {
+    const list = [...songs.value]
     const isAsc = sortDirection.value === 'asc'
 
     if (sortMode.value === 'alphabetical') {
@@ -78,6 +68,21 @@
     } else {
       // default (id)
       list.sort((a, b) => (isAsc ? a.id_music - b.id_music : b.id_music - a.id_music))
+    }
+
+    return list
+  })
+
+  const sortedSongs = computed<Song[]>(() => {
+    let list = allSortedSongs.value
+
+    const query = searchQuery.value.trim().toLowerCase()
+    if (query) {
+      list = list.filter((song) => {
+        const titleMatch = (song.title || '').toLowerCase().includes(query)
+        const artistMatch = (song.artist || '').toLowerCase().includes(query)
+        return titleMatch || artistMatch
+      })
     }
 
     return list
@@ -221,7 +226,7 @@
       return
     }
 
-    playerStore.playSong(song, sortedSongs.value, { type: type.value, id: id.value })
+    playerStore.playSong(song, allSortedSongs.value, { type: type.value, id: id.value })
   }
 
   const albumCovers = computed<string[]>(() => {
