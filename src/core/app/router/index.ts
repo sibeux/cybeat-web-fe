@@ -16,6 +16,8 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     /** If true, authenticated users are redirected away (e.g. /login, /register). */
     guestOnly?: boolean
+    /** If true, the current user's display role must be admin. API still enforces authorization. */
+    adminOnly?: boolean
   }
 }
 
@@ -63,6 +65,13 @@ const router = createRouter({
       component: () => import('@/features/logs/pages/LogsPage.vue'),
     },
 
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/features/users/pages/UsersPage.vue'),
+      meta: { requiresAuth: true, adminOnly: true },
+    },
+
     // ─── 404 Fallback ─────────────────────────────────────────────────────────
     {
       path: '/:pathMatch(.*)*',
@@ -108,6 +117,11 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     logger.info('RouterGuard', `Protected route ${to.path} requires authentication. Redirecting to login`)
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.adminOnly && authStore.user?.role !== 'admin') {
+    logger.warn('RouterGuard', `Blocked non-admin navigation to ${to.path}`)
+    return { name: 'dashboard' }
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
