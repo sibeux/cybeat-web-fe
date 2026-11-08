@@ -772,9 +772,78 @@
           <table class="song-list" :class="{ 'song-list--searching': isSearching }">
             <thead>
               <tr>
-                <th class="song-list__th song-list__th--index">#</th>
-                <th class="song-list__th song-list__th--title">Title</th>
-                <th class="song-list__th song-list__th--artist">Artist</th>
+                <th
+                  class="song-list__th song-list__th--index song-list__th--sortable"
+                  :class="{ 'song-list__th--active': sortMode === 'default' }"
+                  title="Sort by default order"
+                  @click="selectSortMode('default')"
+                >
+                  <span class="song-list__th-content">
+                    <span>#</span>
+                    <svg
+                      v-if="sortMode === 'default'"
+                      class="song-list__th-arrow"
+                      :class="{ 'song-list__th-arrow--desc': sortDirection === 'desc' }"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m18 15-6-6-6 6" />
+                    </svg>
+                  </span>
+                </th>
+                <th
+                  class="song-list__th song-list__th--title song-list__th--sortable"
+                  :class="{ 'song-list__th--active': sortMode === 'alphabetical' }"
+                  title="Sort by title"
+                  @click="selectSortMode('alphabetical')"
+                >
+                  <span class="song-list__th-content">
+                    <span>Title</span>
+                    <svg
+                      v-if="sortMode === 'alphabetical'"
+                      class="song-list__th-arrow"
+                      :class="{ 'song-list__th-arrow--desc': sortDirection === 'desc' }"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m18 15-6-6-6 6" />
+                    </svg>
+                  </span>
+                </th>
+                <th
+                  class="song-list__th song-list__th--artist song-list__th--sortable"
+                  :class="{ 'song-list__th--active': sortMode === 'artist' }"
+                  title="Sort by artist"
+                  @click="selectSortMode('artist')"
+                >
+                  <span class="song-list__th-content">
+                    <span>Artist</span>
+                    <svg
+                      v-if="sortMode === 'artist'"
+                      class="song-list__th-arrow"
+                      :class="{ 'song-list__th-arrow--desc': sortDirection === 'desc' }"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="m18 15-6-6-6 6" />
+                    </svg>
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>

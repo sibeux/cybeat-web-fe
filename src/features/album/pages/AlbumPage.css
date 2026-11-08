@@ -328,6 +328,42 @@
   background: var(--color-surface-raised);
 }
 
+.song-list__th--sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.song-list__th--sortable:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+}
+
+.song-list__th--active {
+  color: var(--color-primary, #10b981);
+}
+
+.song-list__th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.song-list__th--index .song-list__th-content {
+  justify-content: center;
+}
+
+.song-list__th-arrow {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.song-list__th-arrow--desc {
+  transform: rotate(180deg);
+}
+
 .song-list__th--index {
   width: 4rem;
   text-align: center;
