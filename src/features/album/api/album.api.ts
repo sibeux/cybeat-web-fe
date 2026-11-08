@@ -24,13 +24,33 @@ export interface SetRecentMusicResponse {
   } | null;
 }
 
+export interface GetSongsParams {
+  search?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+}
+
 export const albumApi = {
-  getSongs(type: string, uid: number) {
+  getSongs(type: string, uid: number, options?: GetSongsParams) {
+    const params: Record<string, any> = {
+      type,
+      uid,
+    }
+
+    if (options?.search && options.search.trim() !== '') {
+      params.search = options.search.trim()
+    }
+
+    if (options?.sort) {
+      params.sort = options.sort
+    }
+
+    if (options?.order) {
+      params.order = options.order
+    }
+
     return apiClient.get<ApiSuccessResponse<Song[]>>(`/music/song/`, {
-      params: {
-        type,
-        uid,
-      },
+      params,
     })
   },
   setRecentMusic(payload: SetRecentMusicPayload) {

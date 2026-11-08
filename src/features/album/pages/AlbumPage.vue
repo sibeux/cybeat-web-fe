@@ -3,7 +3,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { APP_NAME } from '@/core/app/config/app.config'
-  import { albumApi } from '../api/album.api'
+  import { albumApi, type GetSongsParams } from '../api/album.api'
   import type { Song } from '../types/song.types'
   import { usePlayerStore } from '../store/player.store'
   import { storeToRefs } from 'pinia'
@@ -17,6 +17,7 @@
   const songs = ref<Song[]>([])
   const totalSongs = ref(0)
   const isLoading = ref(true)
+  const isSearching = ref(false)
   const error = ref<string | null>(null)
 
   const type = computed(() =>
@@ -33,8 +34,9 @@
   const isStickyVisible = ref(false)
   const isScrollTopVisible = ref(false)
   let scrollHandler: (() => void) | null = null
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  type SortMode = 'default' | 'alphabetical'
+  type SortMode = 'default' | 'alphabetical' | 'artist'
   type SortDirection = 'asc' | 'desc'
 
   const searchQuery = ref('')
@@ -43,15 +45,36 @@
   const isSortDropdownOpen = ref(false)
   const sortDropdownRef = ref<HTMLElement | null>(null)
 
-  const isAlbumType = computed(
+  // Toolbar search & sort tetap tampil untuk album, playlist, maupun category
+  const isToolbarVisible = computed(
     () => ['album', 'playlist', 'category'].includes(type.value) || !type.value,
   )
 
+  // Search dan sort melalui API backend khusus aktif untuk 'playlist' dan 'category'
+  const isServerSearchAndSort = computed(() =>
+    ['playlist', 'category'].includes(type.value),
+  )
+
   const sortLabel = computed(() => {
-    return sortMode.value === 'alphabetical' ? 'Alphabetical' : 'Default (ID)'
+    switch (sortMode.value) {
+      case 'alphabetical':
+        return 'Alphabetical'
+      case 'artist':
+        return 'Artist'
+      case 'default':
+      default:
+        return 'Default (ID)'
+    }
   })
 
+  // Lagu yang telah disort:
+  // - Untuk category/playlist: langsung dari respon server (server-side)
+  // - Untuk album: dilakukan secara client-side (agar album tetap bisa search & sort tanpa membebani backend)
   const allSortedSongs = computed<Song[]>(() => {
+    if (isServerSearchAndSort.value) {
+      return songs.value
+    }
+
     const list = [...songs.value]
     const isAsc = sortDirection.value === 'asc'
 
@@ -66,6 +89,17 @@
         }
         return isAsc ? a.id_music - b.id_music : b.id_music - a.id_music
       })
+    } else if (sortMode.value === 'artist') {
+      list.sort((a, b) => {
+        const cmp = a.artist.localeCompare(b.artist, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        })
+        if (cmp !== 0) {
+          return isAsc ? cmp : -cmp
+        }
+        return isAsc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)
+      })
     } else {
       // default (id)
       list.sort((a, b) => (isAsc ? a.id_music - b.id_music : b.id_music - a.id_music))
@@ -75,8 +109,11 @@
   })
 
   const sortedSongs = computed<Song[]>(() => {
-    let list = allSortedSongs.value
+    if (isServerSearchAndSort.value) {
+      return songs.value
+    }
 
+    let list = allSortedSongs.value
     const query = searchQuery.value.trim().toLowerCase()
     if (query) {
       list = list.filter((song) => {
@@ -101,10 +138,18 @@
       sortMode.value = mode
       sortDirection.value = 'asc'
     }
+    if (isServerSearchAndSort.value) {
+      loadSongs(true)
+    }
   }
 
   const selectSortDirection = (direction: SortDirection) => {
-    sortDirection.value = direction
+    if (sortDirection.value !== direction) {
+      sortDirection.value = direction
+      if (isServerSearchAndSort.value) {
+        loadSongs(true)
+      }
+    }
   }
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -127,7 +172,7 @@
     return APP_NAME
   })
 
-  const loadSongs = async () => {
+  const loadSongs = async (isRefetch = false) => {
     const currentType = type.value
     const currentId = id.value
 
@@ -138,16 +183,37 @@
     }
 
     try {
-      isLoading.value = true
+      if (isRefetch) {
+        isSearching.value = true
+      } else {
+        isLoading.value = true
+      }
       error.value = null
-      const response = await albumApi.getSongs(currentType, currentId)
+
+      const options: GetSongsParams = {}
+      if (isServerSearchAndSort.value) {
+        if (searchQuery.value.trim()) {
+          options.search = searchQuery.value.trim()
+        }
+        if (sortMode.value && sortMode.value !== 'default') {
+          options.sort = sortMode.value === 'alphabetical' ? 'title' : sortMode.value
+        }
+        if (sortDirection.value) {
+          options.order = sortDirection.value
+        }
+      }
+
+      const response = await albumApi.getSongs(currentType, currentId, options)
       songs.value = response.data.data || []
-      // Fallback to array length if 'total' is not present in response
-      totalSongs.value = (response.data as any).total || songs.value.length
+      // Simpan total lagu asli ketika tidak sedang melakukan pencarian
+      if (!searchQuery.value.trim() || totalSongs.value === 0) {
+        totalSongs.value = (response.data as any).total || songs.value.length
+      }
     } catch (err: any) {
       error.value = err.response?.data?.message || err.message || 'Failed to load data'
     } finally {
       isLoading.value = false
+      isSearching.value = false
     }
   }
 
@@ -164,11 +230,27 @@
     loadSongs()
   })
 
+  // Watcher untuk pencarian dengan debounce ketika type adalah category atau playlist
+  watch(searchQuery, (newVal, oldVal) => {
+    if (newVal === oldVal) return
+    if (!isServerSearchAndSort.value) return
+
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+    }
+
+    searchDebounceTimer = setTimeout(() => {
+      loadSongs(true)
+    }, 300)
+  })
+
   watch(
     () => [route.params.type, route.params.id],
     ([newType, newId], [oldType, oldId]) => {
       if (newType !== oldType || newId !== oldId) {
         searchQuery.value = ''
+        sortMode.value = 'default'
+        sortDirection.value = 'asc'
         isSortDropdownOpen.value = false
         loadSongs()
       }
@@ -180,6 +262,9 @@
       window.removeEventListener('scroll', scrollHandler)
     }
     window.removeEventListener('click', handleClickOutside)
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+    }
   })
 
   const resolveCoverUrl = (cover: string | null) => {
@@ -416,13 +501,23 @@
         {{ error }}
       </div>
 
-      <div v-else-if="songs.length === 0" class="album-page__state">No songs found.</div>
+      <div v-else-if="sortedSongs.length === 0 && !searchQuery" class="album-page__state">No songs found.</div>
 
       <div v-else class="album-page__song-section">
-        <!-- Sort & Search bar (Only for type "album") -->
-        <div v-if="isAlbumType" class="album-page__toolbar">
-          <div class="album-page__search-wrapper">
+        <!-- Sort & Search bar -->
+        <div v-if="isToolbarVisible" class="album-page__toolbar">
+          <div
+            class="album-page__search-wrapper"
+            :class="{ 'album-page__search-wrapper--searching': isSearching }"
+          >
+            <!-- Animated Spinner saat mencari lagu -->
+            <span
+              v-if="isSearching"
+              class="album-page__search-spinner"
+              aria-label="Searching songs..."
+            ></span>
             <svg
+              v-else
               class="album-page__search-icon"
               viewBox="0 0 24 24"
               fill="none"
@@ -568,6 +663,26 @@
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </button>
+              <button
+                type="button"
+                class="album-page__sort-option"
+                :class="{ 'album-page__sort-option--active': sortMode === 'artist' }"
+                @click="selectSortMode('artist')"
+              >
+                <span>Artist</span>
+                <svg
+                  v-if="sortMode === 'artist'"
+                  class="album-page__sort-check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
 
               <div class="album-page__sort-divider"></div>
               <div class="album-page__sort-menu-header">Order</div>
@@ -644,8 +759,17 @@
           </div>
         </div>
 
+        <!-- Indeterminate progress bar saat pencarian berjalan -->
+        <div
+          class="album-page__search-progress-bar"
+          :class="{ 'album-page__search-progress-bar--active': isSearching }"
+          aria-hidden="true"
+        >
+          <div v-if="isSearching" class="album-page__search-progress-indeterminate"></div>
+        </div>
+
         <div class="album-page__content">
-          <table class="song-list">
+          <table class="song-list" :class="{ 'song-list--searching': isSearching }">
             <thead>
               <tr>
                 <th class="song-list__th song-list__th--index">#</th>
@@ -654,7 +778,31 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-if="sortedSongs.length === 0" class="album-page__no-results-row">
+              <!-- Shimmer skeleton jika mencari saat list sebelumnya kosong -->
+              <template v-if="isSearching && sortedSongs.length === 0">
+                <tr
+                  v-for="n in 5"
+                  :key="`search-skeleton-${n}`"
+                  class="album-page__skeleton-row"
+                >
+                  <td class="song-list__td song-list__td--index">
+                    <div class="album-page__skeleton-box album-page__skeleton-box--index"></div>
+                  </td>
+                  <td class="song-list__td song-list__td--title-cover">
+                    <div class="album-page__skeleton-cell">
+                      <div class="album-page__skeleton-cover"></div>
+                      <div class="album-page__skeleton-meta">
+                        <div class="album-page__skeleton-box album-page__skeleton-box--title"></div>
+                        <div class="album-page__skeleton-box album-page__skeleton-box--artist"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="song-list__td song-list__td--artist">
+                    <div class="album-page__skeleton-box album-page__skeleton-box--artist"></div>
+                  </td>
+                </tr>
+              </template>
+              <tr v-else-if="sortedSongs.length === 0" class="album-page__no-results-row">
                 <td colspan="3" class="album-page__no-results">
                   No songs found matching "{{ searchQuery }}"
                 </td>
