@@ -31,6 +31,7 @@
   const isPinned = ref(Boolean(history.state?.isPinned))
 
   const isStickyVisible = ref(false)
+  const isScrollTopVisible = ref(false)
   let scrollHandler: (() => void) | null = null
 
   type SortMode = 'default' | 'alphabetical'
@@ -154,6 +155,7 @@
     scrollHandler = () => {
       // Show sticky title when scrolled down past the header (e.g., 80px)
       isStickyVisible.value = window.scrollY > 80
+      isScrollTopVisible.value = window.scrollY > 320
     }
 
     window.addEventListener('scroll', scrollHandler, { passive: true })
@@ -213,6 +215,10 @@
 
   const goBack = () => {
     router.back()
+  }
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const playSong = (song: Song) => {
@@ -746,6 +752,18 @@
         </div>
       </div>
     </div>
+    <button
+      v-if="isScrollTopVisible"
+      type="button"
+      class="album-page__scroll-top"
+      aria-label="Scroll to top"
+      title="Scroll to top"
+      @click="scrollToTop"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m18 15-6-6-6 6" />
+      </svg>
+    </button>
   </AppLayout>
 </template>
 
