@@ -28,6 +28,7 @@ export interface GetSongsParams {
   search?: string;
   sort?: string;
   order?: 'asc' | 'desc';
+  signal?: AbortSignal;
 }
 
 export const albumApi = {
@@ -51,6 +52,7 @@ export const albumApi = {
 
     return apiClient.get<ApiSuccessResponse<Song[]>>(`/music/song/`, {
       params,
+      signal: options?.signal,
     })
   },
   setRecentMusic(payload: SetRecentMusicPayload) {

@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, onScopeDispose } from 'vue'
 import type { Ref } from 'vue'
 
 /**
@@ -17,6 +17,13 @@ export function useDebounce<T>(value: Ref<T>, delay: number): Ref<T> {
     timeout = setTimeout(() => {
       debouncedValue.value = newValue
     }, delay)
+  })
+
+  onScopeDispose(() => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
   })
 
   return debouncedValue

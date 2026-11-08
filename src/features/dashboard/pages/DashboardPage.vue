@@ -47,8 +47,24 @@
   })
 
   watch(debouncedSearch, async (value) => {
-    await dashboardStore.fetchDashboardData(value.trim(), true)
+    const trimmed = value.trim()
+    if (trimmed === dashboardStore.fetchedSearch) return
+    await dashboardStore.fetchDashboardData(trimmed, true)
   })
+
+  const clearSearch = async () => {
+    searchQuery.value = ''
+    if (dashboardStore.fetchedSearch !== '') {
+      await dashboardStore.fetchDashboardData('', true)
+    }
+  }
+
+  const handleSearchSubmit = async () => {
+    const trimmed = searchQuery.value.trim()
+    if (trimmed !== dashboardStore.fetchedSearch) {
+      await dashboardStore.fetchDashboardData(trimmed, true)
+    }
+  }
 
   watch(
     () => authStore.isAuthenticated,
@@ -323,12 +339,13 @@
               class="dashboard__search-input"
               placeholder="Search by title or artist..."
               autocomplete="off"
+              @keydown.enter="handleSearchSubmit"
             />
             <button
               v-if="searchQuery"
               class="dashboard__search-clear"
-              @click="searchQuery = ''"
               aria-label="Clear search"
+              @click="clearSearch"
             >
               <svg
                 viewBox="0 0 24 24"

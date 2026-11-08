@@ -23,6 +23,7 @@ const searchQuery = ref('')
 const expandedLogIds = ref<Set<number>>(new Set())
 const isLiveStream = ref(true)
 let unsubscribeLogger: (() => void) | null = null
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 async function loadLogs() {
   const data = await logStorage.getAll({
@@ -61,6 +62,9 @@ onUnmounted(() => {
   if (unsubscribeLogger) {
     unsubscribeLogger()
   }
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
 })
 
 function setLevel(lvl: LogLevel | 'ALL') {
@@ -69,7 +73,13 @@ function setLevel(lvl: LogLevel | 'ALL') {
 }
 
 function handleSearch() {
-  loadLogs()
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    loadLogs()
+  }, 300)
 }
 
 function toggleExpand(id?: number) {
@@ -152,8 +162,8 @@ const logCounts = computed(() => {
           <button
             class="logs-page__btn"
             :class="isLiveStream ? 'logs-page__btn--primary' : 'logs-page__btn--secondary'"
-            @click="isLiveStream = !isLiveStream"
             :title="isLiveStream ? 'Live stream active' : 'Live stream paused'"
+            @click="isLiveStream = !isLiveStream"
           >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="6" />

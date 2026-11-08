@@ -24,21 +24,32 @@ export const useDashboardStore = defineStore('dashboard', () => {
     playlists.value = []
   })
 
+  let dashboardAbortController: AbortController | null = null
+
   const fetchDashboardData = async (search = '', force = false) => {
-    if (isFetched.value && fetchedSearch.value === search && !force) return
+    const trimmedSearch = search.trim()
+    if (isFetched.value && fetchedSearch.value === trimmedSearch && !force) return
+
+    if (dashboardAbortController) {
+      dashboardAbortController.abort()
+    }
+    dashboardAbortController = new AbortController()
 
     try {
       isLoading.value = true
       error.value = null
-      const response = await dashboardApi.getMusicDashboard(search)
+      const response = await dashboardApi.getMusicDashboard(trimmedSearch, dashboardAbortController.signal)
       albums.value = response.data.data.album || []
-      if (!search.trim()) {
+      if (!trimmedSearch) {
         categories.value = response.data.data.category || []
         playlists.value = response.data.data.playlist || []
       }
-      fetchedSearch.value = search
+      fetchedSearch.value = trimmedSearch
       isFetched.value = true
     } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return
+      }
       error.value = err.message || 'Gagal memuat data'
     } finally {
       isLoading.value = false
@@ -51,6 +62,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     playlists,
     isLoading,
     isFetched,
+    fetchedSearch,
     error,
     searchQuery,
     fetchDashboardData

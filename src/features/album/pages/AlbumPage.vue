@@ -35,6 +35,8 @@
   const isScrollTopVisible = ref(false)
   let scrollHandler: (() => void) | null = null
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  let lastSearchedQuery = ''
+  let songsAbortController: AbortController | null = null
 
   type SortMode = 'default' | 'alphabetical' | 'artist'
   type SortDirection = 'asc' | 'desc'
@@ -139,6 +141,11 @@
       sortDirection.value = 'asc'
     }
     if (isServerSearchAndSort.value) {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer)
+        searchDebounceTimer = null
+      }
+      lastSearchedQuery = searchQuery.value.trim()
       loadSongs(true)
     }
   }
@@ -147,6 +154,11 @@
     if (sortDirection.value !== direction) {
       sortDirection.value = direction
       if (isServerSearchAndSort.value) {
+        if (searchDebounceTimer) {
+          clearTimeout(searchDebounceTimer)
+          searchDebounceTimer = null
+        }
+        lastSearchedQuery = searchQuery.value.trim()
         loadSongs(true)
       }
     }
@@ -182,6 +194,11 @@
       return
     }
 
+    if (songsAbortController) {
+      songsAbortController.abort()
+    }
+    songsAbortController = new AbortController()
+
     try {
       if (isRefetch) {
         isSearching.value = true
@@ -190,7 +207,9 @@
       }
       error.value = null
 
-      const options: GetSongsParams = {}
+      const options: GetSongsParams = {
+        signal: songsAbortController.signal,
+      }
       if (isServerSearchAndSort.value) {
         if (searchQuery.value.trim()) {
           options.search = searchQuery.value.trim()
@@ -210,6 +229,9 @@
         totalSongs.value = (response.data as any).total || songs.value.length
       }
     } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return
+      }
       error.value = err.response?.data?.message || err.message || 'Failed to load data'
     } finally {
       isLoading.value = false
@@ -230,24 +252,61 @@
     loadSongs()
   })
 
-  // Watcher untuk pencarian dengan debounce ketika type adalah category atau playlist
-  watch(searchQuery, (newVal, oldVal) => {
-    if (newVal === oldVal) return
+  const clearSearch = () => {
+    if (!searchQuery.value) return
+    searchQuery.value = ''
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+    if (isServerSearchAndSort.value) {
+      if (lastSearchedQuery !== '') {
+        lastSearchedQuery = ''
+        loadSongs(true)
+      }
+    }
+  }
+
+  const handleSearchSubmit = () => {
     if (!isServerSearchAndSort.value) return
+    const trimmed = searchQuery.value.trim()
+    if (trimmed !== lastSearchedQuery) {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer)
+        searchDebounceTimer = null
+      }
+      lastSearchedQuery = trimmed
+      loadSongs(true)
+    }
+  }
+
+  // Watcher untuk pencarian dengan debounce ketika type adalah category atau playlist
+  watch(searchQuery, (newVal) => {
+    if (!isServerSearchAndSort.value) return
+
+    const trimmed = newVal.trim()
+    if (trimmed === lastSearchedQuery) return
 
     if (searchDebounceTimer) {
       clearTimeout(searchDebounceTimer)
     }
 
     searchDebounceTimer = setTimeout(() => {
+      searchDebounceTimer = null
+      lastSearchedQuery = trimmed
       loadSongs(true)
-    }, 300)
+    }, 350)
   })
 
   watch(
     () => [route.params.type, route.params.id],
     ([newType, newId], [oldType, oldId]) => {
       if (newType !== oldType || newId !== oldId) {
+        if (searchDebounceTimer) {
+          clearTimeout(searchDebounceTimer)
+          searchDebounceTimer = null
+        }
+        lastSearchedQuery = ''
         searchQuery.value = ''
         sortMode.value = 'default'
         sortDirection.value = 'asc'
@@ -264,6 +323,11 @@
     window.removeEventListener('click', handleClickOutside)
     if (searchDebounceTimer) {
       clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+    if (songsAbortController) {
+      songsAbortController.abort()
+      songsAbortController = null
     }
   })
 
@@ -378,8 +442,8 @@
 
 <template>
   <AppLayout
-    :overrideBrand="isStickyVisible"
-    :navBackground="isStickyVisible ? stickyNavBackground : undefined"
+    :override-brand="isStickyVisible"
+    :nav-background="isStickyVisible ? stickyNavBackground : undefined"
   >
     <template #nav-brand>
       <div class="album-page__sticky-brand">
@@ -537,13 +601,14 @@
               placeholder="Search songs..."
               aria-label="Search songs in album"
               autocomplete="off"
+              @keydown.enter="handleSearchSubmit"
             />
             <button
               v-if="searchQuery"
               type="button"
               class="album-page__search-clear"
-              @click="searchQuery = ''"
               aria-label="Clear search"
+              @click="clearSearch"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -559,7 +624,7 @@
             </button>
           </div>
 
-          <div class="album-page__sort-wrapper" ref="sortDropdownRef">
+          <div ref="sortDropdownRef" class="album-page__sort-wrapper">
             <button
               type="button"
               class="album-page__sort-btn"
@@ -877,8 +942,8 @@
                 </td>
               </tr>
               <tr
-                v-else
                 v-for="(song, index) in sortedSongs"
+                v-else
                 :key="song.id_music"
                 class="song-list__tr"
                 :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
@@ -887,7 +952,6 @@
                 <td class="song-list__td song-list__td--title-cover">
                   <div
                     class="song-list__cover-wrapper"
-                    @click="playSong(song)"
                     :title="
                       song.codec_name?.toLowerCase() === 'alac' ? 'ALAC format is unsupported' : ''
                     "
@@ -896,6 +960,7 @@
                         ? 'cursor: not-allowed; opacity: 0.7;'
                         : ''
                     "
+                    @click="playSong(song)"
                   >
                     <div class="song-list__cover-surface">
                       <img
