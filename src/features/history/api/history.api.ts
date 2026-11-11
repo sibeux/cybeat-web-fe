@@ -27,6 +27,7 @@ export const historyApi = {
       id_music: Number(item.id_music),
       title: String(item.title || ''),
       artist: String(item.artist || ''),
+      artists: Array.isArray(item.artists) ? (item.artists as any) : [],
       cover: String(item.cover || ''),
       disc_number: item.disc_number ? Number(item.disc_number) : 1,
       album: String(item.album || ''),

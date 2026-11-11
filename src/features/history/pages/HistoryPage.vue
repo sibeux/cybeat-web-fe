@@ -4,6 +4,7 @@
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import type { Song } from '@/features/album/types/song.types'
+  import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
   import { useAuthStore } from '@/features/auth/index'
   import { useHistoryStore } from '../store/history.store'
   import { useUsersStore } from '@/features/users/store/users.store'
@@ -432,7 +433,7 @@
                   </span>
                 </td>
                 <td class="song-list__td song-list__td--artist" :title="song.artist">
-                  {{ song.artist }}
+                  <ArtistLinks :artists="song.artists" :fallback="song.artist" />
                 </td>
                 <td
                   class="song-list__td song-list__td--date"

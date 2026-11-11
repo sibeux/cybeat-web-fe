@@ -1,7 +1,13 @@
+export interface ArtistLink {
+  id_artist: number
+  name: string
+}
+
 export interface Song {
   id_music: number
   title: string
   artist: string
+  artists: ArtistLink[]
   cover: string
   disc_number: number
   album: string

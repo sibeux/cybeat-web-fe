@@ -127,11 +127,6 @@
           </div>
         </div>
 
-        <!-- Center Slot -->
-        <div v-if="$slots['nav-center']" class="app-layout__nav-center">
-          <slot name="nav-center" />
-        </div>
-
         <!-- Right side: settings + user info dropdown / login -->
         <div class="app-layout__nav-actions">
           <!-- History Button -->
@@ -419,24 +414,11 @@
     letter-spacing: -0.01em;
   }
 
-  .app-layout__nav-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 1 340px;
-    width: 100%;
-    max-width: 340px;
-    margin: 0 1rem;
-    min-width: 0;
-  }
-
   .app-layout__nav-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 0.75rem;
-    flex: 1;
-    min-width: 0;
+    flex-shrink: 0;
   }
 
   @media (max-width: 640px) {
@@ -446,10 +428,6 @@
 
     .app-layout__brand-container {
       margin-right: 0.5rem;
-    }
-
-    .app-layout__nav-center {
-      margin: 0 0.5rem;
     }
 
     .app-layout__nav-actions {
@@ -739,7 +717,7 @@
     flex: 1;
     display: flex;
     align-items: flex-start;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .app-layout__sidebar {

@@ -60,6 +60,12 @@ const router = createRouter({
 
     // ─── Album Route ──────────────────────────────────────────────────────────
     {
+      path: '/artist/:id',
+      name: 'artist',
+      component: () => import('@/features/artist/pages/ArtistPage.vue'),
+    },
+
+    {
       path: '/:type/:id',
       name: 'album',
       component: () => import('@/features/album/pages/AlbumPage.vue'),

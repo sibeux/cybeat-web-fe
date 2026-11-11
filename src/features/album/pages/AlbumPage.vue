@@ -5,6 +5,7 @@
   import { APP_NAME } from '@/core/app/config/app.config'
   import { albumApi, type GetSongsParams } from '../api/album.api'
   import type { Song } from '../types/song.types'
+  import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
   import { usePlayerStore } from '../store/player.store'
   import { storeToRefs } from 'pinia'
   import { useTitle } from '@/core/shared/composables/useTitle'
@@ -33,6 +34,8 @@
 
   const isStickyVisible = ref(false)
   const isScrollTopVisible = ref(false)
+  const isToolbarStuck = ref(false)
+  const toolbarContainerRef = ref<HTMLElement | null>(null)
   let scrollHandler: (() => void) | null = null
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
   let lastSearchedQuery = ''
@@ -244,6 +247,12 @@
       // Show sticky title when scrolled down past the header (e.g., 80px)
       isStickyVisible.value = window.scrollY > 80
       isScrollTopVisible.value = window.scrollY > 320
+
+      if (toolbarContainerRef.value) {
+        // Sticky trigger when toolbar reaches beneath the sticky navbar (60px)
+        const rect = toolbarContainerRef.value.getBoundingClientRect()
+        isToolbarStuck.value = rect.top <= 61
+      }
     }
 
     window.addEventListener('scroll', scrollHandler, { passive: true })
@@ -432,6 +441,16 @@
     return stateArtistName || (songs.value.length > 0 ? songs.value[0].artist : 'Unknown Artist')
   })
 
+  const heroArtistLinks = computed(() => {
+    const displayName = displayArtistName.value.trim().toLocaleLowerCase()
+    if (!displayName) return []
+    return songs.value
+      .flatMap((song) => song.artists || [])
+      .filter((artist, index, all) =>
+        artist.name.trim().toLocaleLowerCase() === displayName &&
+        all.findIndex((candidate) => candidate.id_artist === artist.id_artist) === index,
+      )
+  })
   const headerStyle = computed(() => {
     const bg =
       songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
@@ -444,6 +463,15 @@
     const bg =
       songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#3b3b3b'
     return `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), ${bg}`
+  })
+
+  const toolbarStickyStyle = computed(() => {
+    if (!isToolbarStuck.value) return undefined
+    const bg =
+      songs.value.length > 0 && songs.value[0].bg_color ? songs.value[0].bg_color : '#161922'
+    return {
+      background: `linear-gradient(rgba(14, 17, 26, 0.86), rgba(14, 17, 26, 0.86)), ${bg}`,
+    }
   })
 </script>
 
@@ -471,73 +499,10 @@
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <div
-          class="album-page__sticky-title"
-          :class="{ 'album-page__sticky-title--compact': isToolbarVisible }"
-        >
+        <div class="album-page__sticky-title">
           {{ displayAlbumName }}
         </div>
       </div>
-    </template>
-
-    <template #nav-center>
-      <Transition name="album-header-search">
-        <div
-          v-if="isStickyVisible && isToolbarVisible"
-          class="album-page__header-search"
-          :class="{ 'album-page__header-search--searching': isSearching }"
-        >
-          <!-- Animated Spinner saat mencari lagu -->
-          <span
-            v-if="isSearching"
-            class="album-page__search-spinner"
-            aria-label="Searching songs..."
-          ></span>
-          <svg
-            v-else
-            class="album-page__search-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            v-model="searchQuery"
-            type="search"
-            class="album-page__header-search-input"
-            placeholder="Search songs..."
-            aria-label="Search songs in album"
-            autocomplete="off"
-            @keydown.enter="handleSearchSubmit"
-            @keydown.esc="clearSearch"
-          />
-          <button
-            v-if="searchQuery"
-            type="button"
-            class="album-page__search-clear"
-            aria-label="Clear search"
-            @click="clearSearch"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </Transition>
     </template>
 
     <div class="album-page">
@@ -601,7 +566,7 @@
                   @error="handleCoverError"
                 />
               </div>
-              <span class="album-page__hero-artist">{{ displayArtistName }}</span>
+              <span class="album-page__hero-artist"><ArtistLinks :artists="heroArtistLinks" :fallback="displayArtistName" /></span>
               <span class="album-page__hero-dot">•</span>
               <span class="album-page__hero-tracks">{{ totalSongs }} songs</span>
             </div>
@@ -638,64 +603,77 @@
       <div v-else-if="sortedSongs.length === 0 && !searchQuery" class="album-page__state">No songs found.</div>
 
       <div v-else class="album-page__song-section">
-        <!-- Sort & Search bar -->
-        <div v-if="isToolbarVisible" class="album-page__toolbar">
-          <div
-            class="album-page__search-wrapper"
-            :class="{ 'album-page__search-wrapper--searching': isSearching }"
-          >
-            <!-- Animated Spinner saat mencari lagu -->
-            <span
-              v-if="isSearching"
-              class="album-page__search-spinner"
-              aria-label="Searching songs..."
-            ></span>
-            <svg
-              v-else
-              class="album-page__search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              v-model="searchQuery"
-              type="search"
-              class="album-page__search-input"
-              placeholder="Search songs..."
-              aria-label="Search songs in album"
-              autocomplete="off"
-              @keydown.enter="handleSearchSubmit"
-              @keydown.esc="clearSearch"
-            />
-            <button
-              v-if="searchQuery"
-              type="button"
-              class="album-page__search-clear"
-              aria-label="Clear search"
-              @click="clearSearch"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+        <!-- Sticky Glass Sub-Toolbar -->
+        <div
+          v-if="isToolbarVisible"
+          ref="toolbarContainerRef"
+          class="album-page__toolbar-container"
+          :class="{ 'album-page__toolbar-container--stuck': isToolbarStuck }"
+          :style="toolbarStickyStyle"
+        >
+          <div class="album-page__toolbar">
+            <div class="album-page__toolbar-left">
+              <div
+                class="album-page__search-wrapper"
+                :class="{ 'album-page__search-wrapper--searching': isSearching }"
               >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
+                <!-- Animated Spinner saat mencari lagu -->
+                <span
+                  v-if="isSearching"
+                  class="album-page__search-spinner"
+                  aria-label="Searching songs..."
+                ></span>
+                <svg
+                  v-else
+                  class="album-page__search-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input
+                  v-model="searchQuery"
+                  type="search"
+                  class="album-page__search-input"
+                  placeholder="Search songs..."
+                  aria-label="Search songs in album"
+                  autocomplete="off"
+                  @keydown.enter="handleSearchSubmit"
+                  @keydown.esc="clearSearch"
+                />
+                <button
+                  v-if="searchQuery"
+                  type="button"
+                  class="album-page__search-clear"
+                  aria-label="Clear search"
+                  @click="clearSearch"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
 
-          <div ref="sortDropdownRef" class="album-page__sort-wrapper">
+              <span v-if="searchQuery" class="album-page__toolbar-count">
+                {{ sortedSongs.length }} {{ sortedSongs.length === 1 ? 'song' : 'songs' }}
+              </span>
+            </div>
+
+            <div ref="sortDropdownRef" class="album-page__sort-wrapper">
             <button
               type="button"
               class="album-page__sort-btn"
@@ -903,8 +881,9 @@
         >
           <div v-if="isSearching" class="album-page__search-progress-indeterminate"></div>
         </div>
+      </div>
 
-        <div class="album-page__content">
+      <div class="album-page__content">
           <table class="song-list" :class="{ 'song-list--searching': isSearching }">
             <thead>
               <tr>
@@ -1097,7 +1076,7 @@
                   >
                 </td>
                 <td class="song-list__td song-list__td--artist" :title="song.artist">
-                  {{ song.artist }}
+                  <ArtistLinks :artists="song.artists" :fallback="song.artist" />
                 </td>
               </tr>
             </tbody>

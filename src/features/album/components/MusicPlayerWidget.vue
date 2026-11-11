@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { usePlayerStore } from '../store/player.store'
+import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
 
 const playerStore = usePlayerStore()
 const { 
@@ -116,7 +117,7 @@ const handleCoverError = (e: Event) => {
       />
       <div class="player-widget__track-details">
         <h4 class="player-widget__title">{{ song.title }}</h4>
-        <span class="player-widget__artist">{{ song.artist }}</span>
+        <span class="player-widget__artist"><ArtistLinks :artists="song.artists" :fallback="song.artist" /></span>
         <span v-if="song.codec_name" class="player-widget__codec">
           {{ song.codec_name }} • {{ song.bit_rate || 'Unknown' }} bps
         </span>
