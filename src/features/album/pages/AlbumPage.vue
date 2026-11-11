@@ -289,6 +289,13 @@
 
     if (searchDebounceTimer) {
       clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+
+    if (trimmed === '') {
+      lastSearchedQuery = ''
+      loadSongs(true)
+      return
     }
 
     searchDebounceTimer = setTimeout(() => {
@@ -464,10 +471,73 @@
             <polyline points="12 19 5 12 12 5"></polyline>
           </svg>
         </button>
-        <div class="album-page__sticky-title">
+        <div
+          class="album-page__sticky-title"
+          :class="{ 'album-page__sticky-title--compact': isToolbarVisible }"
+        >
           {{ displayAlbumName }}
         </div>
       </div>
+    </template>
+
+    <template #nav-center>
+      <Transition name="album-header-search">
+        <div
+          v-if="isStickyVisible && isToolbarVisible"
+          class="album-page__header-search"
+          :class="{ 'album-page__header-search--searching': isSearching }"
+        >
+          <!-- Animated Spinner saat mencari lagu -->
+          <span
+            v-if="isSearching"
+            class="album-page__search-spinner"
+            aria-label="Searching songs..."
+          ></span>
+          <svg
+            v-else
+            class="album-page__search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            v-model="searchQuery"
+            type="search"
+            class="album-page__header-search-input"
+            placeholder="Search songs..."
+            aria-label="Search songs in album"
+            autocomplete="off"
+            @keydown.enter="handleSearchSubmit"
+            @keydown.esc="clearSearch"
+          />
+          <button
+            v-if="searchQuery"
+            type="button"
+            class="album-page__search-clear"
+            aria-label="Clear search"
+            @click="clearSearch"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </Transition>
     </template>
 
     <div class="album-page">
@@ -602,6 +672,7 @@
               aria-label="Search songs in album"
               autocomplete="off"
               @keydown.enter="handleSearchSubmit"
+              @keydown.esc="clearSearch"
             />
             <button
               v-if="searchQuery"

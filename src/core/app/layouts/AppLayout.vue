@@ -127,6 +127,11 @@
           </div>
         </div>
 
+        <!-- Center Slot -->
+        <div v-if="$slots['nav-center']" class="app-layout__nav-center">
+          <slot name="nav-center" />
+        </div>
+
         <!-- Right side: settings + user info dropdown / login -->
         <div class="app-layout__nav-actions">
           <!-- History Button -->
@@ -354,6 +359,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
   }
 
   .app-layout__brand-container {
@@ -413,10 +419,46 @@
     letter-spacing: -0.01em;
   }
 
+  .app-layout__nav-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 340px;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 1rem;
+    min-width: 0;
+  }
+
   .app-layout__nav-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 640px) {
+    .app-layout__nav-inner {
+      padding: 0 0.75rem;
+    }
+
+    .app-layout__brand-container {
+      margin-right: 0.5rem;
+    }
+
+    .app-layout__nav-center {
+      margin: 0 0.5rem;
+    }
+
+    .app-layout__nav-actions {
+      gap: 0.375rem;
+    }
+
+    .app-layout__user-name {
+      display: none;
+    }
   }
 
   /* ── Menu Container & Dropdowns ──────────────────────── */

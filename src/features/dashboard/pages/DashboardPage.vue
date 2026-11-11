@@ -6,7 +6,6 @@
   import { APP_NAME } from '@/core/app/config/app.config'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
-  import { useDebounce } from '@/core/shared/composables/useDebounce'
   import { useDashboardStore } from '../store/dashboard.store'
   import { useHistoryStore } from '@/features/history/store/history.store'
   import type { RecentMusicItem } from '@/features/history/types/history.types'
@@ -22,9 +21,9 @@
     storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
-  const debouncedSearch = useDebounce(searchQuery, 350)
   const sidebarTab = ref<'kategori' | 'playlist' | 'history'>('kategori')
   const showScrollTop = ref(false)
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const handleScroll = () => {
     showScrollTop.value = window.scrollY > 300
@@ -46,24 +45,54 @@
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())
   })
 
+  const clearSearchTimer = () => {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+  }
+
   onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll)
+    clearSearchTimer()
   })
 
-  watch(debouncedSearch, async (value) => {
-    const trimmed = value.trim()
+  watch(searchQuery, (newVal) => {
+    const trimmed = newVal.trim()
+    clearSearchTimer()
+
+    // Jika search form dihapus/dikosongkan (baik tombol x maupun hapus karakter)
+    if (trimmed === '') {
+      // Jika sebelumnya ada query yang aktif, langsung fetch ulang sekarang juga (tanpa debounce)
+      // dengan UI loading yang sama persis seperti klik refresh
+      if (dashboardStore.fetchedSearch !== '') {
+        dashboardStore.fetchDashboardData('', true)
+      }
+      return
+    }
+
     if (trimmed === dashboardStore.fetchedSearch) return
-    await dashboardStore.fetchDashboardData(trimmed, true)
+
+    // Debounce untuk pengetikan kata kunci pencarian
+    searchDebounceTimer = setTimeout(async () => {
+      searchDebounceTimer = null
+      await dashboardStore.fetchDashboardData(trimmed, true)
+    }, 350)
   })
 
   const clearSearch = async () => {
-    searchQuery.value = ''
-    if (dashboardStore.fetchedSearch !== '') {
-      await dashboardStore.fetchDashboardData('', true)
+    clearSearchTimer()
+    if (searchQuery.value === '') {
+      if (dashboardStore.fetchedSearch !== '') {
+        await dashboardStore.fetchDashboardData('', true)
+      }
+    } else {
+      searchQuery.value = ''
     }
   }
 
   const handleSearchSubmit = async () => {
+    clearSearchTimer()
     const trimmed = searchQuery.value.trim()
     if (trimmed !== dashboardStore.fetchedSearch) {
       await dashboardStore.fetchDashboardData(trimmed, true)
@@ -73,11 +102,13 @@
   watch(
     () => authStore.isAuthenticated,
     async () => {
-      await dashboardStore.fetchDashboardData(debouncedSearch.value.trim(), true)
+      clearSearchTimer()
+      await dashboardStore.fetchDashboardData(searchQuery.value.trim(), true)
     },
   )
 
   const handleRefresh = async () => {
+    clearSearchTimer()
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim(), true)
   }
 

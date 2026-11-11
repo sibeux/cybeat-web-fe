@@ -19,6 +19,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
   // Invalidate cache and reset data when auth state changes (login/logout)
   watch(() => authStore.isAuthenticated, () => {
     isFetched.value = false
+    fetchedSearch.value = ''
+    searchQuery.value = ''
     albums.value = []
     categories.value = []
     playlists.value = []
@@ -33,12 +35,15 @@ export const useDashboardStore = defineStore('dashboard', () => {
     if (dashboardAbortController) {
       dashboardAbortController.abort()
     }
-    dashboardAbortController = new AbortController()
+    const currentController = new AbortController()
+    dashboardAbortController = currentController
 
     try {
       isLoading.value = true
       error.value = null
-      const response = await dashboardApi.getMusicDashboard(trimmedSearch, dashboardAbortController.signal)
+      const response = await dashboardApi.getMusicDashboard(trimmedSearch, currentController.signal)
+      if (dashboardAbortController !== currentController) return
+
       albums.value = response.data.data.album || []
       if (!trimmedSearch) {
         categories.value = response.data.data.category || []
@@ -46,13 +51,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
       }
       fetchedSearch.value = trimmedSearch
       isFetched.value = true
-    } catch (err: any) {
-      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+    } catch (err: unknown) {
+      const errorObj = err as { name?: string; code?: string; message?: string }
+      if (errorObj?.name === 'CanceledError' || errorObj?.code === 'ERR_CANCELED') {
         return
       }
-      error.value = err.message || 'Gagal memuat data'
+      if (dashboardAbortController === currentController) {
+        error.value = errorObj?.message || 'Gagal memuat data'
+      }
     } finally {
-      isLoading.value = false
+      if (dashboardAbortController === currentController) {
+        isLoading.value = false
+      }
     }
   }
 
