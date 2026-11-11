@@ -110,6 +110,11 @@
     closeAllMenus()
     router.push('/admin/users')
   }
+
+  function navigateToArtistMerge(): void {
+    closeAllMenus()
+    router.push('/admin/artists/merge')
+  }
 </script>
 
 <template>
@@ -196,6 +201,21 @@
                 <div class="app-layout__dropdown-item-text">
                   <span class="app-layout__dropdown-item-title">Users</span>
                   <span class="app-layout__dropdown-item-desc">Manage roles and access</span>
+                </div>
+              </button>
+              <button
+                v-if="authStore.user?.role === 'admin'"
+                class="app-layout__dropdown-item"
+                type="button"
+                @click="navigateToArtistMerge"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M7 7h10l-3-3m3 3-3 3" />
+                  <path d="M17 17H7l3 3m-3-3 3-3" />
+                </svg>
+                <div class="app-layout__dropdown-item-text">
+                  <span class="app-layout__dropdown-item-title">Merge artists</span>
+                  <span class="app-layout__dropdown-item-desc">Combine duplicate Artist records</span>
                 </div>
               </button>
             </div>

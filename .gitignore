@@ -28,3 +28,4 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+artist_case_variant_review.csv

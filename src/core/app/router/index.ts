@@ -84,6 +84,12 @@ const router = createRouter({
       component: () => import('@/features/users/pages/UsersPage.vue'),
       meta: { requiresAuth: true, adminOnly: true },
     },
+    {
+      path: '/admin/artists/merge',
+      name: 'admin-artist-merge',
+      component: () => import('@/features/artist/pages/ArtistMergePage.vue'),
+      meta: { requiresAuth: true, adminOnly: true },
+    },
 
     // ─── 404 Fallback ─────────────────────────────────────────────────────────
     {
