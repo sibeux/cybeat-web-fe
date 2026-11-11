@@ -39,6 +39,7 @@ export interface EmailCheckResponse {
  * for backend authorization decisions. Backend remains the source of truth.
  */
 export interface AuthUser {
+  id?: number
   email: string
   name?: string
   role?: string

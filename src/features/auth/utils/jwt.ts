@@ -64,6 +64,7 @@ export function extractUserFromToken(token: string): AuthUser | null {
   const rawName = payload.data?.name ?? payload.name
 
   return {
+    id: payload.sub !== undefined ? Number(payload.sub) : undefined,
     email,
     name: rawName ? rawName.trim() : undefined,
     role: payload.data?.role ?? payload.role,

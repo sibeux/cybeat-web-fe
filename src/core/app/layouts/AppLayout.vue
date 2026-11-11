@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRouter, useRoute } from 'vue-router'
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { APP_NAME } from '@/core/app/config/app.config'
@@ -11,6 +11,7 @@
   }>()
 
   const router = useRouter()
+  const route = useRoute()
   const authStore = useAuthStore()
   const playerStore = usePlayerStore()
   const hasActivePlayer = computed(() => !!playerStore.currentSong)
@@ -100,6 +101,11 @@
     router.push('/logs')
   }
 
+  function navigateToHistory(): void {
+    closeAllMenus()
+    router.push('/history')
+  }
+
   function navigateToUsers(): void {
     closeAllMenus()
     router.push('/admin/users')
@@ -112,7 +118,7 @@
       <div class="app-layout__nav-inner">
         <!-- Brand -->
         <div class="app-layout__brand-container">
-          <div class="app-layout__brand" :class="{ 'app-layout__brand--hidden': overrideBrand }">
+          <div class="app-layout__brand" :class="{ 'app-layout__brand--hidden': overrideBrand }" @click="router.push('/')">
             <img src="/assets/images/logo.png" alt="Logo" class="app-layout__brand-logo" />
             <span class="app-layout__brand-name">{{ APP_NAME }}</span>
           </div>
@@ -123,6 +129,21 @@
 
         <!-- Right side: settings + user info dropdown / login -->
         <div class="app-layout__nav-actions">
+          <!-- History Button -->
+          <button
+            class="app-layout__nav-btn"
+            :class="{ 'app-layout__nav-btn--active': route.path === '/history' }"
+            type="button"
+            title="Listening History"
+            aria-label="Listening History"
+            @click="navigateToHistory"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </button>
+
           <!-- Settings Dropdown Button -->
           <div ref="settingsMenuRef" class="app-layout__menu-container">
             <button
@@ -208,6 +229,21 @@
                   <span class="app-layout__dropdown-user-name">{{ authStore.user?.name }}</span>
                   <span v-if="authStore.user?.email" class="app-layout__dropdown-user-email">{{ authStore.user.email }}</span>
                 </div>
+                <div class="app-layout__dropdown-divider"></div>
+                <button
+                  class="app-layout__dropdown-item"
+                  type="button"
+                  @click="navigateToHistory"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <div class="app-layout__dropdown-item-text">
+                    <span class="app-layout__dropdown-item-title">Listening History</span>
+                    <span class="app-layout__dropdown-item-desc">Recently played tracks</span>
+                  </div>
+                </button>
                 <div class="app-layout__dropdown-divider"></div>
                 <button
                   id="logout-button"
@@ -336,6 +372,7 @@
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 1;
     transform: translateY(0);
+    cursor: pointer;
   }
 
   .app-layout__brand--hidden {
@@ -389,6 +426,7 @@
     align-items: center;
   }
 
+  .app-layout__nav-btn,
   .app-layout__settings-btn {
     display: inline-flex;
     align-items: center;
@@ -403,6 +441,8 @@
     transition: all 0.2s ease;
   }
 
+  .app-layout__nav-btn:hover,
+  .app-layout__nav-btn--active,
   .app-layout__settings-btn:hover,
   .app-layout__settings-btn--active {
     color: var(--color-text);
@@ -410,6 +450,7 @@
     border-color: var(--color-primary);
   }
 
+  .app-layout__nav-btn svg,
   .app-layout__settings-btn svg {
     width: 1.125rem;
     height: 1.125rem;
@@ -418,6 +459,10 @@
 
   .app-layout__settings-btn:hover svg {
     transform: rotate(30deg);
+  }
+
+  .app-layout__nav-btn:hover svg {
+    transform: rotate(-15deg);
   }
 
   /* ── User Profile Button ─────────────────────────────── */

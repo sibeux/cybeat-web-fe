@@ -51,6 +51,13 @@ const router = createRouter({
       component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
     },
 
+    // ─── History Route ────────────────────────────────────────────────────────
+    {
+      path: '/history',
+      name: 'history',
+      component: () => import('@/features/history/pages/HistoryPage.vue'),
+    },
+
     // ─── Album Route ──────────────────────────────────────────────────────────
     {
       path: '/:type/:id',

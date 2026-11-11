@@ -8,18 +8,22 @@
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDebounce } from '@/core/shared/composables/useDebounce'
   import { useDashboardStore } from '../store/dashboard.store'
+  import { useHistoryStore } from '@/features/history/store/history.store'
+  import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
 
   const authStore = useAuthStore()
   const router = useRouter()
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
+  const historyStore = useHistoryStore()
 
   const { albums, categories, playlists, isLoading, error, searchQuery } =
     storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
+  const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
   const debouncedSearch = useDebounce(searchQuery, 350)
-  const sidebarTab = ref<'kategori' | 'playlist'>('kategori')
+  const sidebarTab = ref<'kategori' | 'playlist' | 'history'>('kategori')
   const showScrollTop = ref(false)
 
   const handleScroll = () => {
@@ -134,6 +138,25 @@
       Number(currentAlbum.value?.id) === Number(item.id)
     )
   }
+
+  const playHistoryTrack = (track: RecentMusicItem) => {
+    const song = historyStore.toSong(track)
+    if (currentSong.value?.id_music === song.id_music) {
+      playerStore.togglePlayback()
+      return
+    }
+    playerStore.playSong(song, historyStore.songsList, { type: 'history', id: 0 })
+  }
+
+  const isPlayingHistoryTrack = (track: RecentMusicItem) => {
+    return Number(currentSong.value?.id_music) === Number(track.id_music) && playerStore.isPlaying
+  }
+
+  watch(sidebarTab, async (newTab) => {
+    if (newTab === 'history' && authStore.isAuthenticated && authStore.user?.id) {
+      await historyStore.fetchRecentMusic(Number(authStore.user.id))
+    }
+  })
 </script>
 
 <template>
@@ -225,7 +248,7 @@
         </template>
 
         <!-- Playlist -->
-        <template v-else>
+        <template v-else-if="sidebarTab === 'playlist'">
           <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">
             Loading...
           </div>
@@ -291,6 +314,64 @@
               </svg>
             </li>
           </ul>
+        </template>
+
+        <!-- History -->
+        <template v-else-if="sidebarTab === 'history'">
+          <div v-if="!authStore.isAuthenticated" class="dashboard__sidebar-empty">
+            <p style="margin: 0 0 0.5rem 0;">Sign in to see your listening history.</p>
+            <button class="dashboard__sidebar-auth-btn" type="button" @click="router.push('/login')">
+              Sign In
+            </button>
+          </div>
+          <div v-else-if="isHistoryLoading && recentTracks.length === 0" class="dashboard__sidebar-loading">
+            Loading...
+          </div>
+          <div v-else-if="recentTracks.length === 0" class="dashboard__sidebar-empty">
+            No recently played tracks
+          </div>
+          <div v-else class="dashboard__sidebar-history-container">
+            <div class="dashboard__sidebar-history-header">
+              <span class="dashboard__sidebar-history-count">{{ recentTracks.length }} tracks</span>
+              <button class="dashboard__sidebar-history-link" type="button" @click="router.push('/history')">
+                View all &rarr;
+              </button>
+            </div>
+            <ul class="dashboard__sidebar-list">
+              <li
+                v-for="(item, index) in recentTracks"
+                :key="`${item.id_music}-${item.played_at}-${index}`"
+                class="dashboard__sidebar-item"
+                :class="{ 'dashboard__sidebar-item--playing': isPlayingHistoryTrack(item) }"
+                @click="playHistoryTrack(item)"
+              >
+                <div class="dashboard__sidebar-cover">
+                  <img
+                    v-img-cache="resolveCoverUrl(item.cover)"
+                    :alt="item.title"
+                    loading="lazy"
+                    @error="handleCoverError"
+                  />
+                </div>
+                <div class="dashboard__sidebar-info">
+                  <div class="dashboard__sidebar-title-row">
+                    <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
+                  </div>
+                  <span v-if="item.artist" class="dashboard__sidebar-sub" :title="item.artist">
+                    {{ item.artist }}
+                  </span>
+                </div>
+                <svg
+                  v-if="isPlayingHistoryTrack(item)"
+                  class="dashboard__sidebar-playing"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </li>
+            </ul>
+          </div>
         </template>
       </div>
     </template>
