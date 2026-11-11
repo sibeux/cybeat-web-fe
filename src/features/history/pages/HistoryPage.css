@@ -119,3 +119,147 @@
   width: 1rem;
   height: 1rem;
 }
+
+/* ── Admin User Selector Bar ─────────────────────────── */
+.history-page__admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid rgba(168, 148, 255, 0.3);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.history-page__admin-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 650;
+  color: #a894ff;
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+}
+
+.history-page__admin-label svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.history-page__admin-select {
+  flex: 1;
+  min-width: 220px;
+  max-width: 480px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.history-page__admin-select:focus {
+  outline: none;
+  border-color: #a894ff;
+  box-shadow: 0 0 0 2px rgba(168, 148, 255, 0.2);
+}
+
+.history-page__admin-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.history-page__admin-loading {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Toolbar (Sort by Date only, no search) ──────────── */
+.history-page__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.history-page__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.history-page__sort-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-surface-raised);
+}
+
+.history-page__sort-icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.history-page__sort-indicator {
+  display: inline-block;
+  padding: 0.125rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── Table Row (View-only) ───────────────────────────── */
+.history-page__tr {
+  cursor: default !important;
+}
+
+.history-page__tr:hover {
+  background-color: var(--color-surface-raised);
+}
+
+.history-page__cover-wrapper {
+  cursor: default !important;
+}
+
+.history-page__cover-wrapper:hover {
+  cursor: default !important;
+}
+
+.song-list__th--date,
+.song-list__td--date {
+  width: 22%;
+  white-space: nowrap;
+}
+
+.song-list__td--date {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 640px) {
+  .song-list__th--date,
+  .song-list__td--date {
+    display: none;
+  }
+}

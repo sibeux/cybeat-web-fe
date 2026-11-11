@@ -16,6 +16,10 @@ import { useTitle } from '@/core/shared/composables/useTitle'
 const router = useRouter()
 useTitle(() => 'Logs • CyBeat')
 
+function goToDashboard(): void {
+  void router.push({ name: 'dashboard' })
+}
+
 const activeTab = ref<'frontend' | 'backend'>('frontend')
 const logs = ref<LogEntry[]>([])
 const selectedLevel = ref<LogLevel | 'ALL'>('ALL')
@@ -146,7 +150,13 @@ const logCounts = computed(() => {
       <!-- Top Bar -->
       <div class="logs-page__header">
         <div class="logs-page__title-area">
-          <button class="logs-page__back-btn" title="Back" @click="router.back()">
+          <button
+            class="logs-page__back-btn"
+            type="button"
+            title="Back to dashboard"
+            aria-label="Back to dashboard"
+            @click="goToDashboard"
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>
               <polyline points="12 19 5 12 12 5"></polyline>

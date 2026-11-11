@@ -286,8 +286,9 @@ export const usePlayerStore = defineStore('player', () => {
         console.error('No stream URL found in API response:', data)
         isLoadingStream.value = false
       }
-    } catch (err: any) {
-      if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
+    } catch (err: unknown) {
+      const e = err as { name?: string; code?: string }
+      if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') {
         // Request intentionally aborted, ignore
         return
       }
@@ -324,11 +325,16 @@ export const usePlayerStore = defineStore('player', () => {
       shuffledPlaylist.value = [song, ...shuffleArray(others)]
     }
     
-    if (song.id_music !== previousSongId) {
+    if (song.id_music !== previousSongId || !audio.src) {
       currentTime.value = 0
       duration.value = 0
       bufferedTime.value = 0
       loadAudioStream(song)
+    } else if (!isPlaying.value) {
+      audio.play().catch((playErr) => {
+        logger.error('AudioPlayer', 'Playback failed on cached stream, reloading...', playErr)
+        loadAudioStream(song)
+      })
     }
     
     setRecentsCodecDominantColor(song, currentAlbum.value)
