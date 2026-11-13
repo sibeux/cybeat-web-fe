@@ -16,6 +16,7 @@
   const { currentSong, isPlaying } = storeToRefs(playerStore)
 
   const songs = ref<Song[]>([])
+  const unfilteredSongs = ref<Song[]>([])
   const totalSongs = ref(0)
   const isLoading = ref(true)
   const isSearching = ref(false)
@@ -225,8 +226,13 @@
         }
       }
 
+      const requestedSearch = options.search || ''
       const response = await albumApi.getSongs(currentType, currentId, options)
       songs.value = response.data.data || []
+      // Keep playback context independent from server-side search results.
+      if (!requestedSearch && !searchQuery.value.trim()) {
+        unfilteredSongs.value = [...songs.value]
+      }
       // Simpan total lagu asli ketika tidak sedang melakukan pencarian
       if (!searchQuery.value.trim() || totalSongs.value === 0) {
         totalSongs.value = (response.data as any).total || songs.value.length
@@ -324,6 +330,7 @@
         }
         lastSearchedQuery = ''
         searchQuery.value = ''
+        unfilteredSongs.value = []
         sortMode.value = 'default'
         sortDirection.value = 'asc'
         isSortDropdownOpen.value = false
@@ -397,7 +404,8 @@
       return
     }
 
-    playerStore.playSong(song, allSortedSongs.value, { type: type.value, id: id.value })
+    const playlist = isServerSearchAndSort.value ? unfilteredSongs.value : allSortedSongs.value
+    playerStore.playSong(song, playlist, { type: type.value, id: id.value })
   }
 
   const albumCovers = computed<string[]>(() => {
