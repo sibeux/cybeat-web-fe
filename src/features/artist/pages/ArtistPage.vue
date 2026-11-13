@@ -57,6 +57,10 @@
     })
   }
 
+  const goBack = () => {
+    void router.back()
+  }
+
   const handleCoverError = (event: Event) => {
     const image = event.target as HTMLImageElement
     if (image.dataset.fallbackApplied) return
@@ -75,7 +79,7 @@
   <AppLayout>
     <main class="artist-page">
       <header class="artist-page__header">
-        <button class="artist-page__back" type="button" @click="router.push({ name: 'dashboard' })">
+        <button class="artist-page__back" type="button" @click="goBack">
           <span aria-hidden="true">←</span>
           <span>Back</span>
         </button>
