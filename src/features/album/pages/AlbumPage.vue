@@ -389,6 +389,10 @@
     router.back()
   }
 
+  const goToDashboard = () => {
+    void router.push({ name: 'dashboard' })
+  }
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -520,7 +524,7 @@
             class="album-page__back-btn album-page__back-btn--hero"
             aria-label="Go back"
             title="Go back"
-            @click="goBack"
+            @click="goToDashboard"
           >
             <svg
               viewBox="0 0 24 24"
