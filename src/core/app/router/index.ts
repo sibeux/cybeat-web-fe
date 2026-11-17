@@ -85,16 +85,18 @@ const router = createRouter({
       meta: { requiresAuth: true, adminOnly: true },
     },
     {
-      path: '/admin/catalog',
-      name: 'admin-catalog',
-      component: () => import('@/features/catalog/pages/CatalogPage.vue'),
+      path: '/admin/artists',
+      name: 'admin-artist-manage',
+      component: () => import('@/features/artist/pages/ArtistManagePage.vue'),
       meta: { requiresAuth: true, adminOnly: true },
     },
     {
       path: '/admin/artists/merge',
-      name: 'admin-artist-merge',
-      component: () => import('@/features/artist/pages/ArtistMergePage.vue'),
-      meta: { requiresAuth: true, adminOnly: true },
+      redirect: '/admin/artists',
+    },
+    {
+      path: '/admin/artists/split',
+      redirect: { path: '/admin/artists', query: { tool: 'split' } },
     },
 
     // ─── 404 Fallback ─────────────────────────────────────────────────────────

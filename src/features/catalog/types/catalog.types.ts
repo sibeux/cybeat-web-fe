@@ -7,18 +7,6 @@ export interface AdminAlbum {
   is_private: number
 }
 
-export interface AdminCategory {
-  id: number
-  name: string
-  cover: string | null
-  album_ids: number[]
-}
-
-export interface AdminCatalogResponse {
-  status: string
-  data: { albums: AdminAlbum[]; categories: AdminCategory[] }
-}
-
 export interface UpdateCatalogCommand {
   type: 'album' | 'category'
   id: number

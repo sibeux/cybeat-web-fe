@@ -1,17 +1,43 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { computed, ref } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { useTitle } from '@/core/shared/composables/useTitle'
   import { normalizeError } from '@/core/shared/utils/error-normalizer'
   import { artistApi } from '../api/artist.api'
+  import ArtistSplitTool from './ArtistSplitTool.vue'
+  import { useArtistLookup } from '../composables/useArtistLookup'
   import type { ArtistCatalogItem, ArtistMergePreview } from '../types'
 
-  useTitle(() => 'Merge artists')
+  useTitle(() => 'Manage artists')
 
   const router = useRouter()
-  const artists = ref<ArtistCatalogItem[]>([])
-  const isLoadingArtists = ref(false)
+  const route = useRoute()
+  const activeTool = computed<'merge' | 'split'>(() => route.query.tool === 'split' ? 'split' : 'merge')
+
+  function setTool(tool: 'merge' | 'split'): void {
+    void router.replace({ name: 'admin-artist-manage', query: tool === 'split' ? { tool: 'split' } : {} })
+  }
+
+  function handleSplitChanged(): void {
+    sourceArtist.value = null
+    targetArtist.value = null
+    sourceQuery.value = ''
+    targetQuery.value = ''
+    preview.value = null
+    confirmationName.value = ''
+    successMessage.value = ''
+    cancelSourceSearch()
+    cancelTargetSearch()
+  }
+  const {
+    results: sourceResults, isSearching: isSearchingSource, error: sourceSearchError,
+    search: searchSource, cancel: cancelSourceSearch,
+  } = useArtistLookup()
+  const {
+    results: targetResults, isSearching: isSearchingTarget, error: targetSearchError,
+    search: searchTarget, cancel: cancelTargetSearch,
+  } = useArtistLookup()
   const isLoadingPreview = ref(false)
   const isMerging = ref(false)
   const sourceArtist = ref<ArtistCatalogItem | null>(null)
@@ -35,41 +61,8 @@
     () => !!sourceArtist.value && confirmationName.value === sourceArtist.value.name,
   )
 
-  function searchArtists(query: string, excludedId?: number): ArtistCatalogItem[] {
-    const normalized = query.trim().toLocaleLowerCase()
-    if (!normalized) return []
-
-    return artists.value
-      .filter(
-        (artist) =>
-          artist.id_artist !== excludedId && artist.name.toLocaleLowerCase().includes(normalized),
-      )
-      .slice(0, 8)
-  }
-
-  const sourceOptions = computed(() =>
-    searchArtists(sourceQuery.value, targetArtist.value?.id_artist),
-  )
-  const targetOptions = computed(() =>
-    searchArtists(targetQuery.value, sourceArtist.value?.id_artist),
-  )
-
-  async function loadArtists(): Promise<void> {
-    isLoadingArtists.value = true
-    errorMessage.value = ''
-    try {
-      const { data } = await artistApi.getAllArtists()
-      artists.value = data.data
-    } catch (error) {
-      errorMessage.value = normalizeError(error)
-    } finally {
-      isLoadingArtists.value = false
-    }
-  }
-
-  onMounted(() => {
-    void loadArtists()
-  })
+  const sourceOptions = computed(() => sourceResults.value.filter((artist) => artist.id_artist !== targetArtist.value?.id_artist))
+  const targetOptions = computed(() => targetResults.value.filter((artist) => artist.id_artist !== sourceArtist.value?.id_artist))
 
   function goToDashboard(): void {
     void router.push({ name: 'dashboard' })
@@ -80,9 +73,11 @@
     if (which === 'source') {
       sourceQuery.value = value
       sourceArtist.value = null
+      searchSource(value)
     } else {
       targetQuery.value = value
       targetArtist.value = null
+      searchTarget(value)
     }
     preview.value = null
     confirmationName.value = ''
@@ -94,9 +89,11 @@
     if (which === 'source') {
       sourceArtist.value = artist
       sourceQuery.value = artist.name
+      cancelSourceSearch()
     } else {
       targetArtist.value = artist
       targetQuery.value = artist.name
+      cancelTargetSearch()
     }
     preview.value = null
     confirmationName.value = ''
@@ -108,9 +105,11 @@
     if (which === 'source') {
       sourceArtist.value = null
       sourceQuery.value = ''
+      cancelSourceSearch()
     } else {
       targetArtist.value = null
       targetQuery.value = ''
+      cancelTargetSearch()
     }
     preview.value = null
     confirmationName.value = ''
@@ -160,7 +159,8 @@
       targetQuery.value = ''
       preview.value = null
       confirmationName.value = ''
-      await loadArtists()
+      cancelSourceSearch()
+      cancelTargetSearch()
     } catch (error) {
       errorMessage.value = normalizeError(error)
     } finally {
@@ -181,12 +181,19 @@
           </button>
           <div>
             <p class="artist-merge__eyebrow">ADMIN ARTIST TOOLS</p>
-            <h1>Gabungkan artis</h1>
-            <p class="artist-merge__subtitle">Satukan dua data artis duplikat tanpa menggandakan tautan lagu.</p>
+            <h1>Manage artists</h1>
+            <p class="artist-merge__subtitle">Kelola data artis gabungan dan duplikat dalam satu tempat.</p>
           </div>
         </div>
-        <div class="artist-merge__catalog-count"><strong>{{ artists.length }}</strong><span>artis di katalog</span></div>
+        <div class="artist-merge__catalog-count"><span class="artist-merge__live-dot"></span><span>Cari langsung dari katalog</span></div>
       </header>
+
+      <div class="artist-manage__tabs" role="tablist" aria-label="Alat kelola artis">
+        <button id="artist-manage-merge-tab" type="button" role="tab" :aria-selected="activeTool === 'merge'" aria-controls="artist-manage-merge-panel" :class="{ 'artist-manage__tab--active': activeTool === 'merge' }" @click="setTool('merge')">Merge artists</button>
+        <button id="artist-manage-split-tab" type="button" role="tab" :aria-selected="activeTool === 'split'" aria-controls="artist-manage-split-panel" :class="{ 'artist-manage__tab--active': activeTool === 'split' }" @click="setTool('split')">Split artist</button>
+      </div>
+
+      <div v-if="activeTool === 'merge'" id="artist-manage-merge-panel" role="tabpanel" aria-labelledby="artist-manage-merge-tab" class="artist-manage__panel">
 
       <div v-if="successMessage" class="artist-merge__notice artist-merge__notice--success" role="status">
         <span class="artist-merge__notice-icon" aria-hidden="true">✓</span>
@@ -197,12 +204,6 @@
         <span>{{ errorMessage }}</span>
       </div>
 
-      <div v-if="isLoadingArtists" class="artist-merge__loading">Memuat katalog artis…</div>
-      <div v-else-if="artists.length === 0 && !errorMessage" class="artist-merge__loading">
-        Katalog artis kosong.
-      </div>
-
-      <template v-else-if="artists.length">
         <section class="artist-merge__card" aria-labelledby="artist-merge-select-title">
           <div class="artist-merge__card-heading">
             <div>
@@ -224,10 +225,11 @@
                   autocomplete="off"
                   @input="updateQuery('source', $event)"
                 />
-                <div v-if="!sourceArtist && sourceOptions.length" class="artist-merge__options" role="listbox" aria-label="Hasil artis sumber">
-                  <button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('source', artist)">
-                    <span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small>
-                  </button>
+                <div v-if="!sourceArtist && sourceQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Hasil artis sumber">
+                  <div v-if="isSearchingSource" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+                  <div v-else-if="sourceSearchError" class="artist-merge__option-empty">{{ sourceSearchError }}</div>
+                  <template v-else><button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('source', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button></template>
+                  <div v-if="!isSearchingSource && !sourceSearchError && !sourceOptions.length" class="artist-merge__option-empty">Artis tidak ditemukan.</div>
                 </div>
               </div>
               <div v-if="sourceArtist" class="artist-merge__selected">
@@ -251,10 +253,11 @@
                   autocomplete="off"
                   @input="updateQuery('target', $event)"
                 />
-                <div v-if="!targetArtist && targetOptions.length" class="artist-merge__options" role="listbox" aria-label="Hasil artis tujuan">
-                  <button v-for="artist in targetOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('target', artist)">
-                    <span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small>
-                  </button>
+                <div v-if="!targetArtist && targetQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Hasil artis tujuan">
+                  <div v-if="isSearchingTarget" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+                  <div v-else-if="targetSearchError" class="artist-merge__option-empty">{{ targetSearchError }}</div>
+                  <template v-else><button v-for="artist in targetOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('target', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button></template>
+                  <div v-if="!isSearchingTarget && !targetSearchError && !targetOptions.length" class="artist-merge__option-empty">Artis tidak ditemukan.</div>
                 </div>
               </div>
               <div v-if="targetArtist" class="artist-merge__selected artist-merge__selected--target">
@@ -275,6 +278,7 @@
           </div>
         </section>
 
+        <section v-if="isLoadingPreview" class="artist-merge__preview artist-merge__preview--loading" role="status" aria-label="Memuat pratinjau merge"><div class="artist-merge__preview-skeleton"><span></span><span></span><span></span></div></section>
         <section v-if="preview" class="artist-merge__preview" aria-labelledby="artist-merge-preview-title">
           <div class="artist-merge__preview-heading">
             <div>
@@ -303,9 +307,20 @@
             </button>
           </div>
         </section>
-      </template>
+      </div>
+      <div v-else id="artist-manage-split-panel" role="tabpanel" aria-labelledby="artist-manage-split-tab" class="artist-manage__panel">
+        <ArtistSplitTool @changed="handleSplitChanged" />
+      </div>
     </section>
   </AppLayout>
 </template>
 
 <style src="./ArtistMergePage.css"></style>
+<style scoped>
+.artist-manage__tabs { display: inline-flex; width: fit-content; max-width: 100%; gap: .25rem; padding: .3rem; border: 1px solid var(--color-border); border-radius: .8rem; background: var(--color-surface); box-shadow: 0 5px 20px rgb(0 0 0 / .07); }
+.artist-manage__tabs button { min-width: 10rem; padding: .7rem 1.05rem; border: 0; border-radius: .55rem; background: transparent; color: var(--color-text-muted); font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.artist-manage__tabs button:hover, .artist-manage__tabs button:focus-visible { background: var(--color-surface-raised); color: var(--color-text); outline: none; }
+.artist-manage__tabs .artist-manage__tab--active { background: var(--color-primary-subtle); color: var(--color-primary); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent); }
+.artist-manage__panel { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+@media (max-width: 520px) { .artist-manage__tabs { width: 100%; } .artist-manage__tabs button { min-width: 0; flex: 1; } }
+</style>

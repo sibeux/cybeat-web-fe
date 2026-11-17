@@ -5,6 +5,8 @@ import type {
   ArtistMergeCommand,
   ArtistMergePreview,
   ArtistMergeResult,
+  ArtistSplitPreview,
+  ArtistSplitResult,
   ArtistPageData,
 } from '../types'
 
@@ -34,5 +36,15 @@ export const artistApi = {
 
   mergeArtists(command: ArtistMergeCommand) {
     return apiClient.post<ApiSuccessResponse<ArtistMergeResult>>('/admin/artists/merge/', command)
+  },
+
+  previewSplit(sourceArtistId: number, targetNames: string[]) {
+    return apiClient.get<ApiSuccessResponse<ArtistSplitPreview>>('/admin/artists/split/', {
+      params: { source_artist_id: sourceArtistId, target_names: targetNames },
+    })
+  },
+
+  splitArtist(command: { source_artist_id: number; target_names: string[]; confirm_source_name: string; expected_song_count: number; expected_album_count: number; preview_token: string }) {
+    return apiClient.post<ApiSuccessResponse<ArtistSplitResult>>('/admin/artists/split/', command)
   },
 }

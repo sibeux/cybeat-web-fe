@@ -50,3 +50,19 @@ export interface ArtistMergeResult {
   moved_link_count: number
   target_song_count_after: number
 }
+
+export interface ArtistSplitPreview {
+  source: ArtistLink
+  targets: (ArtistLink & { is_new: boolean; id_artist: number | null })[]
+  song_count: number
+  song_sample: { id_music: number; title: string }[]
+  albums: { id: number; name: string; author_before: string; author_after: string }[]
+  preview_token: string
+}
+
+export interface ArtistSplitResult {
+  source: ArtistLink
+  targets: ArtistSplitPreview['targets']
+  song_count: number
+  album_count: number
+}

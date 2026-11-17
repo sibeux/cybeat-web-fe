@@ -111,14 +111,9 @@
     router.push('/admin/users')
   }
 
-  function navigateToArtistMerge(): void {
+  function navigateToArtistManage(): void {
     closeAllMenus()
-    router.push('/admin/artists/merge')
-  }
-
-  function navigateToCatalog(): void {
-    closeAllMenus()
-    router.push('/admin/catalog')
+    router.push('/admin/artists')
   }
 </script>
 
@@ -212,31 +207,15 @@
                 v-if="authStore.user?.role === 'admin'"
                 class="app-layout__dropdown-item"
                 type="button"
-                @click="navigateToArtistMerge"
+                @click="navigateToArtistManage"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M7 7h10l-3-3m3 3-3 3" />
                   <path d="M17 17H7l3 3m-3-3 3-3" />
                 </svg>
                 <div class="app-layout__dropdown-item-text">
-                  <span class="app-layout__dropdown-item-title">Merge artists</span>
-                  <span class="app-layout__dropdown-item-desc">Combine duplicate Artist records</span>
-                </div>
-              </button>
-              <button
-                v-if="authStore.user?.role === 'admin'"
-                class="app-layout__dropdown-item"
-                type="button"
-                @click="navigateToCatalog"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="3" y="4" width="8" height="16" rx="1" />
-                  <rect x="13" y="4" width="8" height="7" rx="1" />
-                  <rect x="13" y="13" width="8" height="7" rx="1" />
-                </svg>
-                <div class="app-layout__dropdown-item-text">
-                  <span class="app-layout__dropdown-item-title">Catalog</span>
-                  <span class="app-layout__dropdown-item-desc">Edit albums and categories</span>
+                  <span class="app-layout__dropdown-item-title">Manage artists</span>
+                  <span class="app-layout__dropdown-item-desc">Merge and split artist records</span>
                 </div>
               </button>
             </div>
