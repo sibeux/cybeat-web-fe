@@ -1,21 +1,41 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import type { ArtistLink } from '../types'
 
-  withDefaults(
+  const props = withDefaults(
     defineProps<{
       artists?: ArtistLink[]
       fallback?: string
+      preserveFallbackCredits?: boolean
     }>(),
     {
       artists: () => [],
       fallback: '',
+      preserveFallbackCredits: false,
     },
   )
+
+  const fallbackCredits = computed(() => {
+    if (!props.preserveFallbackCredits) return []
+
+    const artistsByName = new Map(props.artists.map((artist) => [artist.name.trim().toLocaleLowerCase(), artist]))
+    return props.fallback.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({
+      name,
+      artist: artistsByName.get(name.toLocaleLowerCase()),
+    }))
+  })
 </script>
 
 <template>
   <span class="artist-links">
-    <template v-if="artists.length">
+    <template v-if="fallbackCredits.length">
+      <template v-for="(credit, index) in fallbackCredits" :key="`${credit.name}-${index}`">
+        <span v-if="index > 0" class="artist-links__separator">, </span>
+        <RouterLink v-if="credit.artist" class="artist-links__link" :to="{ name: 'artist', params: { id: credit.artist.id_artist } }" @click.stop>{{ credit.name }}</RouterLink>
+        <span v-else>{{ credit.name }}</span>
+      </template>
+    </template>
+    <template v-else-if="artists.length">
       <template v-for="(artist, index) in artists" :key="artist.id_artist">
         <span v-if="index > 0" class="artist-links__separator">, </span>
         <RouterLink

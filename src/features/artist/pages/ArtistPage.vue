@@ -52,7 +52,7 @@
       params: { type: 'album', id: album.id },
       state: {
         albumName: album.title,
-        artistName: artist.value?.name || album.author || '',
+        artistName: album.author?.trim() || artist.value?.name || '',
       },
     })
   }

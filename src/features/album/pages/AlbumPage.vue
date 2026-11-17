@@ -847,7 +847,7 @@
                   @error="handleCoverError"
                 />
               </div>
-              <span class="album-page__hero-artist"><ArtistLinks :artists="heroArtistLinks" :fallback="displayArtistName" /></span>
+              <span class="album-page__hero-artist"><ArtistLinks :artists="heroArtistLinks" :fallback="displayArtistName" preserve-fallback-credits /></span>
               <span class="album-page__hero-dot">•</span>
               <span class="album-page__hero-tracks">{{ totalSongs }} songs</span>
             </div>
