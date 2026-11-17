@@ -6,6 +6,7 @@
   import { artistError } from '../utils/artistError'
   import { artistApi } from '../api/artist.api'
   import ArtistSplitTool from './ArtistSplitTool.vue'
+  import ArtistEditTool from './ArtistEditTool.vue'
   import { useArtistLookup } from '../composables/useArtistLookup'
   import type { ArtistCatalogItem, ArtistMergePreview } from '../types'
 
@@ -13,13 +14,15 @@
 
   const router = useRouter()
   const route = useRoute()
-  const activeTool = computed<'merge' | 'split'>(() => route.query.tool === 'split' ? 'split' : 'merge')
+  const activeTool = computed<'edit' | 'merge' | 'split'>(() =>
+    route.query.tool === 'merge' || route.query.tool === 'split' ? route.query.tool : 'edit',
+  )
 
-  function setTool(tool: 'merge' | 'split'): void {
-    void router.replace({ name: 'admin-artist-manage', query: tool === 'split' ? { tool: 'split' } : {} })
+  function setTool(tool: 'edit' | 'merge' | 'split'): void {
+    void router.replace({ name: 'admin-artist-manage', query: tool === 'edit' ? {} : { tool } })
   }
 
-  function handleSplitChanged(): void {
+  function handleArtistChanged(): void {
     sourceArtist.value = null
     targetArtist.value = null
     sourceQuery.value = ''
@@ -182,18 +185,22 @@
           <div>
             <p class="artist-merge__eyebrow">ADMIN ARTIST TOOLS</p>
             <h1>Manage artists</h1>
-            <p class="artist-merge__subtitle">Keep your artist catalog clean with merge and split tools.</p>
+            <p class="artist-merge__subtitle">Edit names, combine duplicates, and split shared credits in one place.</p>
           </div>
         </div>
         <div class="artist-merge__catalog-count"><span class="artist-merge__live-dot"></span><span>Search the catalog</span></div>
       </header>
 
       <div class="artist-manage__tabs" role="tablist" aria-label="Artist tools">
+        <button id="artist-manage-edit-tab" type="button" role="tab" :aria-selected="activeTool === 'edit'" aria-controls="artist-manage-edit-panel" :class="{ 'artist-manage__tab--active': activeTool === 'edit' }" @click="setTool('edit')">Edit artist</button>
         <button id="artist-manage-merge-tab" type="button" role="tab" :aria-selected="activeTool === 'merge'" aria-controls="artist-manage-merge-panel" :class="{ 'artist-manage__tab--active': activeTool === 'merge' }" @click="setTool('merge')">Merge artists</button>
         <button id="artist-manage-split-tab" type="button" role="tab" :aria-selected="activeTool === 'split'" aria-controls="artist-manage-split-panel" :class="{ 'artist-manage__tab--active': activeTool === 'split' }" @click="setTool('split')">Split artist</button>
       </div>
 
-      <div v-if="activeTool === 'merge'" id="artist-manage-merge-panel" role="tabpanel" aria-labelledby="artist-manage-merge-tab" class="artist-manage__panel">
+      <div v-if="activeTool === 'edit'" id="artist-manage-edit-panel" role="tabpanel" aria-labelledby="artist-manage-edit-tab" class="artist-manage__panel">
+        <ArtistEditTool @changed="handleArtistChanged" />
+      </div>
+      <div v-else-if="activeTool === 'merge'" id="artist-manage-merge-panel" role="tabpanel" aria-labelledby="artist-manage-merge-tab" class="artist-manage__panel">
 
       <div v-if="successMessage" class="artist-merge__notice artist-merge__notice--success" role="status">
         <span class="artist-merge__notice-icon" aria-hidden="true">✓</span>
@@ -204,7 +211,7 @@
         <span>{{ errorMessage }}</span>
       </div>
 
-        <section class="artist-merge__card" aria-labelledby="artist-merge-select-title">
+        <section class="artist-merge__card artist-manage__tool-card" aria-labelledby="artist-merge-select-title">
           <div class="artist-merge__card-heading">
             <div>
               <p class="artist-merge__eyebrow">SELECT ARTISTS</p>
@@ -309,7 +316,7 @@
         </section>
       </div>
       <div v-else id="artist-manage-split-panel" role="tabpanel" aria-labelledby="artist-manage-split-tab" class="artist-manage__panel">
-        <ArtistSplitTool @changed="handleSplitChanged" />
+        <ArtistSplitTool @changed="handleArtistChanged" />
       </div>
     </section>
   </AppLayout>

@@ -92,11 +92,15 @@ const router = createRouter({
     },
     {
       path: '/admin/artists/merge',
-      redirect: '/admin/artists',
+      redirect: { path: '/admin/artists', query: { tool: 'merge' } },
     },
     {
       path: '/admin/artists/split',
       redirect: { path: '/admin/artists', query: { tool: 'split' } },
+    },
+    {
+      path: '/admin/artists/edit',
+      redirect: '/admin/artists',
     },
 
     // ─── 404 Fallback ─────────────────────────────────────────────────────────

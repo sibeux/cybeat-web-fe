@@ -141,6 +141,8 @@
 .artist-merge__catalog-count { gap: .55rem; align-self: flex-start; padding: .55rem .75rem; background: color-mix(in srgb, var(--color-surface-raised) 85%, transparent); }
 .artist-merge__live-dot { width: .45rem; height: .45rem; flex: 0 0 auto; border-radius: 50%; background: #60d6ac; box-shadow: 0 0 0 3px rgb(96 214 172 / .14); }
 .artist-merge__card, .artist-merge__preview { padding: 1.45rem; border-color: color-mix(in srgb, var(--color-border) 80%, var(--color-primary)); border-radius: 1rem; box-shadow: 0 12px 35px rgb(0 0 0 / .08); }
+.artist-manage__tool-card { display: flex; min-height: 18rem; flex-direction: column; }
+.artist-manage__tool-card > .artist-merge__card-footer { margin-top: auto; }
 .artist-merge__card-heading { margin-bottom: 1.4rem; }
 .artist-merge__card-heading h2 { margin-top: .1rem; }
 .artist-merge__helper { max-width: 17rem; line-height: 1.45; }
@@ -180,4 +182,5 @@
   .artist-merge__header::after { right: -4rem; }
   .artist-merge__catalog-count { margin-left: 0; }
   .artist-merge__card, .artist-merge__preview { padding: 1.05rem; }
+  .artist-manage__tool-card { min-height: 0; }
 }

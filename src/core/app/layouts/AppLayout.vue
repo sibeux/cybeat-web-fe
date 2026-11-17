@@ -215,7 +215,7 @@
                 </svg>
                 <div class="app-layout__dropdown-item-text">
                   <span class="app-layout__dropdown-item-title">Manage artists</span>
-                  <span class="app-layout__dropdown-item-desc">Merge and split artist records</span>
+                  <span class="app-layout__dropdown-item-desc">Edit, merge, and split artist records</span>
                 </div>
               </button>
             </div>

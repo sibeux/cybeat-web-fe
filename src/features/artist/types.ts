@@ -66,3 +66,14 @@ export interface ArtistSplitResult {
   song_count: number
   album_count: number
 }
+
+export interface ArtistEditPreview {
+  artist: ArtistLink
+  albums: { id: number; name: string; author_before: string }[]
+  preview_token: string
+}
+
+export interface ArtistEditResult {
+  artist: ArtistLink
+  album_count: number
+}
