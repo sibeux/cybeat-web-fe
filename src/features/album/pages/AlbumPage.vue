@@ -14,6 +14,7 @@
   import type { AdminAlbum, UpdateCatalogCommand } from '@/features/catalog/types/catalog.types'
   import { artistApi } from '@/features/artist/api/artist.api'
   import type { ArtistCatalogItem } from '@/features/artist/types'
+  import { parseArtistCredits } from '@/features/artist/utils/parseArtistCredits'
 
   const route = useRoute()
   const router = useRouter()
@@ -587,36 +588,24 @@
       have_disc: Boolean(album.have_disc),
       is_private: Boolean(album.is_private),
     }
-    const credits = (album.author || stateArtistName.value || '')
-      .split(/\s*,\s*/)
-      .map((credit) => credit.trim().toLocaleLowerCase())
-      .filter(Boolean)
+    const creditText = album.author || stateArtistName.value || ''
     const songArtists = [...new Map(
       unfilteredSongs.value
         .flatMap((song) => song.artists || [])
         .map((artist) => [artist.id_artist, { ...artist, song_count: 0 }]),
     ).values()]
-    selectedArtists.value = songArtists.filter((artist) =>
-      credits.includes(artist.name.trim().toLocaleLowerCase()),
-    )
+    selectedArtists.value = parseArtistCredits(creditText, songArtists).flatMap((credit) => credit.artist ? [credit.artist] : [])
     artistOptions.value = []
     artistSearch.value = ''
     const initialArtistsPromise = loadArtistOptions('')
     try {
       const initialArtists = await initialArtistsPromise
       if (session !== artistEditorSession) return
-      const matchingArtists = await Promise.all(credits.map(async (credit) => {
-        const exactFromSongs = songArtists.find((artist) => artist.name.trim().toLocaleLowerCase() === credit)
-        if (exactFromSongs) return exactFromSongs
-        const exactFromInitial = initialArtists.find((artist) => artist.name.trim().toLocaleLowerCase() === credit)
-        if (exactFromInitial) return exactFromInitial
-        const response = await artistApi.getAllArtists(credit)
-        return response.data.data.find((artist) => artist.name.trim().toLocaleLowerCase() === credit) || null
-      }))
-      if (session !== artistEditorSession) return
+      const matchingArtists = parseArtistCredits(creditText, [...songArtists, ...initialArtists])
+        .flatMap((credit) => credit.artist ? [credit.artist] : [])
       selectedArtists.value = [...new Map([
         ...selectedArtists.value,
-        ...matchingArtists.filter((artist): artist is ArtistCatalogItem => artist !== null),
+        ...matchingArtists,
       ].map((artist) => [artist.id_artist, artist])).values()]
       artistOptions.value = [...new Map([...artistOptions.value, ...selectedArtists.value].map((artist) => [artist.id_artist, artist])).values()]
     } catch (requestError: any) {
@@ -704,12 +693,9 @@
   })
 
   const heroArtistLinks = computed(() => {
-    const displayNames = displayArtistName.value.split(/\s*,\s*/).map((name) => name.trim().toLocaleLowerCase()).filter(Boolean)
-    if (!displayNames.length) return []
     return songs.value
       .flatMap((song) => song.artists || [])
       .filter((artist, index, all) =>
-        displayNames.includes(artist.name.trim().toLocaleLowerCase()) &&
         all.findIndex((candidate) => candidate.id_artist === artist.id_artist) === index,
       )
   })

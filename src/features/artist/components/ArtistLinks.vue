@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import type { ArtistLink } from '../types'
+  import { parseArtistCredits } from '../utils/parseArtistCredits'
 
   const props = withDefaults(
     defineProps<{
@@ -16,13 +17,7 @@
   )
 
   const fallbackCredits = computed(() => {
-    if (!props.preserveFallbackCredits) return []
-
-    const artistsByName = new Map(props.artists.map((artist) => [artist.name.trim().toLocaleLowerCase(), artist]))
-    return props.fallback.split(',').map((name) => name.trim()).filter(Boolean).map((name) => ({
-      name,
-      artist: artistsByName.get(name.toLocaleLowerCase()),
-    }))
+    return props.preserveFallbackCredits ? parseArtistCredits(props.fallback, props.artists) : []
   })
 </script>
 
