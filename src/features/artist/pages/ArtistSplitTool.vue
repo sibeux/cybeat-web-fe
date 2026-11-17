@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { normalizeError } from '@/core/shared/utils/error-normalizer'
+import { artistError } from '../utils/artistError'
 import { artistApi } from '../api/artist.api'
 import type { ArtistCatalogItem, ArtistSplitPreview } from '../types'
 import { useArtistLookup } from '../composables/useArtistLookup'
@@ -100,7 +100,7 @@ async function previewSplit() {
     const { data } = await artistApi.previewSplit(source.value.id_artist, targetNames.value.map((name) => name.trim()))
     if (request === previewRequest) preview.value = data.data
   } catch (error) {
-    if (request === previewRequest) errorMessage.value = normalizeError(error)
+    if (request === previewRequest) errorMessage.value = artistError(error)
   } finally {
     isPreviewing.value = false
   }
@@ -119,7 +119,7 @@ async function saveSplit() {
       expected_album_count: preview.value.albums.length,
       preview_token: preview.value.preview_token,
     })
-    successMessage.value = `${data.data.song_count} lagu ditautkan ke ${data.data.targets.length} artis. ${data.data.album_count} kredit album diperbarui. Artis gabungan dihapus.`
+    successMessage.value = `${data.data.song_count} songs linked to ${data.data.targets.length} artists. ${data.data.album_count} album credits updated. The combined artist was removed.`
     source.value = null
     sourceQuery.value = ''
     targetNames.value = ['', '']
@@ -129,7 +129,7 @@ async function saveSplit() {
     cancelTargetSearch()
     emit('changed')
   } catch (error) {
-    errorMessage.value = normalizeError(error)
+    errorMessage.value = artistError(error)
   } finally {
     isSaving.value = false
   }
@@ -145,58 +145,58 @@ async function saveSplit() {
       <section class="artist-merge__card">
         <div class="artist-merge__card-heading">
           <div>
-            <p class="artist-merge__eyebrow">PILIH DATA</p>
-            <h2>Sumber dan artis tujuan</h2>
+            <p class="artist-merge__eyebrow">SELECT ARTISTS</p>
+            <h2>Choose the source and destination artists</h2>
           </div>
-          <p class="artist-merge__helper">Setiap lagu sumber akan tertaut ke semua artis tujuan.</p>
+          <p class="artist-merge__helper">Each source song will be linked to every destination artist.</p>
         </div>
         <div class="artist-split__fields">
           <div class="artist-merge__picker artist-split__source">
-            <label for="split-source">Artis gabungan <span>pilih dari katalog</span></label>
+            <label for="split-source">Combined artist <span>select the record to split</span></label>
             <div class="artist-merge__search-wrap">
-              <input id="split-source" type="search" :value="sourceQuery" placeholder="Cari artis gabungan" autocomplete="off" :disabled="isSaving || isPreviewing" @input="changeSource">
-              <div v-if="!source && sourceQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Hasil artis sumber">
-                <div v-if="isSearchingSource" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+              <input id="split-source" type="search" :value="sourceQuery" placeholder="Search combined artist" autocomplete="off" :disabled="isSaving || isPreviewing" @input="changeSource">
+              <div v-if="!source && sourceQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Combined artist results">
+                <div v-if="isSearchingSource" class="artist-merge__option-skeleton" role="status" aria-label="Searching artists"><span v-for="row in 3" :key="row"></span></div>
                 <div v-else-if="sourceSearchError" class="artist-merge__option-empty">{{ sourceSearchError }}</div>
-                <template v-else><button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseSource(artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button><div v-if="!sourceOptions.length" class="artist-merge__option-empty">Artis tidak ditemukan.</div></template>
+                <template v-else><button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseSource(artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} songs</small></button><div v-if="!sourceOptions.length" class="artist-merge__option-empty">No artists found.</div></template>
               </div>
             </div>
-            <div v-if="source" class="artist-merge__selected"><div><strong>{{ source.name }}</strong><span>{{ source.song_count }} lagu tertaut</span></div><button type="button" :disabled="isSaving || isPreviewing" @click="source = null; sourceQuery = ''; resetPreview()">Ganti</button></div>
+            <div v-if="source" class="artist-merge__selected"><div><strong>{{ source.name }}</strong><span>{{ source.song_count }} linked songs</span></div><button type="button" :disabled="isSaving || isPreviewing" @click="source = null; sourceQuery = ''; resetPreview()">Change</button></div>
           </div>
           <div v-for="(targetName, index) in targetNames" :key="index" class="artist-merge__picker">
-            <label :for="`split-target-${index}`">Artis tujuan {{ index + 1 }} <span>artis yang sudah ada akan dipakai; nama baru akan dibuat</span></label>
+            <label :for="`split-target-${index}`">Destination artist {{ index + 1 }} <span>existing artists are reused; new names are created</span></label>
             <div class="artist-split__target-input">
               <div class="artist-merge__search-wrap">
-                <input :id="`split-target-${index}`" type="text" :value="targetName" maxlength="255" autocomplete="off" :disabled="isSaving || isPreviewing" :placeholder="`Nama artis tujuan ${index + 1}`" @input="changeTarget(index, $event)">
-                <div v-if="activeTargetIndex === index && targetName.trim()" class="artist-merge__options" role="listbox" :aria-label="`Hasil artis tujuan ${index + 1}`">
-                  <div v-if="isSearchingTarget" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+                <input :id="`split-target-${index}`" type="text" :value="targetName" maxlength="255" autocomplete="off" :disabled="isSaving || isPreviewing" :placeholder="`Destination artist ${index + 1}`" @input="changeTarget(index, $event)">
+                <div v-if="activeTargetIndex === index && targetName.trim()" class="artist-merge__options" role="listbox" :aria-label="`Destination artist ${index + 1} results`">
+                  <div v-if="isSearchingTarget" class="artist-merge__option-skeleton" role="status" aria-label="Searching artists"><span v-for="row in 3" :key="row"></span></div>
                   <div v-else-if="targetSearchError" class="artist-merge__option-empty">{{ targetSearchError }}</div>
-                  <template v-else><button v-for="artist in targetResults" :key="artist.id_artist" type="button" role="option" @click="chooseTarget(index, artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button><div v-if="!targetResults.length" class="artist-merge__option-empty">Nama baru akan dibuat saat disimpan.</div></template>
+                  <template v-else><button v-for="artist in targetResults" :key="artist.id_artist" type="button" role="option" @click="chooseTarget(index, artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} songs</small></button><div v-if="!targetResults.length" class="artist-merge__option-empty">A new artist will be created when you save.</div></template>
                 </div>
               </div>
-              <button v-if="targetNames.length > 2" type="button" :disabled="isSaving || isPreviewing" :aria-label="`Hapus artis tujuan ${index + 1}`" @click="removeTarget(index)">Hapus</button>
+              <button v-if="targetNames.length > 2" type="button" :disabled="isSaving || isPreviewing" :aria-label="`Remove destination artist ${index + 1}`" @click="removeTarget(index)">Remove</button>
             </div>
           </div>
         </div>
-        <button class="artist-split__add" type="button" :disabled="isSaving || isPreviewing" @click="addTarget">+ Tambah artis tujuan</button>
+        <button class="artist-split__add" type="button" :disabled="isSaving || isPreviewing" @click="addTarget">+ Add destination artist</button>
         <div class="artist-merge__card-footer">
-          <span>Teks kredit asli pada lagu tetap tersimpan.</span>
-          <button class="artist-merge__primary" type="button" :disabled="!canPreview" @click="previewSplit">{{ isPreviewing ? 'Memuat…' : 'Pratinjau split' }}</button>
+          <span>Original song credit text stays unchanged.</span>
+          <button class="artist-merge__primary" type="button" :disabled="!canPreview" @click="previewSplit">{{ isPreviewing ? 'Loading…' : 'Preview split' }}</button>
         </div>
       </section>
 
-      <section v-if="isPreviewing" class="artist-merge__preview artist-merge__preview--loading" role="status" aria-label="Memuat pratinjau split"><div class="artist-merge__preview-skeleton"><span></span><span></span><span></span></div></section>
+      <section v-if="isPreviewing" class="artist-merge__preview artist-merge__preview--loading" role="status" aria-label="Loading split preview"><div class="artist-merge__preview-skeleton"><span></span><span></span><span></span></div></section>
       <section v-if="preview" class="artist-merge__preview">
-        <div class="artist-merge__preview-heading"><div><p class="artist-merge__eyebrow">PRATINJAU</p><h2>{{ preview.source.name }} → {{ preview.targets.map((target) => target.name).join(' + ') }}</h2></div><span class="artist-merge__preview-badge">Periksa sebelum lanjut</span></div>
+        <div class="artist-merge__preview-heading"><div><p class="artist-merge__eyebrow">PREVIEW</p><h2>{{ preview.source.name }} → {{ preview.targets.map((target) => target.name).join(' + ') }}</h2></div><span class="artist-merge__preview-badge">Review before saving</span></div>
         <div class="artist-split__summary">
-          <div><strong>{{ preview.song_count }}</strong><span>lagu akan ditautkan ke masing-masing dari {{ preview.targets.length }} artis</span></div>
-          <div><strong>{{ preview.albums.length }}</strong><span>kredit album akan diperbarui</span></div>
+          <div><strong>{{ preview.song_count }}</strong><span>songs linked to each of {{ preview.targets.length }} artists</span></div>
+          <div><strong>{{ preview.albums.length }}</strong><span>album credits to update</span></div>
         </div>
-        <p class="artist-split__targets"><span v-for="target in preview.targets" :key="target.name">{{ target.name }} <small>{{ target.is_new ? 'dibuat baru' : 'sudah ada' }}</small></span></p>
-        <div class="artist-merge__warning">Semua lagu sumber akan ditautkan ke <strong>semua {{ preview.targets.length }} artis tujuan</strong>. Artis gabungan beserta tautan lamanya akan dihapus setelah relasi baru lengkap.</div>
-        <div v-if="preview.song_sample.length" class="artist-split__list"><strong>Contoh lagu {{ preview.song_sample.length }} dari {{ preview.song_count }}</strong><ul><li v-for="song in preview.song_sample" :key="song.id_music">{{ song.title }}</li></ul></div>
-        <div v-if="preview.albums.length" class="artist-split__list"><strong>Kredit album yang berubah</strong><ul><li v-for="album in preview.albums" :key="album.id"><b>{{ album.name }}</b>: {{ album.author_before }} → {{ album.author_after }}</li></ul></div>
-        <div class="artist-merge__confirm"><label for="split-confirm">Ketik nama artis gabungan untuk mengonfirmasi</label><input id="split-confirm" v-model="confirmationName" type="text" :placeholder="preview.source.name" autocomplete="off" :disabled="isSaving"><button class="artist-merge__danger" type="button" :disabled="!canSave" @click="saveSplit">{{ isSaving ? 'Menyimpan…' : 'Pisahkan dan hapus artis gabungan' }}</button></div>
+        <p class="artist-split__targets"><span v-for="target in preview.targets" :key="target.name">{{ target.name }} <small>{{ target.is_new ? 'new' : 'existing' }}</small></span></p>
+        <div class="artist-merge__warning">Every source song will be linked to <strong>all {{ preview.targets.length }} destination artists</strong>. The combined artist and its old links will be removed once the new links are complete.</div>
+        <div v-if="preview.song_sample.length" class="artist-split__list"><strong>Sample songs ({{ preview.song_sample.length }} of {{ preview.song_count }})</strong><ul><li v-for="song in preview.song_sample" :key="song.id_music">{{ song.title }}</li></ul></div>
+        <div v-if="preview.albums.length" class="artist-split__list"><strong>Album credits to update</strong><ul><li v-for="album in preview.albums" :key="album.id"><b>{{ album.name }}</b>: {{ album.author_before }} → {{ album.author_after }}</li></ul></div>
+        <div class="artist-merge__confirm"><label for="split-confirm">Type the combined artist name to confirm</label><input id="split-confirm" v-model="confirmationName" type="text" :placeholder="preview.source.name" autocomplete="off" :disabled="isSaving"><button class="artist-merge__danger" type="button" :disabled="!canSave" @click="saveSplit">{{ isSaving ? 'Saving…' : 'Split and remove combined artist' }}</button></div>
       </section>
     </section>
 </template>

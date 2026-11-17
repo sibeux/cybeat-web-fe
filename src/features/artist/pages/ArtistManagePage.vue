@@ -3,7 +3,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { useTitle } from '@/core/shared/composables/useTitle'
-  import { normalizeError } from '@/core/shared/utils/error-normalizer'
+  import { artistError } from '../utils/artistError'
   import { artistApi } from '../api/artist.api'
   import ArtistSplitTool from './ArtistSplitTool.vue'
   import { useArtistLookup } from '../composables/useArtistLookup'
@@ -132,7 +132,7 @@
       )
       preview.value = data.data
     } catch (error) {
-      errorMessage.value = normalizeError(error)
+      errorMessage.value = artistError(error)
     } finally {
       isLoadingPreview.value = false
     }
@@ -152,7 +152,7 @@
         target_artist_id: targetArtist.value.id_artist,
         confirm_source_name: confirmationName.value,
       })
-      successMessage.value = `${data.data.removed_artist.name} digabung ke ${data.data.kept_artist.name}. ${data.data.moved_link_count} tautan lagu dipindahkan.`
+      successMessage.value = `${data.data.removed_artist.name} was merged into ${data.data.kept_artist.name}. ${data.data.moved_link_count} song links were moved.`
       sourceArtist.value = null
       targetArtist.value = null
       sourceQuery.value = ''
@@ -162,7 +162,7 @@
       cancelSourceSearch()
       cancelTargetSearch()
     } catch (error) {
-      errorMessage.value = normalizeError(error)
+      errorMessage.value = artistError(error)
     } finally {
       isMerging.value = false
     }
@@ -174,7 +174,7 @@
     <section class="artist-merge">
       <header class="artist-merge__header">
         <div class="artist-merge__heading">
-          <button class="artist-merge__back" type="button" aria-label="Kembali ke dashboard" @click="goToDashboard">
+          <button class="artist-merge__back" type="button" aria-label="Back to dashboard" @click="goToDashboard">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m15 18-6-6 6-6" />
             </svg>
@@ -182,13 +182,13 @@
           <div>
             <p class="artist-merge__eyebrow">ADMIN ARTIST TOOLS</p>
             <h1>Manage artists</h1>
-            <p class="artist-merge__subtitle">Kelola data artis gabungan dan duplikat dalam satu tempat.</p>
+            <p class="artist-merge__subtitle">Keep your artist catalog clean with merge and split tools.</p>
           </div>
         </div>
-        <div class="artist-merge__catalog-count"><span class="artist-merge__live-dot"></span><span>Cari langsung dari katalog</span></div>
+        <div class="artist-merge__catalog-count"><span class="artist-merge__live-dot"></span><span>Search the catalog</span></div>
       </header>
 
-      <div class="artist-manage__tabs" role="tablist" aria-label="Alat kelola artis">
+      <div class="artist-manage__tabs" role="tablist" aria-label="Artist tools">
         <button id="artist-manage-merge-tab" type="button" role="tab" :aria-selected="activeTool === 'merge'" aria-controls="artist-manage-merge-panel" :class="{ 'artist-manage__tab--active': activeTool === 'merge' }" @click="setTool('merge')">Merge artists</button>
         <button id="artist-manage-split-tab" type="button" role="tab" :aria-selected="activeTool === 'split'" aria-controls="artist-manage-split-panel" :class="{ 'artist-manage__tab--active': activeTool === 'split' }" @click="setTool('split')">Split artist</button>
       </div>
@@ -207,34 +207,34 @@
         <section class="artist-merge__card" aria-labelledby="artist-merge-select-title">
           <div class="artist-merge__card-heading">
             <div>
-              <p class="artist-merge__eyebrow">PILIH DATA</p>
-              <h2 id="artist-merge-select-title">Tentukan artis sumber dan tujuan</h2>
+              <p class="artist-merge__eyebrow">SELECT ARTISTS</p>
+              <h2 id="artist-merge-select-title">Choose the source and destination</h2>
             </div>
-            <p class="artist-merge__helper">Sumber akan dihapus setelah tautan lagunya dipindah.</p>
+            <p class="artist-merge__helper">The source is removed after its song links move to the destination.</p>
           </div>
 
           <div class="artist-merge__pickers">
             <div class="artist-merge__picker">
-              <label for="artist-merge-source">Artis sumber <span>data yang akan digabung</span></label>
+              <label for="artist-merge-source">Source artist <span>the record to merge and remove</span></label>
               <div class="artist-merge__search-wrap">
                 <input
                   id="artist-merge-source"
                   type="search"
                   :value="sourceQuery"
-                  placeholder="Cari nama artis sumber"
+                  placeholder="Search source artist"
                   autocomplete="off"
                   @input="updateQuery('source', $event)"
                 />
-                <div v-if="!sourceArtist && sourceQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Hasil artis sumber">
-                  <div v-if="isSearchingSource" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+                <div v-if="!sourceArtist && sourceQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Source artist results">
+                  <div v-if="isSearchingSource" class="artist-merge__option-skeleton" role="status" aria-label="Searching artists"><span v-for="row in 3" :key="row"></span></div>
                   <div v-else-if="sourceSearchError" class="artist-merge__option-empty">{{ sourceSearchError }}</div>
-                  <template v-else><button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('source', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button></template>
-                  <div v-if="!isSearchingSource && !sourceSearchError && !sourceOptions.length" class="artist-merge__option-empty">Artis tidak ditemukan.</div>
+                  <template v-else><button v-for="artist in sourceOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('source', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} songs</small></button></template>
+                  <div v-if="!isSearchingSource && !sourceSearchError && !sourceOptions.length" class="artist-merge__option-empty">No artists found.</div>
                 </div>
               </div>
               <div v-if="sourceArtist" class="artist-merge__selected">
-                <div><strong>{{ sourceArtist.name }}</strong><span>{{ sourceArtist.song_count }} lagu tertaut</span></div>
-                <button type="button" aria-label="Ganti artis sumber" @click="clearArtist('source')">Ganti</button>
+                <div><strong>{{ sourceArtist.name }}</strong><span>{{ sourceArtist.song_count }} linked songs</span></div>
+                <button type="button" aria-label="Change source artist" @click="clearArtist('source')">Change</button>
               </div>
             </div>
 
@@ -243,67 +243,67 @@
             </div>
 
             <div class="artist-merge__picker">
-              <label for="artist-merge-target">Artis tujuan <span>data yang dipertahankan</span></label>
+              <label for="artist-merge-target">Destination artist <span>the record to keep</span></label>
               <div class="artist-merge__search-wrap">
                 <input
                   id="artist-merge-target"
                   type="search"
                   :value="targetQuery"
-                  placeholder="Cari nama artis tujuan"
+                  placeholder="Search destination artist"
                   autocomplete="off"
                   @input="updateQuery('target', $event)"
                 />
-                <div v-if="!targetArtist && targetQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Hasil artis tujuan">
-                  <div v-if="isSearchingTarget" class="artist-merge__option-skeleton" role="status" aria-label="Mencari artis"><span v-for="row in 3" :key="row"></span></div>
+                <div v-if="!targetArtist && targetQuery.trim()" class="artist-merge__options" role="listbox" aria-label="Destination artist results">
+                  <div v-if="isSearchingTarget" class="artist-merge__option-skeleton" role="status" aria-label="Searching artists"><span v-for="row in 3" :key="row"></span></div>
                   <div v-else-if="targetSearchError" class="artist-merge__option-empty">{{ targetSearchError }}</div>
-                  <template v-else><button v-for="artist in targetOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('target', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} lagu</small></button></template>
-                  <div v-if="!isSearchingTarget && !targetSearchError && !targetOptions.length" class="artist-merge__option-empty">Artis tidak ditemukan.</div>
+                  <template v-else><button v-for="artist in targetOptions" :key="artist.id_artist" type="button" role="option" @click="chooseArtist('target', artist)"><span>{{ artist.name }}</span><small>{{ artist.song_count }} songs</small></button></template>
+                  <div v-if="!isSearchingTarget && !targetSearchError && !targetOptions.length" class="artist-merge__option-empty">No artists found.</div>
                 </div>
               </div>
               <div v-if="targetArtist" class="artist-merge__selected artist-merge__selected--target">
-                <div><strong>{{ targetArtist.name }}</strong><span>{{ targetArtist.song_count }} lagu tertaut</span></div>
-                <button type="button" aria-label="Ganti artis tujuan" @click="clearArtist('target')">Ganti</button>
+                <div><strong>{{ targetArtist.name }}</strong><span>{{ targetArtist.song_count }} linked songs</span></div>
+                <button type="button" aria-label="Change destination artist" @click="clearArtist('target')">Change</button>
               </div>
             </div>
           </div>
 
           <p v-if="sourceArtist && targetArtist && sourceArtist.id_artist === targetArtist.id_artist" class="artist-merge__inline-error">
-            Pilih dua artis yang berbeda.
+            Select two different artists.
           </p>
           <div class="artist-merge__card-footer">
-            <span>Semua lagu yang sudah tertaut ke tujuan akan tetap tertaut.</span>
+            <span>Existing links on the destination artist stay intact.</span>
             <button class="artist-merge__primary" type="button" :disabled="!canPreview" @click="previewMerge">
-              {{ isLoadingPreview ? 'Menghitung…' : 'Pratinjau merge' }}
+              {{ isLoadingPreview ? 'Loading…' : 'Preview merge' }}
             </button>
           </div>
         </section>
 
-        <section v-if="isLoadingPreview" class="artist-merge__preview artist-merge__preview--loading" role="status" aria-label="Memuat pratinjau merge"><div class="artist-merge__preview-skeleton"><span></span><span></span><span></span></div></section>
+        <section v-if="isLoadingPreview" class="artist-merge__preview artist-merge__preview--loading" role="status" aria-label="Loading merge preview"><div class="artist-merge__preview-skeleton"><span></span><span></span><span></span></div></section>
         <section v-if="preview" class="artist-merge__preview" aria-labelledby="artist-merge-preview-title">
           <div class="artist-merge__preview-heading">
             <div>
-              <p class="artist-merge__eyebrow">PRATINJAU</p>
+              <p class="artist-merge__eyebrow">PREVIEW</p>
               <h2 id="artist-merge-preview-title">{{ preview.source.name }} → {{ preview.target.name }}</h2>
             </div>
-            <span class="artist-merge__preview-badge">Periksa sebelum lanjut</span>
+            <span class="artist-merge__preview-badge">Review before saving</span>
           </div>
 
           <div class="artist-merge__stats">
-            <div><span>Lagu di sumber</span><strong>{{ preview.source.song_count }}</strong></div>
-            <div><span>Lagu di tujuan</span><strong>{{ preview.target.song_count }}</strong></div>
-            <div><span>Tautan duplikat</span><strong>{{ preview.shared_song_count }}</strong></div>
-            <div class="artist-merge__stats-result"><span>Lagu di tujuan setelah merge</span><strong>{{ preview.result_song_count }}</strong></div>
+            <div><span>Source songs</span><strong>{{ preview.source.song_count }}</strong></div>
+            <div><span>Destination songs</span><strong>{{ preview.target.song_count }}</strong></div>
+            <div><span>Shared links</span><strong>{{ preview.shared_song_count }}</strong></div>
+            <div class="artist-merge__stats-result"><span>Destination songs after merge</span><strong>{{ preview.result_song_count }}</strong></div>
           </div>
 
           <div class="artist-merge__warning">
-            <strong>{{ preview.source.name }}</strong> akan dihapus. Tautan lagu yang sudah ada di tujuan akan dipertahankan satu kali.
+            <strong>{{ preview.source.name }}</strong> will be removed. Existing destination links will be kept once.
           </div>
 
           <div class="artist-merge__confirm">
-            <label for="artist-merge-confirm">Ketik nama artis sumber untuk mengonfirmasi</label>
+            <label for="artist-merge-confirm">Type the source artist name to confirm</label>
             <input id="artist-merge-confirm" v-model="confirmationName" type="text" :placeholder="preview.source.name" autocomplete="off" />
             <button class="artist-merge__danger" type="button" :disabled="!confirmationMatches || isMerging" @click="mergeArtists">
-              {{ isMerging ? 'Menggabungkan…' : 'Gabungkan dan hapus sumber' }}
+              {{ isMerging ? 'Merging…' : 'Merge and remove source' }}
             </button>
           </div>
         </section>

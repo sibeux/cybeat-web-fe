@@ -37,7 +37,7 @@ export function useArtistLookup() {
         if (currentRequest === request) results.value = data.data.slice(0, 8)
       } catch (requestError) {
         if (currentRequest === request && !activeController.signal.aborted) {
-          error.value = 'Pencarian gagal. Coba ketik lagi.'
+          error.value = 'Search failed. Please try again.'
         }
       } finally {
         if (currentRequest === request) {
