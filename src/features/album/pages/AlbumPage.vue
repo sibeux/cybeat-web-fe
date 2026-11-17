@@ -587,20 +587,27 @@
       have_disc: Boolean(album.have_disc),
       is_private: Boolean(album.is_private),
     }
-    selectedArtists.value = [...new Map(
+    const credits = (album.author || stateArtistName.value || '')
+      .split(/\s*,\s*/)
+      .map((credit) => credit.trim().toLocaleLowerCase())
+      .filter(Boolean)
+    const songArtists = [...new Map(
       unfilteredSongs.value
         .flatMap((song) => song.artists || [])
         .map((artist) => [artist.id_artist, { ...artist, song_count: 0 }]),
     ).values()]
+    selectedArtists.value = songArtists.filter((artist) =>
+      credits.includes(artist.name.trim().toLocaleLowerCase()),
+    )
     artistOptions.value = []
     artistSearch.value = ''
     const initialArtistsPromise = loadArtistOptions('')
     try {
       const initialArtists = await initialArtistsPromise
       if (session !== artistEditorSession) return
-      const currentAuthor = (album.author || '').trim().toLocaleLowerCase()
-      const credits = currentAuthor ? currentAuthor.split(/\s*,\s*/).filter(Boolean) : []
       const matchingArtists = await Promise.all(credits.map(async (credit) => {
+        const exactFromSongs = songArtists.find((artist) => artist.name.trim().toLocaleLowerCase() === credit)
+        if (exactFromSongs) return exactFromSongs
         const exactFromInitial = initialArtists.find((artist) => artist.name.trim().toLocaleLowerCase() === credit)
         if (exactFromInitial) return exactFromInitial
         const response = await artistApi.getAllArtists(credit)
