@@ -16,8 +16,11 @@ export const artistApi = {
     })
   },
 
-  getAllArtists(signal?: AbortSignal) {
-    return apiClient.get<ArtistCatalogResponse>('/music/artist/all/', { signal })
+  getAllArtists(search?: string, signal?: AbortSignal) {
+    return apiClient.get<ArtistCatalogResponse>('/music/artist/all/', {
+      params: search === undefined ? undefined : { search },
+      signal,
+    })
   },
 
   previewMerge(sourceArtistId: number, targetArtistId: number) {

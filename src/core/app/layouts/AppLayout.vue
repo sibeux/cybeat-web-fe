@@ -115,6 +115,11 @@
     closeAllMenus()
     router.push('/admin/artists/merge')
   }
+
+  function navigateToCatalog(): void {
+    closeAllMenus()
+    router.push('/admin/catalog')
+  }
 </script>
 
 <template>
@@ -216,6 +221,22 @@
                 <div class="app-layout__dropdown-item-text">
                   <span class="app-layout__dropdown-item-title">Merge artists</span>
                   <span class="app-layout__dropdown-item-desc">Combine duplicate Artist records</span>
+                </div>
+              </button>
+              <button
+                v-if="authStore.user?.role === 'admin'"
+                class="app-layout__dropdown-item"
+                type="button"
+                @click="navigateToCatalog"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="8" height="16" rx="1" />
+                  <rect x="13" y="4" width="8" height="7" rx="1" />
+                  <rect x="13" y="13" width="8" height="7" rx="1" />
+                </svg>
+                <div class="app-layout__dropdown-item-text">
+                  <span class="app-layout__dropdown-item-title">Catalog</span>
+                  <span class="app-layout__dropdown-item-desc">Edit albums and categories</span>
                 </div>
               </button>
             </div>

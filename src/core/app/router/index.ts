@@ -85,6 +85,12 @@ const router = createRouter({
       meta: { requiresAuth: true, adminOnly: true },
     },
     {
+      path: '/admin/catalog',
+      name: 'admin-catalog',
+      component: () => import('@/features/catalog/pages/CatalogPage.vue'),
+      meta: { requiresAuth: true, adminOnly: true },
+    },
+    {
       path: '/admin/artists/merge',
       name: 'admin-artist-merge',
       component: () => import('@/features/artist/pages/ArtistMergePage.vue'),

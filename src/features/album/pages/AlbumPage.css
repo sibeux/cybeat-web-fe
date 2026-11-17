@@ -22,6 +22,58 @@
   margin-bottom: 0;
 }
 
+.album-page__admin-actions { position:absolute; top:1.25rem; right:1.25rem; z-index:11; }
+.album-page__more-btn { display:grid; width:2.45rem; height:2.45rem; place-items:center; border:1px solid rgb(255 255 255 / .2); border-radius:50%; background:rgb(0 0 0 / .3); color:#fff; cursor:pointer; backdrop-filter:blur(8px); transition:background .15s ease, transform .15s ease; }
+.album-page__more-btn:hover,.album-page__more-btn[aria-expanded="true"] { background:rgb(0 0 0 / .56); transform:translateY(-1px); }
+.album-page__more-btn svg { width:1.25rem; height:1.25rem; }
+.album-page__more-menu { position:absolute; top:calc(100% + .5rem); right:0; width:11rem; padding:.35rem; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface); box-shadow:0 14px 40px rgb(0 0 0 / .3); }
+.album-page__more-menu button { display:flex; align-items:center; gap:.6rem; width:100%; padding:.7rem; border:0; border-radius:var(--radius-sm); background:transparent; color:var(--color-text); font:inherit; font-size:.82rem; text-align:left; cursor:pointer; }
+.album-page__more-menu button:hover { background:var(--color-surface-raised); color:var(--color-primary); }
+.album-page__more-menu svg { width:1rem; height:1rem; }
+.album-edit-modal { position:fixed; inset:0; z-index:1400; display:grid; place-items:center; overflow-y:auto; overscroll-behavior:contain; padding:1rem; background:rgb(3 6 14 / .72); backdrop-filter:blur(6px); }
+.album-edit-modal__panel { width:min(100%,34rem); max-height:min(90vh,48rem); overflow:auto; overscroll-behavior:contain; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); color:var(--color-text); box-shadow:0 24px 80px rgb(0 0 0 / .48); }
+.album-edit-modal__header { display:flex; justify-content:space-between; gap:1rem; padding:1.35rem 1.4rem 1.1rem; border-bottom:1px solid var(--color-border); }
+.album-edit-modal__header p { margin:0 0 .3rem; color:var(--color-primary); font-size:.65rem; font-weight:750; letter-spacing:.13em; }
+.album-edit-modal__header h2 { margin:0; font-size:1.25rem; letter-spacing:-.02em; }.album-edit-modal__header span { display:block; margin-top:.3rem; color:var(--color-text-muted); font-size:.78rem; }
+.album-edit-modal__header>button { width:2rem; height:2rem; flex:none; border:1px solid var(--color-border); border-radius:var(--radius-md); background:transparent; color:var(--color-text-muted); font-size:1.4rem; line-height:1; cursor:pointer; }
+.album-edit-modal__form { display:grid; gap:.9rem; padding:1.25rem 1.4rem 1.4rem; }
+.album-edit-modal__form>label { display:grid; gap:.4rem; }.album-edit-modal__form>label>span { font-size:.78rem; font-weight:650; }
+.album-edit-modal__form>label>input { width:100%; box-sizing:border-box; min-height:2.7rem; padding:.65rem .75rem; border:1px solid var(--color-border); border-radius:var(--radius-md); outline:0; background:var(--color-surface-raised); color:var(--color-text); font:inherit; font-size:.84rem; }
+.album-edit-modal__form>label>input:focus { border-color:var(--color-primary); box-shadow:0 0 0 3px var(--color-primary-ring); }
+.album-edit-modal__artist-picker { display:grid; gap:.5rem; }
+.album-edit-modal__required { color:#f87171; font-style:normal; font-weight:800; }
+.album-edit-modal__form>label>input[aria-invalid="true"],.album-edit-modal__artist-list--invalid { border-color:#f87171; }
+.album-edit-modal__form>label>input[aria-invalid="true"]:focus { border-color:#f87171; box-shadow:0 0 0 3px rgb(248 113 113 / .15); }
+.album-edit-modal__field-error { margin:0; color:#f87171; font-size:.72rem; }
+.album-edit-modal__artist-heading { display:flex; align-items:center; justify-content:space-between; gap:.75rem; }.album-edit-modal__artist-heading>span { font-size:.78rem; font-weight:650; }.album-edit-modal__artist-heading small,.album-edit-modal__artist-picker>small { color:var(--color-text-muted); font-size:.72rem; }
+.album-edit-modal__selected-artists { display:grid; gap:.35rem; }.album-edit-modal__selected-label { color:var(--color-text-muted); font-size:.68rem; font-weight:650; }.album-edit-modal__artist-chips { display:flex; flex-wrap:wrap; gap:.4rem; }.album-edit-modal__artist-chip { display:inline-flex; align-items:center; gap:.45rem; max-width:100%; padding:.4rem .55rem; border:1px solid var(--color-primary-ring); border-radius:999px; background:var(--color-primary-subtle); color:var(--color-text); font:inherit; font-size:.72rem; cursor:pointer; }.album-edit-modal__artist-chip:hover { border-color:var(--color-primary); }.album-edit-modal__artist-chip span { color:var(--color-text-muted); font-size:.95rem; line-height:1; }
+.album-edit-modal__artist-none { color:var(--color-text-muted); font-size:.72rem; }
+.album-edit-modal__artist-chip:disabled { border-color:var(--color-border); background:var(--color-surface-raised); color:var(--color-text-muted); opacity:.65; cursor:not-allowed; }
+.album-edit-modal__artist-warning { margin:0; padding:.55rem .7rem; border:1px solid rgb(245 158 11 / .3); border-radius:var(--radius-sm); background:rgb(245 158 11 / .1); color:#fbbf24; font-size:.75rem; }
+.album-edit-modal__artist-search { width:100%; box-sizing:border-box; min-height:2.5rem; padding:.6rem .7rem; border:1px solid var(--color-border); border-radius:var(--radius-md); outline:0; background:var(--color-surface-raised); color:var(--color-text); font:inherit; font-size:.8rem; }.album-edit-modal__artist-search:focus { border-color:var(--color-primary); box-shadow:0 0 0 3px var(--color-primary-ring); }
+.album-edit-modal__artist-skeleton { display:grid; gap:.85rem; padding:.8rem; border:1px solid var(--color-border); border-radius:8px; }
+.album-edit-modal__skeleton-row { display:flex; align-items:center; gap:.65rem; }
+.album-edit-modal__skeleton-row span { height:1rem; border-radius:4px; background:linear-gradient(90deg,var(--color-border) 25%,rgba(148,163,184,.25) 50%,var(--color-border) 75%); background-size:200% 100%; animation:album-artist-shimmer 1.4s ease-in-out infinite; }
+.album-edit-modal__skeleton-row span:first-child { width:1rem; flex:none; }
+.album-edit-modal__skeleton-row span:last-child { width:55%; }
+.album-edit-modal__skeleton-row:nth-child(even) span:last-child { width:35%; }
+.album-page__more-menu button:disabled { opacity:.5; cursor:not-allowed; }
+@keyframes album-artist-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+@media (prefers-reduced-motion:reduce) { .album-edit-modal__skeleton-row span { animation:none; } }
+.album-edit-modal__artist-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; max-height:11rem; overflow:auto; padding:.4rem; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface-raised); }
+.album-edit-modal__artist-option { display:flex; align-items:center; gap:.5rem; min-width:0; padding:.5rem; border-radius:var(--radius-sm); cursor:pointer; }.album-edit-modal__artist-option:hover { background:var(--color-surface); }.album-edit-modal__artist-option input { flex:none; accent-color:var(--color-primary); }.album-edit-modal__artist-option span { overflow:hidden; font-size:.76rem; text-overflow:ellipsis; white-space:nowrap; }.album-edit-modal__artist-empty { grid-column:1/-1; margin:0; padding:.8rem; color:var(--color-text-muted); font-size:.78rem; text-align:center; }
+.album-edit-modal__artist-option input:disabled { opacity:.55; cursor:not-allowed; }.album-edit-modal__artist-option:has(input:disabled) { color:var(--color-text-muted); cursor:not-allowed; }
+.album-edit-modal__options { display:grid; gap:.55rem; margin-top:.2rem; }.album-edit-modal__options label { display:flex; align-items:center; gap:.65rem; padding:.75rem; border:1px solid var(--color-border); border-radius:var(--radius-md); cursor:pointer; }.album-edit-modal__options input { accent-color:var(--color-primary); }.album-edit-modal__options span { display:grid; gap:.18rem; }.album-edit-modal__options strong { font-size:.78rem; }.album-edit-modal__options small { color:var(--color-text-muted); font-size:.7rem; }
+.album-edit-modal__form footer { display:flex; justify-content:flex-end; gap:.55rem; margin-top:.2rem; padding-top:1rem; border-top:1px solid var(--color-border); }.album-edit-modal__cancel,.album-edit-modal__save { min-height:2.55rem; padding:0 .9rem; border:1px solid var(--color-border); border-radius:var(--radius-md); font:inherit; font-size:.8rem; font-weight:650; cursor:pointer; }.album-edit-modal__cancel { background:var(--color-surface-raised); color:var(--color-text); }.album-edit-modal__save { border-color:var(--color-primary); background:var(--color-primary); color:#fff; }.album-edit-modal__save:hover:not(:disabled) { background:var(--color-primary-hover); }.album-edit-modal__save:disabled,.album-edit-modal__cancel:disabled { opacity:.6; cursor:wait; }
+.album-edit-modal__state { display:grid; min-height:11rem; place-items:center; padding:1.25rem; color:var(--color-text-muted); font-size:.85rem; text-align:center; }.album-edit-modal__state--error,.album-edit-modal__error { color:#f87171; }.album-edit-modal__success { margin:0; color:#5ecb91; font-size:.8rem; }
+@media (max-width:520px) { .album-edit-modal__artist-list { grid-template-columns:1fr; } }
+.album-edit-modal__save:disabled,.album-edit-modal__cancel:disabled { cursor:not-allowed; }
+.album-edit-modal__form--saving .album-edit-modal__save:disabled,.album-edit-modal__form--saving .album-edit-modal__cancel:disabled { cursor:wait; }
+.album-edit-modal__save { display:inline-flex; align-items:center; justify-content:center; gap:.5rem; }
+.album-edit-modal__save-spinner { width:.85rem; height:.85rem; border:2px solid rgba(255,255,255,.45); border-top-color:#fff; border-radius:50%; animation:album-edit-save-spin .7s linear infinite; }
+@keyframes album-edit-save-spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .album-edit-modal__save-spinner { animation:none; } }
+
 .album-page__hero-content {
   display: flex;
   flex-direction: row;
@@ -167,6 +219,8 @@
     top: 1rem;
     left: 1rem;
   }
+
+  .album-page__admin-actions { top:1rem; right:.85rem; }
 
   .album-page__hero-content {
     flex-direction: column;
