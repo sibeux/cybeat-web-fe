@@ -7,6 +7,7 @@ import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
 const playerStore = usePlayerStore()
 const { 
   currentSong: song, 
+  currentAlbum,
   repeatMode, 
   isShuffle, 
   isPlaying, 
@@ -16,6 +17,30 @@ const {
   isLoadingStream, 
   volume 
 } = storeToRefs(playerStore)
+
+const albumRoute = computed(() => {
+  if (!song.value) return null
+
+  const album = currentAlbum.value
+  const type = String(album?.type || '').toLowerCase()
+  const id = Number(album?.id)
+  if (['album', 'category', 'playlist'].includes(type) && Number.isInteger(id) && id > 0) {
+    return { name: 'album', params: { type, id } }
+  }
+
+  const sourceType = String(song.value.source_album_type || '').toLowerCase()
+  const sourceId = Number(song.value.source_album_id)
+  if (['album', 'category', 'playlist'].includes(sourceType) && Number.isInteger(sourceId) && sourceId > 0) {
+    return { name: 'album', params: { type: sourceType, id: sourceId } }
+  }
+
+  const linkedAlbumId = Number(song.value.linked_album_id)
+  if (Number.isInteger(linkedAlbumId) && linkedAlbumId > 0) {
+    return { name: 'album', params: { type: 'album', id: linkedAlbumId } }
+  }
+
+  return null
+})
 
 const formatTime = (time: number) => {
   if (isNaN(time) || time <= 0) return '0:00'
@@ -109,14 +134,15 @@ const handleCoverError = (e: Event) => {
   <Transition name="player-slide">
     <div v-if="song" class="player-widget">
     <div class="player-widget__info">
-      <img 
-        v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" 
-        alt="Cover" 
-        class="player-widget__cover" 
-        @error="handleCoverError"
-      />
+      <RouterLink v-if="albumRoute" class="player-widget__cover-link" :to="albumRoute" :aria-label="`Open album for ${song.title}`">
+        <img v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" alt="" class="player-widget__cover" @error="handleCoverError" />
+      </RouterLink>
+      <img v-else v-img-cache="resolveCoverUrl(song.cover) || DEFAULT_COVER" alt="Cover" class="player-widget__cover" @error="handleCoverError" />
       <div class="player-widget__track-details">
-        <h4 class="player-widget__title">{{ song.title }}</h4>
+        <h4 class="player-widget__title">
+          <RouterLink v-if="albumRoute" class="player-widget__title-link" :to="albumRoute">{{ song.title }}</RouterLink>
+          <template v-else>{{ song.title }}</template>
+        </h4>
         <span class="player-widget__artist"><ArtistLinks :artists="song.artists" :fallback="song.artist" /></span>
         <span v-if="song.codec_name" class="player-widget__codec">
           {{ song.codec_name }} • {{ song.bit_rate || 'Unknown' }} bps

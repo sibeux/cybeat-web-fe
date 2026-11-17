@@ -20,4 +20,7 @@ export interface Song {
   bg_color: string | null
   text_color: string | null
   cache_music_id: number | null
+  source_album_id?: number | null
+  source_album_type?: string | null
+  linked_album_id?: number | null
 }

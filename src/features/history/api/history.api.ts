@@ -41,6 +41,9 @@ export const historyApi = {
       text_color: (item.text_color as string) || null,
       cache_music_id: item.cache_music_id ? Number(item.cache_music_id) : null,
       played_at: item.played_at ? String(item.played_at) : undefined,
+      source_album_id: item.source_album_id ? Number(item.source_album_id) : null,
+      source_album_type: item.source_album_type ? String(item.source_album_type) : null,
+      linked_album_id: item.linked_album_id ? Number(item.linked_album_id) : null,
     }))
   },
 }
