@@ -4,12 +4,14 @@
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { APP_NAME } from '@/core/app/config/app.config'
   import { albumApi, type GetSongsParams } from '../api/album.api'
+  import { playlistTracksApi } from '../api/playlist-tracks.api'
   import type { Song } from '../types/song.types'
   import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
   import { usePlayerStore } from '../store/player.store'
   import { storeToRefs } from 'pinia'
   import { useTitle } from '@/core/shared/composables/useTitle'
   import { useAuthStore } from '@/features/auth/index'
+  import { playlistApi, type PlaylistOption } from '@/features/dashboard/api/playlist.api'
   import { catalogApi } from '@/features/catalog/api/catalog.api'
   import type { AdminAlbum, UpdateCatalogCommand } from '@/features/catalog/types/catalog.types'
   import { artistApi } from '@/features/artist/api/artist.api'
@@ -23,6 +25,24 @@
   const { currentSong, isPlaying } = storeToRefs(playerStore)
   const isAdmin = computed(() => authStore.user?.role === 'admin')
   const albumMenuRef = ref<HTMLElement | null>(null)
+  const isPlaylistPickerOpen = ref(false)
+  const songOptionsMenu = ref<{ song: Song; x: number; y: number } | null>(null)
+  const songOptionsMenuRef = ref<HTMLElement | null>(null)
+  const isLoadingPlaylists = ref(false)
+  const playlistOptions = ref<PlaylistOption[]>([])
+  const addingToPlaylistId = ref<number | null>(null)
+  const removingSongId = ref<number | null>(null)
+  const isBulkDeleteMode = ref(false)
+  const selectedSongIds = ref<number[]>([])
+  const isSongDeleteConfirmOpen = ref(false)
+  const pendingSongDeleteIds = ref<number[]>([])
+  const isDeletingSongs = ref(false)
+  const songDeleteError = ref('')
+  const selectedSongForPlaylist = ref<Song | null>(null)
+  const playlistPickerError = ref('')
+  const playlistActionNotice = ref('')
+  const playlistActionIsError = ref(false)
+  let playlistNoticeTimer: ReturnType<typeof setTimeout> | null = null
 
   const songs = ref<Song[]>([])
   const unfilteredSongs = ref<Song[]>([])
@@ -116,6 +136,7 @@
       .toLowerCase(),
   )
   const id = computed(() => Number(route.params.id))
+  const canAddSongsToPlaylist = computed(() => ['album', 'category'].includes(type.value))
 
   // Prepare authoritative flags with the page, then reuse this album in the editor.
   watch([id, type, isAdmin], async ([albumId, pageType, admin], _previous, onCleanup) => {
@@ -238,6 +259,155 @@
 
     return list
   })
+  const allVisibleSongsSelected = computed(() =>
+    sortedSongs.value.length > 0 && sortedSongs.value.every((song) => selectedSongIds.value.includes(song.id_music)),
+  )
+  const pendingSongDeleteTitle = computed(() => {
+    if (pendingSongDeleteIds.value.length !== 1) return ''
+    return songs.value.find((song) => song.id_music === pendingSongDeleteIds.value[0])?.title || 'this song'
+  })
+
+  const showPlaylistNotice = (message: string, isError = false) => {
+    playlistActionNotice.value = message
+    playlistActionIsError.value = isError
+    if (playlistNoticeTimer) clearTimeout(playlistNoticeTimer)
+    playlistNoticeTimer = setTimeout(() => {
+      playlistActionNotice.value = ''
+      playlistNoticeTimer = null
+    }, 3200)
+  }
+
+  const openPlaylistPicker = async (song: Song) => {
+    if (!authStore.isAuthenticated) {
+      void router.push('/login')
+      return
+    }
+    selectedSongForPlaylist.value = song
+    playlistPickerError.value = ''
+    isPlaylistPickerOpen.value = true
+    isLoadingPlaylists.value = true
+    try {
+      const response = await playlistApi.list()
+      playlistOptions.value = response.data.data || []
+    } catch (requestError: any) {
+      playlistPickerError.value = requestError.response?.data?.message || 'Could not load your playlists.'
+    } finally {
+      isLoadingPlaylists.value = false
+    }
+  }
+
+  const openSongOptions = (event: MouseEvent, song: Song) => {
+    event.preventDefault()
+    if (type.value === 'playlist' && isBulkDeleteMode.value) return
+    const menuWidth = 248
+    const menuHeight = 156
+    const anchor = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+    const clickX = event.clientX || anchor?.right || 0
+    const clickY = event.clientY || anchor?.bottom || 0
+    songOptionsMenu.value = {
+      song,
+      x: Math.max(8, Math.min(clickX + 4, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(clickY + 4, window.innerHeight - menuHeight - 8)),
+    }
+  }
+
+  const closeSongOptions = () => {
+    songOptionsMenu.value = null
+  }
+
+  const addSongFromOptions = () => {
+    const song = songOptionsMenu.value?.song
+    closeSongOptions()
+    if (song) void openPlaylistPicker(song)
+  }
+
+  const removeSongFromOptions = () => {
+    const song = songOptionsMenu.value?.song
+    closeSongOptions()
+    if (song) removeSongFromPlaylist(song)
+  }
+
+  const handleSongOptionsKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') closeSongOptions()
+  }
+
+  const closePlaylistPicker = () => {
+    if (addingToPlaylistId.value !== null) return
+    isPlaylistPickerOpen.value = false
+    selectedSongForPlaylist.value = null
+    playlistPickerError.value = ''
+  }
+
+  const addSongToPlaylist = async (playlist: PlaylistOption) => {
+    const song = selectedSongForPlaylist.value
+    if (!song) return
+    addingToPlaylistId.value = playlist.id
+    playlistPickerError.value = ''
+    try {
+      const response = await playlistTracksApi.add(playlist.id, song.id_music)
+      isPlaylistPickerOpen.value = false
+      selectedSongForPlaylist.value = null
+      showPlaylistNotice(response.data.message || `Added to ${playlist.title}.`)
+    } catch (requestError: any) {
+      playlistPickerError.value = requestError.response?.data?.message || 'Could not add this song.'
+    } finally {
+      addingToPlaylistId.value = null
+    }
+  }
+
+  const toggleBulkDeleteMode = () => {
+    isBulkDeleteMode.value = !isBulkDeleteMode.value
+    selectedSongIds.value = []
+  }
+
+  const toggleSongSelection = (songId: number) => {
+    selectedSongIds.value = selectedSongIds.value.includes(songId)
+      ? selectedSongIds.value.filter((id) => id !== songId)
+      : [...selectedSongIds.value, songId]
+  }
+
+  const toggleVisibleSongSelection = () => {
+    const visibleIds = sortedSongs.value.map((song) => song.id_music)
+    selectedSongIds.value = allVisibleSongsSelected.value
+      ? selectedSongIds.value.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...selectedSongIds.value, ...visibleIds])]
+  }
+
+  const requestSongDeletion = (songIds: number[]) => {
+    const uniqueIds = [...new Set(songIds)].filter((songId) => songId > 0)
+    if (uniqueIds.length === 0 || isDeletingSongs.value) return
+    pendingSongDeleteIds.value = uniqueIds
+    songDeleteError.value = ''
+    isSongDeleteConfirmOpen.value = true
+  }
+
+  const closeSongDeleteConfirm = () => {
+    if (isDeletingSongs.value) return
+    isSongDeleteConfirmOpen.value = false
+    pendingSongDeleteIds.value = []
+    songDeleteError.value = ''
+  }
+
+  const confirmSongDeletion = async () => {
+    if (pendingSongDeleteIds.value.length === 0 || isDeletingSongs.value) return
+    isDeletingSongs.value = true
+    removingSongId.value = pendingSongDeleteIds.value.length === 1 ? pendingSongDeleteIds.value[0] : null
+    try {
+      const response = await playlistTracksApi.removeMany(id.value, pendingSongDeleteIds.value)
+      await loadSongs(true)
+      selectedSongIds.value = selectedSongIds.value.filter((songId) => !pendingSongDeleteIds.value.includes(songId))
+      showPlaylistNotice(response.data.message || 'Songs removed from this playlist.')
+      isSongDeleteConfirmOpen.value = false
+      pendingSongDeleteIds.value = []
+    } catch (requestError: any) {
+      songDeleteError.value = requestError.response?.data?.message || 'Could not remove the selected songs.'
+    } finally {
+      isDeletingSongs.value = false
+      removingSongId.value = null
+    }
+  }
+
+  const removeSongFromPlaylist = (song: Song) => requestSongDeletion([song.id_music])
 
   const toggleSortDropdown = () => {
     isSortDropdownOpen.value = !isSortDropdownOpen.value
@@ -283,6 +453,9 @@
     }
     if (albumMenuRef.value && !albumMenuRef.value.contains(target)) {
       isAlbumMenuOpen.value = false
+    }
+    if (songOptionsMenuRef.value && !songOptionsMenuRef.value.contains(target)) {
+      closeSongOptions()
     }
   }
 
@@ -373,6 +546,7 @@
 
     window.addEventListener('scroll', scrollHandler, { passive: true })
     window.addEventListener('click', handleClickOutside)
+    window.addEventListener('keydown', handleSongOptionsKeydown)
 
     loadSongs()
   })
@@ -407,6 +581,7 @@
 
   // Watcher untuk pencarian dengan debounce ketika type adalah category atau playlist
   watch(searchQuery, (newVal) => {
+    if (isBulkDeleteMode.value) selectedSongIds.value = []
     if (!isServerSearchAndSort.value) return
 
     const trimmed = newVal.trim()
@@ -440,6 +615,11 @@
         editedAlbumCover.value = null
         isAlbumMenuOpen.value = false
         isEditAlbumOpen.value = false
+        isBulkDeleteMode.value = false
+        selectedSongIds.value = []
+        closeSongOptions()
+        isSongDeleteConfirmOpen.value = false
+        pendingSongDeleteIds.value = []
         if (searchDebounceTimer) {
           clearTimeout(searchDebounceTimer)
           searchDebounceTimer = null
@@ -461,9 +641,14 @@
       window.removeEventListener('scroll', scrollHandler)
     }
     window.removeEventListener('click', handleClickOutside)
+    window.removeEventListener('keydown', handleSongOptionsKeydown)
     if (searchDebounceTimer) {
       clearTimeout(searchDebounceTimer)
       searchDebounceTimer = null
+    }
+    if (playlistNoticeTimer) {
+      clearTimeout(playlistNoticeTimer)
+      playlistNoticeTimer = null
     }
     if (songsAbortController) {
       songsAbortController.abort()
@@ -940,6 +1125,33 @@
               </span>
             </div>
 
+            <div v-if="type === 'playlist'" class="album-page__playlist-controls">
+              <button
+                type="button"
+                class="album-page__playlist-select-btn"
+                :class="{ 'album-page__playlist-select-btn--active': isBulkDeleteMode }"
+                :aria-pressed="isBulkDeleteMode"
+                @click="toggleBulkDeleteMode"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <rect x="4" y="4" width="16" height="16" rx="3" />
+                  <path v-if="isBulkDeleteMode" d="m8 12 2.5 2.5L16 9" />
+                </svg>
+                {{ isBulkDeleteMode ? 'Cancel' : 'Select songs' }}
+              </button>
+              <template v-if="isBulkDeleteMode">
+                <span class="album-page__playlist-selected-count">{{ selectedSongIds.length }} selected</span>
+                <button
+                  type="button"
+                  class="album-page__playlist-delete-btn"
+                  :disabled="selectedSongIds.length === 0 || isDeletingSongs"
+                  @click="requestSongDeletion(selectedSongIds)"
+                >
+                  Delete
+                </button>
+              </template>
+            </div>
+
             <div ref="sortDropdownRef" class="album-page__sort-wrapper">
             <button
               type="button"
@@ -1161,9 +1373,18 @@
                   @click="selectSortMode('default')"
                 >
                   <span class="song-list__th-content">
-                    <span>#</span>
+                    <input
+                      v-if="type === 'playlist' && isBulkDeleteMode"
+                      type="checkbox"
+                      class="playlist-track-checkbox"
+                      aria-label="Select all visible songs"
+                      :checked="allVisibleSongsSelected"
+                      @click.stop
+                      @change="toggleVisibleSongSelection"
+                    />
+                    <span v-else>#</span>
                     <svg
-                      v-if="sortMode === 'default'"
+                      v-if="sortMode === 'default' && !(type === 'playlist' && isBulkDeleteMode)"
                       class="song-list__th-arrow"
                       :class="{ 'song-list__th-arrow--desc': sortDirection === 'desc' }"
                       viewBox="0 0 24 24"
@@ -1226,6 +1447,7 @@
                     </svg>
                   </span>
                 </th>
+                <th v-if="canAddSongsToPlaylist || type === 'playlist'" class="song-list__th song-list__th--actions" aria-label="Song options"></th>
               </tr>
             </thead>
             <tbody>
@@ -1251,10 +1473,11 @@
                   <td class="song-list__td song-list__td--artist">
                     <div class="album-page__skeleton-box album-page__skeleton-box--artist"></div>
                   </td>
+                  <td v-if="canAddSongsToPlaylist || type === 'playlist'" class="song-list__td song-list__td--actions"></td>
                 </tr>
               </template>
               <tr v-else-if="sortedSongs.length === 0" class="album-page__no-results-row">
-                <td colspan="3" class="album-page__no-results">
+                <td :colspan="canAddSongsToPlaylist || type === 'playlist' ? 4 : 3" class="album-page__no-results">
                   No songs found matching "{{ searchQuery }}"
                 </td>
               </tr>
@@ -1263,9 +1486,25 @@
                 v-else
                 :key="song.id_music"
                 class="song-list__tr"
-                :class="{ 'song-list__tr--active': currentSong?.id_music === song.id_music }"
+                :class="{
+                  'song-list__tr--active': currentSong?.id_music === song.id_music,
+                  'song-list__tr--playlist': type === 'playlist',
+                }"
+                @contextmenu.prevent.stop="openSongOptions($event, song)"
               >
-                <td class="song-list__td song-list__td--index">{{ index + 1 }}</td>
+                <td class="song-list__td song-list__td--index">
+                  <input
+                    v-if="type === 'playlist' && isBulkDeleteMode"
+                    type="checkbox"
+                    class="playlist-track-checkbox"
+                    :aria-label="`Select ${song.title}`"
+                    :checked="selectedSongIds.includes(song.id_music)"
+                    :disabled="isDeletingSongs"
+                    @click.stop
+                    @change="toggleSongSelection(song.id_music)"
+                  />
+                  <span v-else>{{ index + 1 }}</span>
+                </td>
                 <td class="song-list__td song-list__td--title-cover">
                   <div
                     class="song-list__cover-wrapper"
@@ -1345,6 +1584,22 @@
                 <td class="song-list__td song-list__td--artist" :title="song.artist">
                   <ArtistLinks :artists="song.artists" :fallback="song.artist" />
                 </td>
+                <td v-if="canAddSongsToPlaylist || type === 'playlist'" class="song-list__td song-list__td--actions">
+                  <button
+                    v-if="!(type === 'playlist' && isBulkDeleteMode)"
+                    type="button"
+                    class="song-list__action-btn song-list__action-btn--menu"
+                    :aria-label="`Options for ${song.title}`"
+                    :title="`Options for ${song.title}`"
+                    aria-haspopup="menu"
+                    @click.stop="openSongOptions($event, song)"
+                    @contextmenu.prevent.stop="openSongOptions($event, song)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+                    </svg>
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -1363,6 +1618,92 @@
         <path d="m18 15-6-6-6 6" />
       </svg>
     </button>
+    <Transition name="playlist-notice">
+      <div v-if="playlistActionNotice" class="playlist-notice" :class="{ 'playlist-notice--error': playlistActionIsError }" :role="playlistActionIsError ? 'alert' : 'status'">
+        <svg v-if="!playlistActionIsError" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+        <span>{{ playlistActionNotice }}</span>
+      </div>
+    </Transition>
+    <div
+      v-if="songOptionsMenu"
+      ref="songOptionsMenuRef"
+      class="song-options-context-menu"
+      role="menu"
+      :aria-label="`Options for ${songOptionsMenu.song.title}`"
+      :style="{ left: `${songOptionsMenu.x}px`, top: `${songOptionsMenu.y}px` }"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <div class="song-options-context-menu__heading">
+        <strong :title="songOptionsMenu.song.title">{{ songOptionsMenu.song.title }}</strong>
+        <span :title="songOptionsMenu.song.artist">{{ songOptionsMenu.song.artist }}</span>
+      </div>
+      <button v-if="canAddSongsToPlaylist" type="button" role="menuitem" @click="addSongFromOptions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /><path d="M17 5h6m-3-3v6" /></svg>
+        Add to playlist
+      </button>
+      <button v-if="type === 'playlist'" type="button" class="song-options-context-menu__remove" role="menuitem" @click="removeSongFromOptions">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+        Remove from playlist
+      </button>
+    </div>
+    <div v-if="isPlaylistPickerOpen" class="playlist-picker-backdrop" @click.self="closePlaylistPicker" @keydown.esc="closePlaylistPicker">
+      <section class="playlist-picker" role="dialog" aria-modal="true" aria-labelledby="playlist-picker-title">
+        <header class="playlist-picker__header">
+          <div>
+            <span class="playlist-picker__eyebrow">ADD SONG</span>
+            <h2 id="playlist-picker-title">Choose a playlist</h2>
+            <p v-if="selectedSongForPlaylist" :title="selectedSongForPlaylist.title">{{ selectedSongForPlaylist.title }}</p>
+          </div>
+          <button type="button" aria-label="Close" :disabled="addingToPlaylistId !== null" @click="closePlaylistPicker">×</button>
+        </header>
+        <div v-if="isLoadingPlaylists" class="playlist-picker__state" role="status">Loading your playlists…</div>
+        <div v-else-if="playlistOptions.length" class="playlist-picker__list">
+          <button
+            v-for="playlist in playlistOptions"
+            :key="playlist.id"
+            type="button"
+            class="playlist-picker__item"
+            :disabled="addingToPlaylistId !== null"
+            @click="addSongToPlaylist(playlist)"
+          >
+            <span class="playlist-picker__item-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            </span>
+            <span class="playlist-picker__item-copy"><strong>{{ playlist.title }}</strong><small>Your playlist</small></span>
+            <span v-if="addingToPlaylistId === playlist.id" class="playlist-picker__item-pending">Adding…</span>
+            <svg v-else class="playlist-picker__item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+        </div>
+        <div v-else-if="!playlistPickerError" class="playlist-picker__state">
+          <strong>No playlists yet</strong>
+          <span>Create a playlist first, then add this song.</span>
+          <button type="button" @click="closePlaylistPicker(); goToDashboard()">Go to playlists</button>
+        </div>
+        <p v-if="playlistPickerError" class="playlist-picker__error" role="alert">{{ playlistPickerError }}</p>
+      </section>
+    </div>
+    <div v-if="isSongDeleteConfirmOpen" class="playlist-picker-backdrop" @click.self="closeSongDeleteConfirm" @keydown.esc="closeSongDeleteConfirm">
+      <section class="playlist-delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="playlist-delete-confirm-title" aria-describedby="playlist-delete-confirm-description">
+        <div class="playlist-delete-confirm__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+        </div>
+        <h2 id="playlist-delete-confirm-title">{{ pendingSongDeleteIds.length > 1 ? 'Remove selected songs?' : 'Remove song?' }}</h2>
+        <p id="playlist-delete-confirm-description" v-if="pendingSongDeleteIds.length === 1">
+          Remove <strong>{{ pendingSongDeleteTitle }}</strong> from this playlist? The song itself will not be deleted.
+        </p>
+        <p id="playlist-delete-confirm-description" v-else>
+          Remove <strong>{{ pendingSongDeleteIds.length }} songs</strong> from this playlist? The songs themselves will not be deleted.
+        </p>
+        <p v-if="songDeleteError" class="playlist-delete-confirm__error" role="alert">{{ songDeleteError }}</p>
+        <footer>
+          <button type="button" class="playlist-delete-confirm__cancel" :disabled="isDeletingSongs" @click="closeSongDeleteConfirm">Cancel</button>
+          <button type="button" class="playlist-delete-confirm__submit" :disabled="isDeletingSongs" @click="confirmSongDeletion">
+            {{ isDeletingSongs ? 'Removing…' : pendingSongDeleteIds.length > 1 ? `Remove ${pendingSongDeleteIds.length} songs` : 'Remove song' }}
+          </button>
+        </footer>
+      </section>
+    </div>
     <div v-if="isEditAlbumOpen" class="album-edit-modal" role="presentation" @click.self="closeAlbumEditor" @keydown.esc.prevent="closeAlbumEditor">
       <section class="album-edit-modal__panel" role="dialog" aria-modal="true" aria-labelledby="album-edit-title" tabindex="-1">
         <header class="album-edit-modal__header">

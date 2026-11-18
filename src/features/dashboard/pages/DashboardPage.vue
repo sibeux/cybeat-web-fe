@@ -7,6 +7,7 @@
   import { useAuthStore } from '@/features/auth/index'
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDashboardStore } from '../store/dashboard.store'
+  import { playlistApi } from '../api/playlist.api'
   import { useHistoryStore } from '@/features/history/store/history.store'
   import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
@@ -23,6 +24,16 @@
   const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
   const sidebarTab = ref<'kategori' | 'playlist' | 'history'>('kategori')
   const showScrollTop = ref(false)
+  const playlistDialogOpen = ref(false)
+  const playlistDialogTitle = ref('')
+  const editingPlaylistId = ref<number | null>(null)
+  const playlistSaving = ref(false)
+  const playlistError = ref('')
+  const playlistContextMenu = ref<{ item: { id: number; title: string }; x: number; y: number } | null>(null)
+  const playlistContextMenuRef = ref<HTMLElement | null>(null)
+  const deletePlaylistTarget = ref<{ id: number; title: string } | null>(null)
+  const playlistDeleting = ref(false)
+  const deletePlaylistError = ref('')
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const handleScroll = () => {
@@ -42,6 +53,8 @@
 
   onMounted(async () => {
     window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('click', handlePlaylistMenuOutsideClick)
+    window.addEventListener('keydown', handlePlaylistMenuKeydown)
     await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())
   })
 
@@ -54,6 +67,8 @@
 
   onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll)
+    window.removeEventListener('click', handlePlaylistMenuOutsideClick)
+    window.removeEventListener('keydown', handlePlaylistMenuKeydown)
     clearSearchTimer()
   })
 
@@ -170,6 +185,114 @@
     )
   }
 
+  const openPlaylistDialog = (item?: { id: number; title: string }) => {
+    if (!authStore.isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    editingPlaylistId.value = item?.id ?? null
+    playlistDialogTitle.value = item?.title ?? ''
+    playlistError.value = ''
+    playlistDialogOpen.value = true
+  }
+
+  const openPlaylistMenu = (event: MouseEvent, item: { id: number; title: string }) => {
+    event.preventDefault()
+    const menuWidth = 216
+    const menuHeight = 112
+    const anchor = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+    const anchorX = event.clientX || anchor?.right || 0
+    const anchorY = event.clientY || anchor?.bottom || 0
+    playlistContextMenu.value = {
+      item,
+      x: Math.max(8, Math.min(anchorX, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(anchorY, window.innerHeight - menuHeight - 8)),
+    }
+  }
+
+  const handlePlaylistMenuOutsideClick = (event: MouseEvent) => {
+    const target = event.target as Element | null
+    if (target?.closest('[data-playlist-menu-trigger]')) return
+    if (playlistContextMenuRef.value?.contains(event.target as Node)) return
+    playlistContextMenu.value = null
+  }
+
+  const handlePlaylistMenuKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') playlistContextMenu.value = null
+  }
+
+  const renamePlaylistFromMenu = () => {
+    const item = playlistContextMenu.value?.item
+    playlistContextMenu.value = null
+    if (item) openPlaylistDialog(item)
+  }
+
+  const deletePlaylistFromMenu = () => {
+    const item = playlistContextMenu.value?.item
+    playlistContextMenu.value = null
+    if (item) deletePlaylist(item)
+  }
+
+  const closePlaylistDialog = () => {
+    if (playlistSaving.value) return
+    playlistDialogOpen.value = false
+    playlistError.value = ''
+  }
+
+  const savePlaylist = async () => {
+    const title = playlistDialogTitle.value.trim()
+    if (!title) {
+      playlistError.value = 'Playlist name is required.'
+      return
+    }
+    playlistSaving.value = true
+    playlistError.value = ''
+    try {
+      if (editingPlaylistId.value) {
+        await playlistApi.update(editingPlaylistId.value, title)
+      } else {
+        await playlistApi.create(title)
+      }
+      const activeSearch = dashboardStore.searchQuery.trim()
+      await dashboardStore.fetchDashboardData('', true)
+      if (activeSearch) await dashboardStore.fetchDashboardData(activeSearch, true)
+      playlistDialogOpen.value = false
+    } catch (error: any) {
+      playlistError.value = error?.response?.data?.message || 'Could not save playlist. Please try again.'
+    } finally {
+      playlistSaving.value = false
+    }
+  }
+
+  const deletePlaylist = async (item: { id: number; title: string }) => {
+    if (!authStore.isAuthenticated) {
+      router.push('/login')
+      return
+    }
+    deletePlaylistTarget.value = item
+    deletePlaylistError.value = ''
+  }
+
+  const closeDeletePlaylistDialog = () => {
+    if (playlistDeleting.value) return
+    deletePlaylistTarget.value = null
+    deletePlaylistError.value = ''
+  }
+
+  const confirmDeletePlaylist = async () => {
+    if (!deletePlaylistTarget.value) return
+    playlistDeleting.value = true
+    try {
+      await playlistApi.delete(deletePlaylistTarget.value.id)
+      playlists.value = playlists.value.filter((playlist) => playlist.id !== deletePlaylistTarget.value?.id)
+      deletePlaylistTarget.value = null
+    } catch (error: any) {
+      deletePlaylistError.value = error?.response?.data?.message || 'Could not delete playlist. Please try again.'
+    } finally {
+      playlistDeleting.value = false
+    }
+  }
+
   const playHistoryTrack = (track: RecentMusicItem) => {
     const song = historyStore.toSong(track)
     if (currentSong.value?.id_music === song.id_music) {
@@ -280,19 +403,40 @@
 
         <!-- Playlist -->
         <template v-else-if="sidebarTab === 'playlist'">
+          <div class="dashboard__playlist-toolbar">
+            <div class="dashboard__playlist-heading">
+              <span>Your playlists</span>
+              <span class="dashboard__playlist-count">{{ playlists.length }}</span>
+            </div>
+            <button type="button" class="dashboard__playlist-create" aria-label="Create playlist" title="Create playlist" @click="openPlaylistDialog()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          </div>
           <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">
             Loading...
           </div>
-          <div v-else-if="playlists.length === 0" class="dashboard__sidebar-empty">
-            No playlists available
+          <div v-else-if="playlists.length === 0" class="dashboard__playlist-empty">
+            <div class="dashboard__playlist-empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+            <strong>Make it yours</strong>
+            <p>Save your favorite tracks in a playlist.</p>
+            <button type="button" @click="openPlaylistDialog()">Create playlist</button>
           </div>
           <ul v-else class="dashboard__sidebar-list">
             <li
               v-for="item in playlists"
               :key="item.id"
-              class="dashboard__sidebar-item"
+              class="dashboard__sidebar-item dashboard__sidebar-item--playlist"
               :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
               @click="goToAlbum(item)"
+              @contextmenu.prevent.stop="openPlaylistMenu($event, item)"
             >
               <div
                 class="dashboard__sidebar-cover"
@@ -334,6 +478,13 @@
                 <span v-if="item.author" class="dashboard__sidebar-sub" :title="item.author">{{
                   item.author
                 }}</span>
+              </div>
+              <div class="dashboard__playlist-item-actions">
+                <button type="button" data-playlist-menu-trigger :aria-label="`Options for ${item.title}`" :title="`Options for ${item.title}`" aria-haspopup="menu" @click.stop="openPlaylistMenu($event, item)">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+                  </svg>
+                </button>
               </div>
               <svg
                 v-if="isPlayingAlbum(item)"
@@ -615,6 +766,71 @@
           </div>
         </div>
       </template>
+    </div>
+
+    <div v-if="playlistDialogOpen" class="dashboard__playlist-dialog-backdrop" @click.self="closePlaylistDialog" @keydown.esc="closePlaylistDialog">
+      <section class="dashboard__playlist-dialog" role="dialog" aria-modal="true" aria-labelledby="playlist-dialog-title">
+        <div class="dashboard__playlist-dialog-heading">
+          <div>
+            <p>PLAYLIST</p>
+            <h2 id="playlist-dialog-title">{{ editingPlaylistId ? 'Rename playlist' : 'Create playlist' }}</h2>
+          </div>
+          <button type="button" aria-label="Close dialog" :disabled="playlistSaving" @click="closePlaylistDialog">×</button>
+        </div>
+        <form @submit.prevent="savePlaylist">
+          <label for="playlist-title">Name</label>
+          <input id="playlist-title" v-model="playlistDialogTitle" type="text" maxlength="255" autocomplete="off" autofocus placeholder="Give your playlist a name" />
+          <p v-if="playlistError" class="dashboard__playlist-dialog-error" role="alert">{{ playlistError }}</p>
+          <div class="dashboard__playlist-dialog-actions">
+            <button type="button" class="dashboard__playlist-cancel" :disabled="playlistSaving" @click="closePlaylistDialog">Cancel</button>
+            <button type="submit" class="dashboard__playlist-submit" :disabled="playlistSaving || !playlistDialogTitle.trim()">
+              {{ playlistSaving ? 'Saving…' : editingPlaylistId ? 'Save changes' : 'Create playlist' }}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <div
+      v-if="playlistContextMenu"
+      ref="playlistContextMenuRef"
+      class="dashboard__playlist-context-menu"
+      role="menu"
+      :aria-label="`Options for ${playlistContextMenu.item.title}`"
+      :style="{ left: `${playlistContextMenu.x}px`, top: `${playlistContextMenu.y}px` }"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <button type="button" role="menuitem" @click="renamePlaylistFromMenu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg>
+        Rename playlist
+      </button>
+      <div class="dashboard__playlist-context-divider" role="separator"></div>
+      <button type="button" class="dashboard__playlist-context-delete" role="menuitem" @click="deletePlaylistFromMenu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" /></svg>
+        Delete playlist
+      </button>
+    </div>
+
+    <div v-if="deletePlaylistTarget" class="dashboard__playlist-dialog-backdrop" @click.self="closeDeletePlaylistDialog" @keydown.esc="closeDeletePlaylistDialog">
+      <section class="dashboard__playlist-dialog dashboard__playlist-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="playlist-delete-title" aria-describedby="playlist-delete-description">
+        <div class="dashboard__playlist-delete-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
+          </svg>
+        </div>
+        <h2 id="playlist-delete-title">Delete playlist?</h2>
+        <p id="playlist-delete-description">
+          <strong>{{ deletePlaylistTarget.title }}</strong> and its songs will be removed. This can't be undone.
+        </p>
+        <p v-if="deletePlaylistError" class="dashboard__playlist-dialog-error" role="alert">{{ deletePlaylistError }}</p>
+        <div class="dashboard__playlist-dialog-actions">
+          <button type="button" class="dashboard__playlist-cancel" :disabled="playlistDeleting" @click="closeDeletePlaylistDialog">Cancel</button>
+          <button type="button" class="dashboard__playlist-delete-submit" :disabled="playlistDeleting" @click="confirmDeletePlaylist">
+            {{ playlistDeleting ? 'Deleting…' : 'Delete playlist' }}
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- Scroll To Top Button -->
