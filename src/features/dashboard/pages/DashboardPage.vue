@@ -8,6 +8,7 @@
   import { usePlayerStore } from '@/features/album/store/player.store'
   import { useDashboardStore } from '../store/dashboard.store'
   import { playlistApi } from '../api/playlist.api'
+  import { pinApi, type PinnableType } from '@/features/album/api/pin.api'
   import { useHistoryStore } from '@/features/history/store/history.store'
   import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
@@ -31,6 +32,9 @@
   const playlistError = ref('')
   const playlistContextMenu = ref<{ item: { id: number; title: string }; x: number; y: number } | null>(null)
   const playlistContextMenuRef = ref<HTMLElement | null>(null)
+  const albumContextMenu = ref<{ item: any; x: number; y: number } | null>(null)
+  const albumContextMenuRef = ref<HTMLElement | null>(null)
+  const pinningAlbumId = ref<number | null>(null)
   const deletePlaylistTarget = ref<{ id: number; title: string } | null>(null)
   const playlistDeleting = ref(false)
   const deletePlaylistError = ref('')
@@ -210,11 +214,25 @@
     }
   }
 
+  const openAlbumMenu = (event: MouseEvent, item: any) => {
+    event.preventDefault()
+    const menuWidth = 180
+    const menuHeight = 52
+    albumContextMenu.value = {
+      item,
+      x: Math.max(8, Math.min(event.clientX, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(event.clientY, window.innerHeight - menuHeight - 8)),
+    }
+    playlistContextMenu.value = null
+  }
+
   const handlePlaylistMenuOutsideClick = (event: MouseEvent) => {
     const target = event.target as Element | null
     if (target?.closest('[data-playlist-menu-trigger]')) return
     if (playlistContextMenuRef.value?.contains(event.target as Node)) return
+    if (albumContextMenuRef.value?.contains(event.target as Node)) return
     playlistContextMenu.value = null
+    albumContextMenu.value = null
   }
 
   const handlePlaylistMenuKeydown = (event: KeyboardEvent) => {
@@ -231,6 +249,27 @@
     const item = playlistContextMenu.value?.item
     playlistContextMenu.value = null
     if (item) deletePlaylist(item)
+  }
+
+  const toggleAlbumPinFromMenu = () => {
+    const item = albumContextMenu.value?.item
+    if (!item || pinningAlbumId.value !== null) return
+    const type = (String(item.type || 'album').toLowerCase()) as PinnableType
+    const wasPinned = Boolean(item.pin_at)
+    item.pin_at = wasPinned ? null : new Date().toISOString()
+    albumContextMenu.value = null
+    pinningAlbumId.value = Number(item.id)
+
+    void (async () => {
+      try {
+        if (wasPinned) await pinApi.unpin(type, Number(item.id))
+        else await pinApi.pin(type, Number(item.id))
+      } catch {
+        item.pin_at = wasPinned ? new Date().toISOString() : null
+      } finally {
+        pinningAlbumId.value = null
+      }
+    })()
   }
 
   const closePlaylistDialog = () => {
@@ -686,6 +725,7 @@
               class="dashboard__album-card"
               :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }"
               @click="goToAlbum(item)"
+              @contextmenu.prevent.stop="openAlbumMenu($event, item)"
             >
               <div
                 class="dashboard__album-cover"
@@ -714,17 +754,6 @@
                   loading="lazy"
                   @error="handleCoverError"
                 />
-
-                <div
-                  v-if="item.pin_at"
-                  class="dashboard__album-pin-badge"
-                  title="Pinned"
-                  aria-label="Pinned"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
-                  </svg>
-                </div>
 
                 <div
                   v-if="isPlayingAlbum(item)"
@@ -809,6 +838,22 @@
       <button type="button" class="dashboard__playlist-context-delete" role="menuitem" @click="deletePlaylistFromMenu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" /></svg>
         Delete playlist
+      </button>
+    </div>
+
+    <div
+      v-if="albumContextMenu"
+      ref="albumContextMenuRef"
+      class="dashboard__playlist-context-menu"
+      role="menu"
+      :aria-label="`Options for ${albumContextMenu.item.title}`"
+      :style="{ left: `${albumContextMenu.x}px`, top: `${albumContextMenu.y}px` }"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <button type="button" role="menuitem" class="dashboard__pin-context-action" :class="{ 'dashboard__pin-context-action--active': albumContextMenu.item.pin_at }" :disabled="pinningAlbumId !== null" @click="toggleAlbumPinFromMenu">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" /></svg>
+        {{ albumContextMenu.item.pin_at ? 'Unpin album' : 'Pin album' }}
       </button>
     </div>
 

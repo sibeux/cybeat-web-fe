@@ -1043,34 +1043,6 @@
   color: #fff;
 }
 
-.dashboard__album-pin-badge {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 1.625rem;
-  height: 1.625rem;
-  border-radius: 50%;
-  background: rgba(18, 18, 18, 0.75);
-  backdrop-filter: blur(6px);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.2s ease;
-}
-
-.dashboard__album-pin-badge svg {
-  width: 0.875rem;
-  height: 0.875rem;
-}
-
-.dashboard__album-card:hover .dashboard__album-pin-badge {
-  transform: scale(1.1);
-}
-
 .dashboard__album-playing-indicator svg {
   width: 2.5rem;
   height: 2.5rem;
@@ -1109,6 +1081,19 @@
   align-items: center;
   gap: 0.375rem;
   min-width: 0;
+}
+
+.dashboard__playlist-context-menu button.dashboard__pin-context-action--active {
+  color: #34d399;
+}
+
+.dashboard__playlist-context-menu button.dashboard__pin-context-action--active svg {
+  color: currentColor;
+}
+
+.dashboard__playlist-context-menu button.dashboard__pin-context-action--active:hover:not(:disabled),
+.dashboard__playlist-context-menu button.dashboard__pin-context-action--active:focus-visible {
+  color: #34d399;
 }
 
 .dashboard__album-pin-icon {

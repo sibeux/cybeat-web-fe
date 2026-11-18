@@ -5,6 +5,7 @@
   import { APP_NAME } from '@/core/app/config/app.config'
   import { albumApi, type GetSongsParams } from '../api/album.api'
   import { playlistTracksApi } from '../api/playlist-tracks.api'
+  import { pinApi, type PinnableType } from '../api/pin.api'
   import type { Song } from '../types/song.types'
   import ArtistLinks from '@/features/artist/components/ArtistLinks.vue'
   import { usePlayerStore } from '../store/player.store'
@@ -533,6 +534,10 @@
         isLoading.value = true
       }
       error.value = null
+      if (!isRefetch && ['album', 'playlist', 'category'].includes(currentType)) {
+        const pinResponse = await pinApi.status(currentType as PinnableType, currentId)
+        isPinned.value = Boolean(pinResponse.data.data?.pinned)
+      }
 
       const options: GetSongsParams = {
         signal: songsAbortController.signal,
@@ -739,6 +744,7 @@
   const goToDashboard = () => {
     void router.push({ name: 'dashboard' })
   }
+
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
