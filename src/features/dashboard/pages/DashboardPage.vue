@@ -818,6 +818,11 @@
             </div>
           </div>
         </div>
+        <div v-else class="dashboard__album-empty" role="status">
+          <strong>No albums found</strong>
+          <span v-if="searchQuery.trim()">No albums match “{{ searchQuery.trim() }}”.</span>
+          <span v-else>There are no albums to display.</span>
+        </div>
       </template>
     </div>
 
