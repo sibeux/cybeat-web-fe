@@ -42,6 +42,8 @@
   const playlistPickerError = ref('')
   const playlistActionNotice = ref('')
   const playlistActionIsError = ref(false)
+  const playlistsContainingSong = computed(() => playlistOptions.value.filter((playlist) => playlist.contains_song))
+  const playlistsAvailableForSong = computed(() => playlistOptions.value.filter((playlist) => !playlist.contains_song))
   let playlistNoticeTimer: ReturnType<typeof setTimeout> | null = null
 
   const songs = ref<Song[]>([])
@@ -287,7 +289,7 @@
     isPlaylistPickerOpen.value = true
     isLoadingPlaylists.value = true
     try {
-      const response = await playlistApi.list()
+      const response = await playlistApi.list(song.id_music)
       playlistOptions.value = response.data.data || []
     } catch (requestError: any) {
       playlistPickerError.value = requestError.response?.data?.message || 'Could not load your playlists.'
@@ -1686,9 +1688,24 @@
           <button type="button" aria-label="Close" :disabled="addingToPlaylistId !== null" @click="closePlaylistPicker">×</button>
         </header>
         <div v-if="isLoadingPlaylists" class="playlist-picker__state" role="status">Loading your playlists…</div>
-        <div v-else-if="playlistOptions.length" class="playlist-picker__list">
+        <div v-else-if="playlistOptions.length" class="playlist-picker__groups">
+          <div v-if="playlistsContainingSong.length" class="playlist-picker__group">
+            <h3 class="playlist-picker__group-title">Already in</h3>
+            <div class="playlist-picker__list">
+              <div v-for="playlist in playlistsContainingSong" :key="`existing-${playlist.id}`" class="playlist-picker__item playlist-picker__item--existing">
+                <span class="playlist-picker__item-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+                </span>
+                <span class="playlist-picker__item-copy"><strong>{{ playlist.title }}</strong><small>This song is already here</small></span>
+                <span class="playlist-picker__item-status">Added</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="playlistsAvailableForSong.length" class="playlist-picker__group">
+            <h3 class="playlist-picker__group-title">Add to playlist</h3>
+            <div class="playlist-picker__list">
           <button
-            v-for="playlist in playlistOptions"
+            v-for="playlist in playlistsAvailableForSong"
             :key="playlist.id"
             type="button"
             class="playlist-picker__item"
@@ -1702,6 +1719,9 @@
             <span v-if="addingToPlaylistId === playlist.id" class="playlist-picker__item-pending">Adding…</span>
             <svg v-else class="playlist-picker__item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
           </button>
+            </div>
+          </div>
+          <div v-if="!playlistsAvailableForSong.length" class="playlist-picker__state playlist-picker__state--compact">This song is already in all your playlists.</div>
         </div>
         <div v-else-if="!playlistPickerError" class="playlist-picker__state">
           <strong>No playlists yet</strong>

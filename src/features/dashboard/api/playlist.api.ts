@@ -6,6 +6,7 @@ export interface PlaylistOption {
   title: string
   cover: string | null
   created_at: string
+  contains_song?: boolean
 }
 
 interface PlaylistMutationResponse {
@@ -15,8 +16,10 @@ interface PlaylistMutationResponse {
 }
 
 export const playlistApi = {
-  list() {
-    return apiClient.get<ApiSuccessResponse<PlaylistOption[]>>('/music/playlist/crud.php')
+  list(songId?: number) {
+    return apiClient.get<ApiSuccessResponse<PlaylistOption[]>>('/music/playlist/crud.php', {
+      params: songId ? { song_id: songId } : undefined,
+    })
   },
   create(title: string) {
     return apiClient.post<PlaylistMutationResponse>('/music/playlist/crud.php', { title })
