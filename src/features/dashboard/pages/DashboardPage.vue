@@ -35,6 +35,7 @@
   const albumContextMenu = ref<{ item: any; x: number; y: number } | null>(null)
   const albumContextMenuRef = ref<HTMLElement | null>(null)
   const pinningAlbumId = ref<number | null>(null)
+  const albumOriginalIndexes = new Map<number, number>()
   const deletePlaylistTarget = ref<{ id: number; title: string } | null>(null)
   const playlistDeleting = ref(false)
   const deletePlaylistError = ref('')
@@ -256,7 +257,21 @@
     if (!item || pinningAlbumId.value !== null) return
     const type = (String(item.type || 'album').toLowerCase()) as PinnableType
     const wasPinned = Boolean(item.pin_at)
+    const currentIndex = albums.value.findIndex((album) => album.id === item.id)
+    const previousIndex = wasPinned
+      ? (albumOriginalIndexes.get(Number(item.id)) ?? currentIndex)
+      : currentIndex
     item.pin_at = wasPinned ? null : new Date().toISOString()
+    if (!wasPinned) {
+      albumOriginalIndexes.set(Number(item.id), previousIndex)
+      albums.value = [item, ...albums.value.filter((album) => album.id !== item.id)]
+    } else if (currentIndex >= 0 && previousIndex >= 0 && currentIndex !== previousIndex) {
+      const restored = [...albums.value]
+      const [movedItem] = restored.splice(currentIndex, 1)
+      restored.splice(Math.min(previousIndex, restored.length), 0, movedItem)
+      albums.value = restored
+      albumOriginalIndexes.delete(Number(item.id))
+    }
     albumContextMenu.value = null
     pinningAlbumId.value = Number(item.id)
 
@@ -266,6 +281,15 @@
         else await pinApi.pin(type, Number(item.id))
       } catch {
         item.pin_at = wasPinned ? new Date().toISOString() : null
+        const rollbackIndex = albums.value.findIndex((album) => album.id === item.id)
+        if (rollbackIndex >= 0 && previousIndex >= 0 && rollbackIndex !== previousIndex) {
+          const restored = [...albums.value]
+          const [movedItem] = restored.splice(rollbackIndex, 1)
+          restored.splice(previousIndex, 0, movedItem)
+          albums.value = restored
+        }
+        if (wasPinned) albumOriginalIndexes.set(Number(item.id), previousIndex)
+        else albumOriginalIndexes.delete(Number(item.id))
       } finally {
         pinningAlbumId.value = null
       }
