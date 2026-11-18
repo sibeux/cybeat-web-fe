@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+  import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { APP_NAME } from '@/core/app/config/app.config'
@@ -26,7 +26,7 @@
   const isAdmin = computed(() => authStore.user?.role === 'admin')
   const albumMenuRef = ref<HTMLElement | null>(null)
   const isPlaylistPickerOpen = ref(false)
-  const songOptionsMenu = ref<{ song: Song; x: number; y: number } | null>(null)
+  const songOptionsMenu = ref<{ song: Song; x: number; y: number; positioned: boolean } | null>(null)
   const songOptionsMenuRef = ref<HTMLElement | null>(null)
   const isLoadingPlaylists = ref(false)
   const playlistOptions = ref<PlaylistOption[]>([])
@@ -296,18 +296,45 @@
     }
   }
 
-  const openSongOptions = (event: MouseEvent, song: Song) => {
+  const openSongOptions = async (event: MouseEvent, song: Song) => {
     event.preventDefault()
     if (type.value === 'playlist' && isBulkDeleteMode.value) return
-    const menuWidth = 248
-    const menuHeight = 156
     const anchor = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()
-    const clickX = event.clientX || anchor?.right || 0
-    const clickY = event.clientY || anchor?.bottom || 0
+    const clickX = event.clientX || anchor?.right || 8
+    const clickY = event.clientY || anchor?.bottom || 8
     songOptionsMenu.value = {
       song,
-      x: Math.max(8, Math.min(clickX + 4, window.innerWidth - menuWidth - 8)),
-      y: Math.max(8, Math.min(clickY + 4, window.innerHeight - menuHeight - 8)),
+      x: clickX + 6,
+      y: clickY + 6,
+      positioned: false,
+    }
+
+    await nextTick()
+    if (songOptionsMenu.value?.song !== song || !songOptionsMenuRef.value) return
+
+    const menuBounds = songOptionsMenuRef.value.getBoundingClientRect()
+    const edge = 8
+    const rightPosition = clickX + 6
+    const leftPosition = clickX - menuBounds.width - 6
+    const x = rightPosition + menuBounds.width <= window.innerWidth - edge
+      ? rightPosition
+      : leftPosition
+    const belowPosition = clickY + 6
+    const abovePosition = clickY - menuBounds.height - 6
+    let y: number
+    if (abovePosition >= edge) {
+      y = abovePosition
+    } else if (belowPosition + menuBounds.height <= window.innerHeight - edge) {
+      y = belowPosition
+    } else {
+      y = Math.max(edge, Math.min(belowPosition, window.innerHeight - menuBounds.height - edge))
+    }
+
+    songOptionsMenu.value = {
+      song,
+      x: Math.max(edge, Math.min(x, window.innerWidth - menuBounds.width - edge)),
+      y,
+      positioned: true,
     }
   }
 
@@ -1628,6 +1655,7 @@
       v-if="songOptionsMenu"
       ref="songOptionsMenuRef"
       class="song-options-context-menu"
+      :class="{ 'song-options-context-menu--measuring': !songOptionsMenu.positioned }"
       role="menu"
       :aria-label="`Options for ${songOptionsMenu.song.title}`"
       :style="{ left: `${songOptionsMenu.x}px`, top: `${songOptionsMenu.y}px` }"
