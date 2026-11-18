@@ -42,6 +42,11 @@
   const playlistPickerError = ref('')
   const playlistActionNotice = ref('')
   const playlistActionIsError = ref(false)
+  const playlistMetadata = ref<PlaylistOption | null>(null)
+  const isEditPlaylistOpen = ref(false)
+  const isSavingPlaylist = ref(false)
+  const playlistForm = ref({ name: '', cover: '' })
+  const playlistEditError = ref('')
   const playlistsContainingSong = computed(() => playlistOptions.value.filter((playlist) => playlist.contains_song))
   const playlistsAvailableForSong = computed(() => playlistOptions.value.filter((playlist) => !playlist.contains_song))
   let playlistNoticeTimer: ReturnType<typeof setTimeout> | null = null
@@ -516,6 +521,12 @@
     songsAbortController = new AbortController()
 
     try {
+      if (currentType === 'playlist' && !isRefetch) {
+        const playlistResponse = await playlistApi.list()
+        playlistMetadata.value = (playlistResponse.data.data || []).find((playlist) => playlist.id === currentId) || null
+        if (!playlistMetadata.value) throw new Error('Playlist not found.')
+        stateAlbumName.value = playlistMetadata.value.title
+      }
       if (isRefetch) {
         isSearching.value = true
       } else {
@@ -644,6 +655,8 @@
         editedAlbumCover.value = null
         isAlbumMenuOpen.value = false
         isEditAlbumOpen.value = false
+        isEditPlaylistOpen.value = false
+        playlistMetadata.value = null
         isBulkDeleteMode.value = false
         selectedSongIds.value = []
         closeSongOptions()
@@ -769,8 +782,13 @@
   })
 
   const albumCover = computed(() => {
-    if (editedAlbumCover.value !== null) {
-      return resolveCoverUrl(editedAlbumCover.value) || DEFAULT_COVER
+    const explicitCover = editedAlbumCover.value !== null
+      ? editedAlbumCover.value
+      : type.value === 'playlist'
+        ? playlistMetadata.value?.cover || ''
+        : ''
+    if (explicitCover) {
+      return resolveCoverUrl(explicitCover) || DEFAULT_COVER
     }
     if (albumCovers.value.length > 0) {
       return albumCovers.value[0]
@@ -783,7 +801,7 @@
   })
 
   const displayAlbumName = computed(() => {
-    return editedAlbumName.value || stateAlbumName.value || (songs.value.length > 0 ? songs.value[0].album : 'Unknown')
+    return editedAlbumName.value || (type.value === 'playlist' ? playlistMetadata.value?.title : stateAlbumName.value) || (songs.value.length > 0 ? songs.value[0].album : 'Unknown')
   })
 
   const openAlbumEditor = async () => {
@@ -826,6 +844,40 @@
       if (session === artistEditorSession) albumEditError.value = requestError.response?.data?.message || 'Could not load album artists.'
     } finally {
       if (session === artistEditorSession) isResolvingAlbumArtists.value = false
+    }
+  }
+
+  const openPlaylistEditor = () => {
+    if (type.value !== 'playlist' || !playlistMetadata.value) return
+    isAlbumMenuOpen.value = false
+    playlistForm.value = { name: playlistMetadata.value.title, cover: playlistMetadata.value.cover || '' }
+    playlistEditError.value = ''
+    isEditPlaylistOpen.value = true
+  }
+
+  const closePlaylistEditor = () => {
+    if (isSavingPlaylist.value) return
+    isEditPlaylistOpen.value = false
+    playlistEditError.value = ''
+  }
+
+  const savePlaylist = async () => {
+    if (!playlistMetadata.value || isSavingPlaylist.value || !playlistForm.value.name.trim()) return
+    isSavingPlaylist.value = true
+    playlistEditError.value = ''
+    try {
+      const title = playlistForm.value.name.trim()
+      const cover = playlistForm.value.cover.trim()
+      await playlistApi.update(playlistMetadata.value.id, title, cover)
+      playlistMetadata.value = { ...playlistMetadata.value, title, cover }
+      stateAlbumName.value = title
+      editedAlbumCover.value = cover
+      closePlaylistEditor()
+      showPlaylistNotice('Playlist updated.')
+    } catch (requestError: any) {
+      playlistEditError.value = requestError.response?.data?.message || 'Could not save playlist changes.'
+    } finally {
+      isSavingPlaylist.value = false
     }
   }
 
@@ -989,21 +1041,25 @@
             </svg>
           </button>
         </div>
-      <div v-if="isAdmin && type === 'album'" ref="albumMenuRef" class="album-page__admin-actions">
+      <div v-if="(isAdmin && type === 'album') || type === 'playlist'" ref="albumMenuRef" class="album-page__admin-actions">
         <button
           class="album-page__more-btn"
           type="button"
-          aria-label="Menu album"
-          title="Menu album"
+          :aria-label="type === 'playlist' ? 'Playlist menu' : 'Album menu'"
+          :title="type === 'playlist' ? 'Playlist menu' : 'Album menu'"
           :aria-expanded="isAlbumMenuOpen"
           @click.stop="isAlbumMenuOpen = !isAlbumMenuOpen"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
         </button>
         <div v-if="isAlbumMenuOpen" class="album-page__more-menu" @click.stop>
-          <button type="button" :disabled="isPreparingAlbumEdit || !editableAlbum" @click="openAlbumEditor">
+          <button v-if="type === 'album'" type="button" :disabled="isPreparingAlbumEdit || !editableAlbum" @click="openAlbumEditor">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
             Edit album
+          </button>
+          <button v-else type="button" :disabled="!playlistMetadata" @click="openPlaylistEditor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+            Edit playlist
           </button>
           <p v-if="albumEditError && !editableAlbum" role="alert">{{ albumEditError }}</p>
         </div>
@@ -1796,6 +1852,20 @@
           <footer><button type="button" class="album-edit-modal__cancel" :disabled="isSavingAlbum" @click="closeAlbumEditor">Close</button><button type="submit" class="album-edit-modal__save" :aria-busy="isSavingAlbum" :disabled="isSavingAlbum || isResolvingAlbumArtists || !albumForm.name.trim() || selectedArtists.length === 0 || !!artistSelectionWarning"><span v-if="isSavingAlbum" class="album-edit-modal__save-spinner" aria-hidden="true"></span>{{ isSavingAlbum ? 'Saving…' : 'Save changes' }}</button></footer>
         </form>
         <div v-else class="album-edit-modal__state album-edit-modal__state--error">{{ albumEditError }}</div>
+      </section>
+    </div>
+    <div v-if="isEditPlaylistOpen" class="album-edit-modal" role="presentation" @click.self="closePlaylistEditor" @keydown.esc.prevent="closePlaylistEditor">
+      <section class="album-edit-modal__panel" role="dialog" aria-modal="true" aria-labelledby="playlist-edit-title" tabindex="-1">
+        <header class="album-edit-modal__header">
+          <div><p>PLAYLIST</p><h2 id="playlist-edit-title">Edit playlist</h2><span>Update your playlist details.</span></div>
+          <button type="button" aria-label="Close" :disabled="isSavingPlaylist" @click="closePlaylistEditor">×</button>
+        </header>
+        <form class="album-edit-modal__form" :class="{ 'album-edit-modal__form--saving': isSavingPlaylist }" @submit.prevent="savePlaylist">
+          <label><span>Playlist name <i class="album-edit-modal__required" aria-hidden="true">*</i></span><input v-model="playlistForm.name" required maxlength="255" autofocus :aria-invalid="!playlistForm.name.trim()"><small v-if="!playlistForm.name.trim()" class="album-edit-modal__field-error">Can't be null</small></label>
+          <label><span>Cover image</span><input v-model="playlistForm.cover" type="text" maxlength="2048" placeholder="Image URL or path"></label>
+          <p v-if="playlistEditError" class="album-edit-modal__error" role="alert">{{ playlistEditError }}</p>
+          <footer><button type="button" class="album-edit-modal__cancel" :disabled="isSavingPlaylist" @click="closePlaylistEditor">Close</button><button type="submit" class="album-edit-modal__save" :aria-busy="isSavingPlaylist" :disabled="isSavingPlaylist || !playlistForm.name.trim()"><span v-if="isSavingPlaylist" class="album-edit-modal__save-spinner" aria-hidden="true"></span>{{ isSavingPlaylist ? 'Saving…' : 'Save changes' }}</button></footer>
+        </form>
       </section>
     </div>
   </AppLayout>

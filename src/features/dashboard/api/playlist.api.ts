@@ -24,8 +24,8 @@ export const playlistApi = {
   create(title: string) {
     return apiClient.post<PlaylistMutationResponse>('/music/playlist/crud.php', { title })
   },
-  update(id: number, title: string) {
-    return apiClient.patch<PlaylistMutationResponse>('/music/playlist/crud.php', { id, title })
+  update(id: number, title: string, cover = '') {
+    return apiClient.patch<PlaylistMutationResponse>('/music/playlist/crud.php', { id, title, cover })
   },
   delete(id: number) {
     return apiClient.delete<PlaylistMutationResponse>('/music/playlist/crud.php', { params: { id } })
