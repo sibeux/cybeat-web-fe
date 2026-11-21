@@ -251,21 +251,6 @@
                 </div>
                 <div class="app-layout__dropdown-divider"></div>
                 <button
-                  class="app-layout__dropdown-item"
-                  type="button"
-                  @click="navigateToHistory"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  <div class="app-layout__dropdown-item-text">
-                    <span class="app-layout__dropdown-item-title">Listening History</span>
-                    <span class="app-layout__dropdown-item-desc">Recently played tracks</span>
-                  </div>
-                </button>
-                <div class="app-layout__dropdown-divider"></div>
-                <button
                   id="logout-button"
                   class="app-layout__dropdown-item app-layout__dropdown-item--danger"
                   type="button"
