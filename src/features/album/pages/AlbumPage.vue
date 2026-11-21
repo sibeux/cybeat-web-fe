@@ -548,6 +548,8 @@
         }
         if (sortMode.value && sortMode.value !== 'default') {
           options.sort = sortMode.value === 'alphabetical' ? 'title' : sortMode.value
+        } else if (sortMode.value === 'default') {
+          options.sort = type.value === 'category' ? 'id' : 'default'
         }
         if (sortDirection.value) {
           options.order = sortDirection.value
