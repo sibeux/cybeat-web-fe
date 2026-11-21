@@ -461,8 +461,8 @@ function formatTime(iso: string) {
           </span>
           <span>
             Target:
-            <code v-if="activeTab === 'frontend'">IndexedDB (cybeat_logs_db)</code>
-            <code v-else>storage/logs/requests.jsonl (Serilog Structured)</code>
+            <code v-if="activeTab === 'frontend'">IndexedDB (cybeat_logs_db • Retensi 30 hari)</code>
+            <code v-else>storage/logs/requests.jsonl (Serilog • Retensi 30 hari)</code>
           </span>
         </div>
 

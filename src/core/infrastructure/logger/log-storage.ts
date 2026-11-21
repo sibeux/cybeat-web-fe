@@ -3,7 +3,8 @@ import type { LogEntry, LogFilterOptions } from './log.types'
 const DB_NAME = 'cybeat_logs_db'
 const DB_VERSION = 1
 const STORE_NAME = 'app_logs'
-const MAX_LOG_RETENTION = 5000 // Keep up to 5,000 entries max
+const RETENTION_DAYS = 30 // Retention policy: 30 days
+const MAX_LOG_RETENTION = 10000 // Upper ceiling safety limit
 
 class LogStorage {
   private dbPromise: Promise<IDBDatabase> | null = null
@@ -69,6 +70,10 @@ class LogStorage {
 
         request.onsuccess = () => {
           let results: LogEntry[] = request.result || []
+
+          // Enforce 30-day retention cutoff
+          const thirtyDaysAgo = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
+          results = results.filter((item) => new Date(item.timestamp).getTime() >= thirtyDaysAgo)
 
           // Apply filters
           if (options) {
@@ -142,12 +147,27 @@ class LogStorage {
     try {
       const tx = db.transaction(STORE_NAME, 'readwrite')
       const store = tx.objectStore(STORE_NAME)
-      const countReq = store.count()
+      const cutoffTime = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
+      // 1. Delete all entries older than 30 days using timestamp index
+      const timestampIndex = store.index('timestamp')
+      const oldRange = IDBKeyRange.upperBound(cutoffTime, true)
+      const oldCursorReq = timestampIndex.openCursor(oldRange)
+
+      oldCursorReq.onsuccess = () => {
+        const cursor = oldCursorReq.result
+        if (cursor) {
+          cursor.delete()
+          cursor.continue()
+        }
+      }
+
+      // 2. Safety ceiling check
+      const countReq = store.count()
       countReq.onsuccess = () => {
         const count = countReq.result
         if (count > MAX_LOG_RETENTION) {
-          const deleteCount = count - MAX_LOG_RETENTION + 500 // Prune in chunk
+          const deleteCount = count - MAX_LOG_RETENTION + 500
           let deleted = 0
           const cursorReq = store.openCursor()
           cursorReq.onsuccess = () => {
