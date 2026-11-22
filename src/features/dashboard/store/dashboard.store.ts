@@ -30,9 +30,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const explorePageCache = ref<Record<number, ExplorePageCacheItem>>({})
 
   const authStore = useAuthStore()
+  let sidebarController: AbortController | null = null
 
   // Invalidate cache and reset data when auth state changes (login/logout)
   watch(() => authStore.isAuthenticated, () => {
+    sidebarController?.abort()
+    sidebarController = null
+    dashboardAbortController?.abort()
+    dashboardAbortController = null
+    isSidebarLoading.value = false
+    isLoading.value = false
+    sidebarError.value = null
+    error.value = null
     isFetched.value = false
     fetchedSearch.value = ''
     searchQuery.value = ''
@@ -41,7 +50,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     playlists.value = []
     exploreCategories.value = {}
     explorePageCache.value = {}
-  })
+  }, { flush: 'sync' })
 
   const setExploreCategoryAlbums = (categoryId: number, items: Album[]) => {
     exploreCategories.value[categoryId] = items
@@ -55,18 +64,20 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   const fetchSidebarData = async () => {
     if (isSidebarLoading.value) return
-    const authenticated = authStore.isAuthenticated
+    const controller = new AbortController()
+    sidebarController = controller
     try {
       isSidebarLoading.value = true
       sidebarError.value = null
-      const response = await dashboardApi.getSidebar()
-      if (authStore.isAuthenticated !== authenticated) return
+      const response = await dashboardApi.getSidebar(controller.signal)
+      if (sidebarController !== controller) return
       categories.value = response.data.data.category || []
       playlists.value = response.data.data.playlist || []
     } catch (err: unknown) {
+      if (sidebarController !== controller || controller.signal.aborted) return
       sidebarError.value = err instanceof Error ? err.message : 'Gagal memuat data'
     } finally {
-      isSidebarLoading.value = false
+      if (sidebarController === controller) isSidebarLoading.value = false
     }
   }
 

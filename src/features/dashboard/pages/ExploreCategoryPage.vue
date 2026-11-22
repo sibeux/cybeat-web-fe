@@ -8,10 +8,11 @@ import type { Album, ExploreCategoryInfo } from '../types/album.types'
 import { useTitle } from '@/core/shared/composables/useTitle'
 import axios from 'axios'
 
+const props = defineProps<{ embedded?: boolean; categoryId?: number }>()
 const route = useRoute()
 const dashboardStore = useDashboardStore()
 
-const categoryId = computed(() => Number(route.params.id) || 1)
+const categoryId = computed(() => props.categoryId || Number(route.params.id) || 1)
 
 const CATEGORY_NAMES: Record<number, { name: string; badge: string }> = {
   1: { name: 'IndoPride', badge: 'Indonesian' },
@@ -40,67 +41,59 @@ const sentinelRef = ref<HTMLElement | null>(null)
 
 let sentinelObserver: IntersectionObserver | null = null
 
+const search = ref('')
+let requestController: AbortController | null = null
+
 const syncToCache = () => {
+  if (search.value) return
   dashboardStore.setExplorePageCache(categoryId.value, {
-    albums: albums.value,
-    categoryInfo: categoryInfo.value,
-    cursor: cursor.value,
-    hasMore: hasMore.value,
+    albums: albums.value, categoryInfo: categoryInfo.value,
+    cursor: cursor.value, hasMore: hasMore.value,
   })
 }
 
-const fetchInitialAlbums = async (force = false) => {
-  if (!force && cached && albums.value.length > 0) {
-    isLoading.value = false
-    return
+const requestAlbums = async (append = false) => {
+  if (append && (isLoading.value || isLoadingMore.value || !hasMore.value || !cursor.value)) return
+  requestController?.abort()
+  const controller = new AbortController()
+  requestController = controller
+  if (append) isLoadingMore.value = true
+  else {
+    isLoading.value = true
+    isLoadingMore.value = false
+    error.value = null
+    albums.value = []
+    cursor.value = null
+    hasMore.value = true
   }
-  isLoading.value = true
-  error.value = null
-
   try {
-    // 30 album pertama sesuai permintaan user
-    const response = await dashboardApi.getExploreAlbums(categoryId.value, 30, null)
+    const response = await dashboardApi.getExploreAlbums(categoryId.value, 30, append ? cursor.value : null, controller.signal, search.value)
+    if (requestController !== controller || controller.signal.aborted) return
     const result = response.data.data
-
     categoryInfo.value = result.category
-    albums.value = result.albums || []
+    albums.value = append ? [...albums.value, ...(result.albums || [])] : result.albums || []
     cursor.value = result.next_cursor
     hasMore.value = Boolean(result.has_more)
     syncToCache()
   } catch (err: unknown) {
-    if (axios.isAxiosError(err)) {
-      error.value =
-        err.response?.data?.message ||
-        err.message ||
-        'Gagal memuat album kategori'
-    } else {
-      error.value =
-        err instanceof Error
-          ? err.message
-          : 'Gagal memuat album kategori'
-    }
+    if (requestController !== controller || controller.signal.aborted) return
+    error.value = axios.isAxiosError(err) ? err.response?.data?.message || err.message : 'Gagal memuat album kategori'
   } finally {
-    isLoading.value = false
+    if (requestController === controller) {
+      isLoading.value = false
+      isLoadingMore.value = false
+    }
   }
 }
 
-const loadMoreAlbums = async () => {
-  if (isLoadingMore.value || !hasMore.value || !cursor.value) return
-  isLoadingMore.value = true
-
-  try {
-    const response = await dashboardApi.getExploreAlbums(categoryId.value, 30, cursor.value)
-    const result = response.data.data
-
-    albums.value.push(...(result.albums || []))
-    cursor.value = result.next_cursor
-    hasMore.value = Boolean(result.has_more)
-    syncToCache()
-  } catch (err: unknown) {
-    console.error('[ExploreCategoryPage] Failed to load more albums:', err)
-  } finally {
-    isLoadingMore.value = false
-  }
+const fetchInitialAlbums = async (force = false) => {
+  if (!force && cached && albums.value.length) return
+  await requestAlbums()
+}
+const loadMoreAlbums = () => requestAlbums(true)
+const searchAlbums = (query: string) => {
+  search.value = query
+  void requestAlbums()
 }
 
 const setupSentinelObserver = () => {
@@ -134,6 +127,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  requestController?.abort()
   if (sentinelObserver) {
     sentinelObserver.disconnect()
     sentinelObserver = null
@@ -144,6 +138,7 @@ onUnmounted(() => {
 <template>
   <AlbumCatalogPage
     v-model:albums="albums"
+    :embedded="embedded"
     :title="`Explore ${categoryMeta.name} New Albums`"
     :badge="categoryMeta.badge"
     subtitle="Newly added albums ordered from latest additions"
@@ -151,6 +146,7 @@ onUnmounted(() => {
     :error="error"
     loaded-count
     @refresh="fetchInitialAlbums(true)"
+    @search="searchAlbums"
   >
     <div ref="sentinelRef" class="explore-page__sentinel">
       <div v-if="isLoadingMore" class="explore-page__spinner-wrap" role="status">

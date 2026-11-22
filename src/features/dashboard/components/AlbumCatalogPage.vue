@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
@@ -16,11 +16,13 @@ const props = defineProps<{
   title: string
   badge: string
   subtitle: string
+  embedded?: boolean
   loadedCount?: boolean
 }>()
 const emit = defineEmits<{
   (event: 'update:albums', value: Album[]): void
   (event: 'refresh'): void
+  (event: 'search', query: string): void
 }>()
 
 const albums = computed({ get: () => props.albums, set: (value) => emit('update:albums', value) })
@@ -28,6 +30,11 @@ const { currentAlbum } = storeToRefs(playerStore)
 
 
 const localSearch = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(localSearch, (query) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => emit('search', query.trim()), 300)
+})
 const pinningAlbumId = ref<number | null>(null)
 const albumOriginalIndexes = new Map<number, number>()
 const albumContextMenu = ref<{ item: Album; x: number; y: number } | null>(null)
@@ -87,14 +94,22 @@ const goToDashboard = () => {
   router.push('/')
 }
 
+const sortOrder = ref('default')
+const albumNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+
 const filteredAlbums = computed(() => {
-  const query = localSearch.value.trim().toLowerCase()
-  if (!query) return albums.value
-  return albums.value.filter(
-    (a) =>
-      a.title.toLowerCase().includes(query) ||
-      (a.author && a.author.toLowerCase().includes(query)),
-  )
+  const items = [...albums.value]
+  if (sortOrder.value === 'default') return items
+  const createdAt = (album: Album) => {
+    const timestamp = Date.parse(album.created_at)
+    return Number.isFinite(timestamp) ? timestamp : 0
+  }
+  return items.sort((a, b) => {
+    if (sortOrder.value === 'name-asc') return albumNameCollator.compare(a.title, b.title) || a.id - b.id
+    if (sortOrder.value === 'name-desc') return albumNameCollator.compare(b.title, a.title) || b.id - a.id
+    const difference = createdAt(a) - createdAt(b) || a.id - b.id
+    return sortOrder.value === 'oldest' ? difference : -difference
+  })
 })
 
 const handleRefresh = () => emit('refresh')
@@ -173,14 +188,15 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  clearTimeout(searchTimer)
   window.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
 <template>
-  <AppLayout>
-    <div class="all-albums-page">
+  <component :is="embedded ? 'div' : AppLayout">
+    <div class="all-albums-page" :class="{ 'all-albums-page--embedded': embedded }">
       <!-- Header -->
       <header class="all-albums-page__header">
         <div class="all-albums-page__title-area">
@@ -207,7 +223,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Search & Refresh bar -->
+        <!-- Catalog toolbar -->
         <div class="all-albums-page__actions">
           <div class="all-albums-page__search">
             <label for="dashboard-search" class="all-albums-page__search-label">Search Album</label>
@@ -255,6 +271,17 @@ onUnmounted(() => {
             </div>
           </div>
 
+          <div class="all-albums-page__sort">
+            <label for="album-sort" class="all-albums-page__search-label">{{ loadedCount ? 'Sort loaded albums' : 'Sort albums' }}</label>
+            <select id="album-sort" v-model="sortOrder" class="all-albums-page__sort-select">
+              <option value="default">Default order</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name-asc">Name: A–Z</option>
+              <option value="name-desc">Name: Z–A</option>
+            </select>
+          </div>
+
           <button
             type="button"
             class="all-albums-page__refresh-btn"
@@ -276,8 +303,10 @@ onUnmounted(() => {
         <div class="all-albums-grid">
           <div v-for="i in 12" :key="`skel-album-${i}`" class="all-albums-skeleton">
             <div class="all-albums-skeleton-cover"></div>
-            <div class="all-albums-skeleton-text"></div>
-            <div class="all-albums-skeleton-text short"></div>
+            <div class="all-album-info">
+              <h3 class="all-album-title all-albums-skeleton-text">&nbsp;</h3>
+              <p class="all-album-artist all-albums-skeleton-text short">&nbsp;</p>
+            </div>
           </div>
         </div>
       </div>
@@ -411,7 +440,7 @@ onUnmounted(() => {
         </svg>
       </button>
     </Transition>
-  </AppLayout>
+  </component>
 </template>
 
 <style scoped>
@@ -429,9 +458,9 @@ onUnmounted(() => {
 
 .all-albums-page__header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 1.5rem 2rem;
+  gap: 1.5rem;
   margin-bottom: 1.75rem;
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
   padding-bottom: 1.5rem;
@@ -512,10 +541,38 @@ onUnmounted(() => {
 
 .all-albums-page__actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem) 2.75rem;
   align-items: end;
   gap: 0.75rem;
   min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.all-albums-page__sort {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.all-albums-page__sort-select {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.all-albums-page__sort-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .all-albums-page__search {
@@ -635,7 +692,7 @@ onUnmounted(() => {
   }
 
   .all-albums-page__actions {
-    margin-left: 3.5rem;
+    margin-left: 0;
   }
 }
 
@@ -651,8 +708,14 @@ onUnmounted(() => {
   }
 
   .all-albums-page__actions {
+    grid-template-columns: minmax(0, 1fr) 2.75rem;
     margin-left: 0;
-    gap: 0.5rem;
+    gap: 0.875rem 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .all-albums-page__search {
+    grid-column: 1 / -1;
   }
 }
 
@@ -674,7 +737,8 @@ onUnmounted(() => {
   }
 }
 
-.all-album-card {
+.all-album-card,
+.all-albums-skeleton {
   position: relative;
   isolation: isolate;
   box-sizing: border-box;
@@ -849,6 +913,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  cursor: default;
 }
 
 .all-albums-skeleton-cover {
@@ -861,7 +926,6 @@ onUnmounted(() => {
 }
 
 .all-albums-skeleton-text {
-  height: 16px;
   border-radius: 4px;
   width: 80%;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
@@ -871,7 +935,6 @@ onUnmounted(() => {
 
 .all-albums-skeleton-text.short {
   width: 50%;
-  height: 13px;
 }
 
 @keyframes allAlbumsShimmer {
@@ -934,5 +997,10 @@ onUnmounted(() => {
 
 .all-albums-scroll-top:hover {
   transform: translateY(-2px);
+}
+.all-albums-page.all-albums-page--embedded {
+  padding: 0;
+  max-width: none;
+  margin: 0;
 }
 </style>

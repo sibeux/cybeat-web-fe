@@ -1,6 +1,6 @@
 <script setup lang="ts">
-  import { onMounted, onUnmounted, watch, ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { onMounted, onUnmounted, watch, ref, computed } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import AppLayout from '@/core/app/layouts/AppLayout.vue'
   import { APP_NAME } from '@/core/app/config/app.config'
@@ -13,6 +13,7 @@
   import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
   import ExploreCategorySection from '../components/ExploreCategorySection.vue'
+  import ExploreCategoryPage from './ExploreCategoryPage.vue'
   import SidebarSkeleton from '../components/SidebarSkeleton.vue'
 
   const EXPLORE_CATEGORIES = [
@@ -25,6 +26,11 @@
 
   const authStore = useAuthStore()
   const router = useRouter()
+  const route = useRoute()
+  const selectedExploreCategory = computed(() => {
+    const id = Number(route.query.category)
+    return EXPLORE_CATEGORIES.some((category) => category.id === id) ? id : null
+  })
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
   const historyStore = useHistoryStore()
@@ -568,6 +574,13 @@
     </template>
 
     <div class="dashboard">
+      <ExploreCategoryPage
+        v-if="selectedExploreCategory"
+        :key="`${selectedExploreCategory}:${authStore.isAuthenticated}`"
+        :category-id="selectedExploreCategory"
+        embedded
+      />
+      <template v-else>
       <div class="dashboard__welcome">
         <div class="dashboard__welcome-icon" aria-hidden="true">👋</div>
         <div>
@@ -591,7 +604,7 @@
         <div class="dashboard__explore-sections">
           <ExploreCategorySection
             v-for="cat in EXPLORE_CATEGORIES"
-            :key="cat.id"
+            :key="`${cat.id}:${authStore.isAuthenticated}`"
             :category-id="cat.id"
             :category-name="cat.name"
             :badge-label="cat.badge"
@@ -626,6 +639,7 @@
             </router-link>
           </div>
         </div>
+      </template>
     </div>
 
     <div v-if="playlistDialogOpen" class="dashboard__playlist-dialog-backdrop" @click.self="closePlaylistDialog" @keydown.esc="closePlaylistDialog">

@@ -36,6 +36,7 @@ const canScrollNext = ref(false)
 
 let observer: IntersectionObserver | null = null
 let resizeObserver: ResizeObserver | null = null
+const requestController = new AbortController()
 
 const DEFAULT_COVER = '/assets/images/placeholder_cover_music.png'
 
@@ -88,7 +89,8 @@ const loadAlbums = async (isInitial = false) => {
 
   try {
     // Muat 10 album untuk carousel horizontal
-    const response = await dashboardApi.getExploreAlbums(props.categoryId, 10, null)
+    const response = await dashboardApi.getExploreAlbums(props.categoryId, 10, null, requestController.signal)
+    if (requestController.signal.aborted) return
     const result = response.data.data
     const loaded = result.albums || []
 
@@ -96,6 +98,7 @@ const loadAlbums = async (isInitial = false) => {
     dashboardStore.setExploreCategoryAlbums(props.categoryId, loaded)
     isInitialLoaded.value = true
   } catch (err: any) {
+    if (requestController.signal.aborted) return
     if (isInitial) {
       error.value = err?.response?.data?.message || err?.message || 'Gagal memuat album'
     }
@@ -141,6 +144,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  requestController.abort()
   window.removeEventListener('resize', updateScrollState)
   resizeObserver?.disconnect()
   if (observer) {
@@ -160,13 +164,12 @@ onUnmounted(() => {
         <span v-if="badgeLabel" class="explore-section__badge">{{ badgeLabel }}</span>
       </div>
 
-      <!-- Show More in new tab -->
+      <!-- Show More inside dashboard -->
       <div class="explore-section__actions">
         <router-link
-          :to="`/explore/${categoryId}`"
-          target="_blank"
+          :to="{ path: '/', query: { category: categoryId } }"
           class="explore-section__show-more-link"
-          title="Open in new tab"
+          title="Show category albums"
         >
           <span>Show More</span>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -307,10 +310,9 @@ onUnmounted(() => {
 
         <!-- See All card at the end of scrollable row -->
         <router-link
-          :to="`/explore/${categoryId}`"
-          target="_blank"
+          :to="{ path: '/', query: { category: categoryId } }"
           class="explore-section__see-all-card"
-          title="See all in new tab"
+          title="See all category albums"
         >
           <div class="explore-section__see-all-circle">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5">
