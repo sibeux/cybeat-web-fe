@@ -1,8 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { dashboardApi } from '../api/dashboard.api'
-import type { Album, Category, Playlist } from '../types/album.types'
+import type { Album, Category, Playlist, ExploreCategoryInfo } from '../types/album.types'
 import { useAuthStore } from '@/features/auth'
+
+export interface ExplorePageCacheItem {
+  albums: Album[]
+  categoryInfo: ExploreCategoryInfo | null
+  cursor: number | null
+  hasMore: boolean
+}
 
 export const useDashboardStore = defineStore('dashboard', () => {
   const albums = ref<Album[]>([])
@@ -14,6 +21,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const fetchedSearch = ref('')
   const searchQuery = ref('')
 
+  // In-memory cache for explore categories (e.g. 10 albums per category carousel on Dashboard)
+  const exploreCategories = ref<Record<number, Album[]>>({})
+
+  // In-memory cache for explore category dedicated pages (/explore/:id)
+  const explorePageCache = ref<Record<number, ExplorePageCacheItem>>({})
+
   const authStore = useAuthStore()
 
   // Invalidate cache and reset data when auth state changes (login/logout)
@@ -24,7 +37,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
     albums.value = []
     categories.value = []
     playlists.value = []
+    exploreCategories.value = {}
+    explorePageCache.value = {}
   })
+
+  const setExploreCategoryAlbums = (categoryId: number, items: Album[]) => {
+    exploreCategories.value[categoryId] = items
+  }
+
+  const setExplorePageCache = (categoryId: number, data: ExplorePageCacheItem) => {
+    explorePageCache.value[categoryId] = data
+  }
 
   let dashboardAbortController: AbortController | null = null
 
@@ -75,6 +98,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchedSearch,
     error,
     searchQuery,
+    exploreCategories,
+    explorePageCache,
+    setExploreCategoryAlbums,
+    setExplorePageCache,
     fetchDashboardData
   }
 })

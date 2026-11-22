@@ -12,6 +12,15 @@
   import { useHistoryStore } from '@/features/history/store/history.store'
   import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
+  import ExploreCategorySection from '../components/ExploreCategorySection.vue'
+
+  const EXPLORE_CATEGORIES = [
+    { id: 2, name: '日本の歌', badge: 'Japanese' },
+    { id: 5, name: 'Instrumental', badge: 'Instrumental' },
+    { id: 4, name: 'Worldwide', badge: 'Worldwide' },
+    { id: 1, name: 'IndoPride', badge: 'Indonesian' },
+    { id: 3, name: 'Jowo Mletre', badge: 'Javanese' },
+  ]
 
   const authStore = useAuthStore()
   const router = useRouter()
@@ -19,7 +28,7 @@
   const dashboardStore = useDashboardStore()
   const historyStore = useHistoryStore()
 
-  const { albums, categories, playlists, isLoading, error, searchQuery } =
+  const { albums, categories, playlists, isLoading, error } =
     storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
@@ -39,7 +48,6 @@
   const deletePlaylistTarget = ref<{ id: number; title: string } | null>(null)
   const playlistDeleting = ref(false)
   const deletePlaylistError = ref('')
-  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const handleScroll = () => {
     showScrollTop.value = window.scrollY > 300
@@ -60,76 +68,26 @@
     window.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('click', handlePlaylistMenuOutsideClick)
     window.addEventListener('keydown', handlePlaylistMenuKeydown)
-    await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim())
-  })
-
-  const clearSearchTimer = () => {
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer)
-      searchDebounceTimer = null
+    if (!dashboardStore.isFetched) {
+      await dashboardStore.fetchDashboardData('', false)
     }
-  }
+  })
 
   onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll)
     window.removeEventListener('click', handlePlaylistMenuOutsideClick)
     window.removeEventListener('keydown', handlePlaylistMenuKeydown)
-    clearSearchTimer()
   })
-
-  watch(searchQuery, (newVal) => {
-    const trimmed = newVal.trim()
-    clearSearchTimer()
-
-    // Jika search form dihapus/dikosongkan (baik tombol x maupun hapus karakter)
-    if (trimmed === '') {
-      // Jika sebelumnya ada query yang aktif, langsung fetch ulang sekarang juga (tanpa debounce)
-      // dengan UI loading yang sama persis seperti klik refresh
-      if (dashboardStore.fetchedSearch !== '') {
-        dashboardStore.fetchDashboardData('', true)
-      }
-      return
-    }
-
-    if (trimmed === dashboardStore.fetchedSearch) return
-
-    // Debounce untuk pengetikan kata kunci pencarian
-    searchDebounceTimer = setTimeout(async () => {
-      searchDebounceTimer = null
-      await dashboardStore.fetchDashboardData(trimmed, true)
-    }, 350)
-  })
-
-  const clearSearch = async () => {
-    clearSearchTimer()
-    if (searchQuery.value === '') {
-      if (dashboardStore.fetchedSearch !== '') {
-        await dashboardStore.fetchDashboardData('', true)
-      }
-    } else {
-      searchQuery.value = ''
-    }
-  }
-
-  const handleSearchSubmit = async () => {
-    clearSearchTimer()
-    const trimmed = searchQuery.value.trim()
-    if (trimmed !== dashboardStore.fetchedSearch) {
-      await dashboardStore.fetchDashboardData(trimmed, true)
-    }
-  }
 
   watch(
     () => authStore.isAuthenticated,
     async () => {
-      clearSearchTimer()
-      await dashboardStore.fetchDashboardData(searchQuery.value.trim(), true)
+      await dashboardStore.fetchDashboardData('', true)
     },
   )
 
   const handleRefresh = async () => {
-    clearSearchTimer()
-    await dashboardStore.fetchDashboardData(dashboardStore.searchQuery.trim(), true)
+    await dashboardStore.fetchDashboardData('', true)
   }
 
   const resolveCoverUrl = (cover: unknown) => {
@@ -641,78 +599,6 @@
         </div>
       </div>
 
-      <div class="dashboard__actions-bar">
-        <div class="dashboard__search">
-          <label for="dashboard-search" class="dashboard__search-label">Search Album</label>
-          <div class="dashboard__search-input-wrapper">
-            <svg
-              class="dashboard__search-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-            <input
-              id="dashboard-search"
-              v-model="searchQuery"
-              type="search"
-              class="dashboard__search-input"
-              placeholder="Search by title or artist..."
-              autocomplete="off"
-              @keydown.enter="handleSearchSubmit"
-            />
-            <button
-              v-if="searchQuery"
-              class="dashboard__search-clear"
-              aria-label="Clear search"
-              @click="clearSearch"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          class="dashboard__refresh-btn"
-          :class="{ 'dashboard__refresh-btn--loading': isLoading }"
-          :disabled="isLoading"
-          title="Refresh data"
-          aria-label="Refresh data"
-          @click="handleRefresh"
-        >
-          <svg
-            class="dashboard__refresh-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-          <span class="dashboard__refresh-text">Refresh</span>
-        </button>
-      </div>
-
       <div v-if="isLoading" class="dashboard__loading">
         <svg
           class="dashboard__spinner"
@@ -739,89 +625,44 @@
         <button type="button" class="dashboard__retry-btn" @click="handleRefresh">Try Again</button>
       </div>
       <template v-else>
-        <!-- Album Section -->
-        <div v-if="albums.length > 0" class="dashboard__albums-section">
-          <h2 class="dashboard__section-title">Latest Albums</h2>
-          <div class="dashboard__album-grid">
-            <div
-              v-for="item in albums"
-              :key="item.id"
-              class="dashboard__album-card"
-              :class="{ 'dashboard__album-card--playing': isPlayingAlbum(item) }"
-              @click="goToAlbum(item)"
-              @contextmenu.prevent.stop="openAlbumMenu($event, item)"
-            >
-              <div
-                class="dashboard__album-cover"
-                :style="{ backgroundColor: item.bg_color || 'var(--color-surface-raised)' }"
-              >
-                <div v-if="!getCoverUrls(item).length" class="dashboard__album-cover-placeholder">
-                  <img v-img-cache="DEFAULT_COVER" :alt="item.title" />
-                </div>
-                <div
-                  v-else-if="getCoverUrls(item).length === 4"
-                  class="dashboard__album-cover-grid"
-                >
-                  <img
-                    v-for="(coverUrl, index) in getCoverUrls(item)"
-                    :key="`${item.id}-cover-${index}`"
-                    v-img-cache="coverUrl"
-                    :alt="`${item.title} cover ${index + 1}`"
-                    loading="lazy"
-                    @error="handleCoverError"
-                  />
-                </div>
-                <img
-                  v-else
-                  v-img-cache="getCoverUrls(item)[0]"
-                  :alt="item.title"
-                  loading="lazy"
-                  @error="handleCoverError"
-                />
-
-                <div
-                  v-if="isPlayingAlbum(item)"
-                  class="dashboard__album-playing-indicator"
-                  aria-label="Playing now"
-                >
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                </div>
-              </div>
-              <div class="dashboard__album-info">
-                <div class="dashboard__album-title-row">
-                  <svg
-                    v-if="item.pin_at"
-                    class="dashboard__album-pin-icon"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    title="Pinned"
-                    aria-label="Pinned"
-                  >
-                    <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
-                  </svg>
-                  <h3
-                    class="dashboard__album-title"
-                    :class="{ 'dashboard__album-title--playing': isPlayingAlbum(item) }"
-                    :title="item.title"
-                  >
-                    {{ item.title }}
-                  </h3>
-                </div>
-                <p
-                  class="dashboard__album-artist"
-                  :class="{ 'dashboard__album-artist--playing': isPlayingAlbum(item) }"
-                  :title="item.author"
-                >
-                  {{ item.author }}
-                </p>
-              </div>
-            </div>
-          </div>
+        <!-- 5 Explore Category Sections (Lazy Load + Keyset Pagination) -->
+        <div class="dashboard__explore-sections">
+          <ExploreCategorySection
+            v-for="cat in EXPLORE_CATEGORIES"
+            :key="cat.id"
+            :category-id="cat.id"
+            :category-name="cat.name"
+            :badge-label="cat.badge"
+            :is-playing-album="isPlayingAlbum"
+            @album-click="goToAlbum"
+            @album-context-menu="openAlbumMenu($event.event, $event.item)"
+          />
         </div>
-        <div v-else class="dashboard__album-empty" role="status">
-          <strong>No albums found</strong>
-          <span v-if="searchQuery.trim()">No albums match “{{ searchQuery.trim() }}”.</span>
-          <span v-else>There are no albums to display.</span>
+
+        <!-- Dedicated CTA Section for All Albums -->
+        <div class="dashboard__all-albums-cta">
+          <div class="dashboard__all-albums-cta-content">
+            <div class="dashboard__all-albums-cta-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="18" cy="16" r="3" />
+              </svg>
+            </div>
+            <div class="dashboard__all-albums-cta-text">
+              <h3 class="dashboard__all-albums-cta-title">Looking for more music?</h3>
+              <p class="dashboard__all-albums-cta-desc">
+                Browse our complete catalog of albums, discographies, and artist collections.
+              </p>
+            </div>
+            <router-link to="/albums" class="dashboard__all-albums-cta-btn">
+              <span>View All Albums</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </router-link>
+          </div>
         </div>
       </template>
     </div>

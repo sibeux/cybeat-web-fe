@@ -50,3 +50,16 @@ export interface MusicDashboardData {
   category?: Category[]
   playlist?: Playlist[]
 }
+
+export interface ExploreCategoryInfo {
+  id: number
+  name: string
+  cover: string | CategoryCoverObject | null
+}
+
+export interface ExploreCategoryData {
+  category: ExploreCategoryInfo
+  albums: Album[]
+  next_cursor: number | null
+  has_more: boolean
+}

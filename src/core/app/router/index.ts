@@ -58,11 +58,23 @@ const router = createRouter({
       component: () => import('@/features/history/pages/HistoryPage.vue'),
     },
 
-    // ─── Album Route ──────────────────────────────────────────────────────────
+    // ─── Album & Explore Route ────────────────────────────────────────────────
     {
       path: '/artist/:id',
       name: 'artist',
       component: () => import('@/features/artist/pages/ArtistPage.vue'),
+    },
+
+    {
+      path: '/explore/:id',
+      name: 'explore-category',
+      component: () => import('@/features/dashboard/pages/ExploreCategoryPage.vue'),
+    },
+
+    {
+      path: '/albums',
+      name: 'all-albums',
+      component: () => import('@/features/dashboard/pages/AllAlbumsPage.vue'),
     },
 
     {
