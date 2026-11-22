@@ -463,27 +463,56 @@ onUnmounted(() => {
 .dashboard__album-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1.5rem;
+  gap: 0.375rem;
 }
 
 @media (max-width: 768px) {
   .dashboard__album-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
+    gap: 0.375rem;
   }
 }
 
 .dashboard__album-card {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  padding: 0.625rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
   min-width: 0;
 }
 
+.dashboard__album-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: calc(var(--radius-md, 8px) + 0.25rem);
+  border: 1px solid color-mix(in srgb, var(--color-text, #fff) 8%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-text, #fff) 7%, var(--color-surface-raised, #18181b)),
+    var(--color-surface-raised, #18181b) 65%
+  );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text, #fff) 4%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease-out;
+}
+
 .dashboard__album-card:hover {
-  transform: translateY(-4px);
+  background: transparent;
+  transform: none;
+}
+
+.dashboard__album-card:hover::before {
+  opacity: 1;
+  transition-duration: 0.06s;
 }
 
 .dashboard__album-cover {
@@ -501,11 +530,11 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s ease;
+
 }
 
 .dashboard__album-card:hover .dashboard__album-cover img {
-  transform: scale(1.05);
+  transform: none;
 }
 
 .dashboard__album-card--playing .dashboard__album-cover {

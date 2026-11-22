@@ -3,6 +3,9 @@ import type { ApiSuccessResponse } from '@/core/shared/types/api.types'
 import type { MusicDashboardData, ExploreCategoryData } from '../types/album.types'
 
 export const dashboardApi = {
+  getSidebar() {
+    return apiClient.get<ApiSuccessResponse<Omit<MusicDashboardData, 'album'>>>('/music/album/sidebar.php')
+  },
   getMusicDashboard(search = '', signal?: AbortSignal) {
     return apiClient.get<ApiSuccessResponse<MusicDashboardData>>('/music/album/', {
       params: search ? { search } : undefined,

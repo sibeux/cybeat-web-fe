@@ -13,6 +13,8 @@ export interface ExplorePageCacheItem {
 
 export const useDashboardStore = defineStore('dashboard', () => {
   const albums = ref<Album[]>([])
+  const isSidebarLoading = ref(false)
+  const sidebarError = ref<string | null>(null)
   const categories = ref<Category[]>([])
   const playlists = ref<Playlist[]>([])
   const isLoading = ref(false)
@@ -50,6 +52,23 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   let dashboardAbortController: AbortController | null = null
+
+  const fetchSidebarData = async () => {
+    if (isSidebarLoading.value) return
+    const authenticated = authStore.isAuthenticated
+    try {
+      isSidebarLoading.value = true
+      sidebarError.value = null
+      const response = await dashboardApi.getSidebar()
+      if (authStore.isAuthenticated !== authenticated) return
+      categories.value = response.data.data.category || []
+      playlists.value = response.data.data.playlist || []
+    } catch (err: unknown) {
+      sidebarError.value = err instanceof Error ? err.message : 'Gagal memuat data'
+    } finally {
+      isSidebarLoading.value = false
+    }
+  }
 
   const fetchDashboardData = async (search = '', force = false) => {
     const trimmedSearch = search.trim()
@@ -90,6 +109,9 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 
   return {
+    fetchSidebarData,
+    isSidebarLoading,
+    sidebarError,
     albums,
     categories,
     playlists,

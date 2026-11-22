@@ -28,7 +28,7 @@
   const dashboardStore = useDashboardStore()
   const historyStore = useHistoryStore()
 
-  const { albums, categories, playlists, isLoading, error } =
+  const { albums, categories, playlists, isSidebarLoading: isLoading } =
     storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
@@ -68,9 +68,7 @@
     window.addEventListener('scroll', handleScroll, { passive: true })
     window.addEventListener('click', handlePlaylistMenuOutsideClick)
     window.addEventListener('keydown', handlePlaylistMenuKeydown)
-    if (!dashboardStore.isFetched) {
-      await dashboardStore.fetchDashboardData('', false)
-    }
+    await dashboardStore.fetchSidebarData()
   })
 
   onUnmounted(() => {
@@ -82,13 +80,10 @@
   watch(
     () => authStore.isAuthenticated,
     async () => {
-      await dashboardStore.fetchDashboardData('', true)
+      await dashboardStore.fetchSidebarData()
     },
   )
 
-  const handleRefresh = async () => {
-    await dashboardStore.fetchDashboardData('', true)
-  }
 
   const resolveCoverUrl = (cover: unknown) => {
     if (typeof cover !== 'string' || !cover) return ''
@@ -274,9 +269,7 @@
       } else {
         await playlistApi.create(title)
       }
-      const activeSearch = dashboardStore.searchQuery.trim()
-      await dashboardStore.fetchDashboardData('', true)
-      if (activeSearch) await dashboardStore.fetchDashboardData(activeSearch, true)
+      await dashboardStore.fetchSidebarData()
       playlistDialogOpen.value = false
     } catch (error: any) {
       playlistError.value = error?.response?.data?.message || 'Could not save playlist. Please try again.'
@@ -599,32 +592,6 @@
         </div>
       </div>
 
-      <div v-if="isLoading" class="dashboard__loading">
-        <svg
-          class="dashboard__spinner"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="12" y1="2" x2="12" y2="6"></line>
-          <line x1="12" y1="18" x2="12" y2="22"></line>
-          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-          <line x1="2" y1="12" x2="6" y2="12"></line>
-          <line x1="18" y1="12" x2="22" y2="12"></line>
-          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-        </svg>
-        Loading data...
-      </div>
-      <div v-else-if="error" class="dashboard__error">
-        <p>{{ error }}</p>
-        <button type="button" class="dashboard__retry-btn" @click="handleRefresh">Try Again</button>
-      </div>
-      <template v-else>
         <!-- 5 Explore Category Sections (Lazy Load + Keyset Pagination) -->
         <div class="dashboard__explore-sections">
           <ExploreCategorySection
@@ -664,7 +631,6 @@
             </router-link>
           </div>
         </div>
-      </template>
     </div>
 
     <div v-if="playlistDialogOpen" class="dashboard__playlist-dialog-backdrop" @click.self="closePlaylistDialog" @keydown.esc="closePlaylistDialog">

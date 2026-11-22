@@ -496,7 +496,7 @@ onUnmounted(() => {
 
 .explore-section__scroll-row {
   display: flex;
-  gap: 1.25rem;
+  gap: 0.375rem;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
