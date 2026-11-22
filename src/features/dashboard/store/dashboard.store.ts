@@ -62,6 +62,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const getExplorePageCache = (categoryId: number, search = '', sort = '') =>
     explorePageCache.value[exploreCacheKey(categoryId, search, sort)]
 
+  const clearExplorePageCache = (categoryId: number) => {
+    for (const key of Object.keys(explorePageCache.value)) {
+      if (key === String(categoryId) || key.startsWith(`[${categoryId},`)) {
+        delete explorePageCache.value[key]
+      }
+    }
+  }
+
   const setExplorePageCache = (categoryId: number, data: ExplorePageCacheItem, search = '', sort = '') => {
     explorePageCache.value[exploreCacheKey(categoryId, search, sort)] = { ...data, albums: [...data.albums] }
   }
@@ -142,6 +150,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     setExploreCategoryAlbums,
     setExplorePageCache,
     getExplorePageCache,
+    clearExplorePageCache,
     fetchDashboardData
   }
 })

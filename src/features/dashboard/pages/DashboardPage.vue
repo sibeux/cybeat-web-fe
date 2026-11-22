@@ -33,6 +33,11 @@
   })
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
+  watch(selectedExploreCategory, (categoryId, previousCategoryId) => {
+    if (route.path === '/' && categoryId === null && previousCategoryId !== null) {
+      dashboardStore.clearExplorePageCache(previousCategoryId)
+    }
+  })
   const historyStore = useHistoryStore()
 
   const { albums, categories, playlists, isSidebarLoading: isLoading } =
