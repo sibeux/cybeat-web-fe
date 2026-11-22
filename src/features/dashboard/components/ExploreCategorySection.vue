@@ -190,8 +190,10 @@ onUnmounted(() => {
     <div v-else-if="!isInitialLoaded && isLoading" class="explore-section__scroll-row">
       <div v-for="i in 6" :key="`skel-${i}`" class="explore-skeleton-card explore-section__scroll-item">
         <div class="explore-skeleton-cover"></div>
-        <div class="explore-skeleton-title"></div>
-        <div class="explore-skeleton-subtitle"></div>
+        <div class="dashboard__album-info">
+          <h3 class="dashboard__album-title explore-skeleton-title">&nbsp;</h3>
+          <p class="dashboard__album-artist explore-skeleton-subtitle">&nbsp;</p>
+        </div>
       </div>
     </div>
 
@@ -606,7 +608,8 @@ onUnmounted(() => {
 }
 
 /* Card & Cover Styling */
-.dashboard__album-card {
+.dashboard__album-card,
+.explore-skeleton-card {
   position: relative;
   isolation: isolate;
   box-sizing: content-box;
@@ -790,6 +793,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  cursor: default;
 }
 
 .explore-skeleton-cover {
@@ -802,7 +806,6 @@ onUnmounted(() => {
 }
 
 .explore-skeleton-title {
-  height: 15px;
   border-radius: 4px;
   width: 80%;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
@@ -811,7 +814,6 @@ onUnmounted(() => {
 }
 
 .explore-skeleton-subtitle {
-  height: 12px;
   border-radius: 4px;
   width: 50%;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);

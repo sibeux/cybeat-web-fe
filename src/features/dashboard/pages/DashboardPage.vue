@@ -13,6 +13,7 @@
   import type { RecentMusicItem } from '@/features/history/types/history.types'
   import { useTitle } from '@/core/shared/composables/useTitle'
   import ExploreCategorySection from '../components/ExploreCategorySection.vue'
+  import SidebarSkeleton from '../components/SidebarSkeleton.vue'
 
   const EXPLORE_CATEGORIES = [
     { id: 2, name: '日本の歌', badge: 'Japanese' },
@@ -351,9 +352,7 @@
 
         <!-- Categories -->
         <template v-if="sidebarTab === 'kategori'">
-          <div v-if="isLoading && categories.length === 0" class="dashboard__sidebar-loading">
-            Loading...
-          </div>
+          <SidebarSkeleton v-if="isLoading && categories.length === 0" />
           <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">
             No categories available
           </div>
@@ -428,9 +427,7 @@
               </svg>
             </button>
           </div>
-          <div v-if="isLoading && playlists.length === 0" class="dashboard__sidebar-loading">
-            Loading...
-          </div>
+          <SidebarSkeleton v-if="isLoading && playlists.length === 0" playlist subtitle />
           <div v-else-if="playlists.length === 0" class="dashboard__playlist-empty">
             <div class="dashboard__playlist-empty-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
@@ -520,9 +517,7 @@
               Sign In
             </button>
           </div>
-          <div v-else-if="isHistoryLoading && recentTracks.length === 0" class="dashboard__sidebar-loading">
-            Loading...
-          </div>
+          <SidebarSkeleton v-else-if="isHistoryLoading && recentTracks.length === 0" subtitle />
           <div v-else-if="recentTracks.length === 0" class="dashboard__sidebar-empty">
             No recently played tracks
           </div>
@@ -741,4 +736,5 @@
   </AppLayout>
 </template>
 
+<style scoped src="../components/SidebarItemLayout.css"></style>
 <style scoped src="./DashboardPage.css"></style>
