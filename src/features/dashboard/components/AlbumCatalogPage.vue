@@ -576,6 +576,7 @@ onUnmounted(() => {
         <button
           type="button"
           class="all-albums-context-menu-item"
+          :class="{ 'all-albums-context-menu-item--saved': libraryStore.isInLibrary(albumContextMenu.item.id) }"
           role="menuitem"
           :disabled="libraryStore.libraryBusyId !== null || libraryStore.isSidebarLoading"
           @click="toggleAlbumLibraryFromMenu"
@@ -1141,6 +1142,12 @@ onUnmounted(() => {
   max-width: none;
   margin: 0;
 }
+.all-albums-context-menu-item--saved,
+.all-albums-context-menu-item--saved:hover,
+.all-albums-context-menu-item--saved:focus-visible {
+  color: #34d399;
+}
+
 .catalog-sort__wrapper {
   position: relative;
   display: inline-block;

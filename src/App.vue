@@ -7,6 +7,7 @@
   import { decodeJwtPayload } from '@/features/auth/utils/jwt'
   import LoadingSpinner from '@/core/shared/components/LoadingSpinner.vue'
   import MusicPlayerWidget from '@/features/album/components/MusicPlayerWidget.vue'
+  import AppSnackbar from '@/core/shared/components/AppSnackbar.vue'
 
   const router = useRouter()
   const authStore = useAuthStore()
@@ -81,5 +82,6 @@
   <template v-else>
     <RouterView />
     <MusicPlayerWidget />
+    <AppSnackbar />
   </template>
 </template>

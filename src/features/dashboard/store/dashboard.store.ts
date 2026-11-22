@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { dashboardApi } from '../api/dashboard.api'
 import type { Album, Category, Playlist, ExploreCategoryInfo } from '../types/album.types'
 import { libraryApi } from '../api/library.api'
+import { useSnackbarStore } from '@/core/shared/stores/snackbar.store'
 import { useAuthStore } from '@/features/auth'
 
 export interface ExplorePageCacheItem {
@@ -34,6 +35,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const explorePageCache = ref<Record<string, ExplorePageCacheItem>>({})
 
   const authStore = useAuthStore()
+  const snackbar = useSnackbarStore()
   let sidebarController: AbortController | null = null
 
   // Invalidate cache and reset data when auth state changes (login/logout)
@@ -143,7 +145,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const isInLibrary = (id: number) => libraryAlbums.value.some((album) => Number(album.id) === Number(id))
   const toggleLibraryAlbum = async (item: Album) => {
     if (libraryBusyId.value !== null || isSidebarLoading.value) return
-    if (!authStore.isAuthenticated) { libraryError.value = 'Sign in to add albums to your library.'; return }
+    if (!authStore.isAuthenticated) {
+      libraryError.value = 'Sign in to add albums to your library.'
+      snackbar.show(libraryError.value, 'error')
+      return
+    }
     libraryBusyId.value = Number(item.id)
     libraryError.value = null
     const identity = authStore.user?.id
@@ -154,8 +160,11 @@ export const useDashboardStore = defineStore('dashboard', () => {
       if (!authStore.isAuthenticated || authStore.user?.id !== identity) return
       if (saved) libraryAlbums.value = libraryAlbums.value.filter((album) => Number(album.id) !== Number(item.id))
       else libraryAlbums.value = [...libraryAlbums.value, { ...item }]
+      snackbar.show(saved ? 'Removed from library' : 'Added to library')
     } catch {
+      if (!authStore.isAuthenticated || authStore.user?.id !== identity) return
       libraryError.value = 'Could not update library. Please try again.'
+      snackbar.show(libraryError.value, 'error')
     } finally { libraryBusyId.value = null }
   }
 
