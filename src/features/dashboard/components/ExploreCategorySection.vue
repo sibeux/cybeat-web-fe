@@ -505,13 +505,12 @@ onUnmounted(() => {
   overflow-y: hidden;
   scroll-behavior: smooth;
   padding: 0.25rem 0.25rem 0.85rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 
 .explore-section__scroll-row::-webkit-scrollbar {
-  height: 6px;
+  display: none;
 }
 
 .explore-section__scroll-row::-webkit-scrollbar-track {
