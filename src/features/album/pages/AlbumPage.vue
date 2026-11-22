@@ -1034,7 +1034,7 @@
             class="album-page__back-btn album-page__back-btn--hero"
             aria-label="Go back"
             title="Go back"
-            @click="goToDashboard"
+            @click="goBack"
           >
             <svg
               viewBox="0 0 24 24"
