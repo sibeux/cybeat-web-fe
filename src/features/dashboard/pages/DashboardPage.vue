@@ -17,6 +17,7 @@
   import AllAlbumsPage from './AllAlbumsPage.vue'
   import { vSidebarFade } from '../components/sidebarFade'
   import SidebarSkeleton from '../components/SidebarSkeleton.vue'
+  import { compareLibraryItems } from '../utils/librarySort'
 
   const EXPLORE_CATEGORIES = [
     { id: 2, name: '日本の歌', badge: 'Japanese' },
@@ -52,10 +53,9 @@
     const items = sidebarTab.value === 'albums' ? [...libraryAlbums.value]
       : sidebarTab.value === 'kategori' ? [...categories.value]
       : [...categories.value, ...playlists.value, ...libraryAlbums.value]
-    return items.sort((a, b) => Number(Boolean(b.pin_at)) - Number(Boolean(a.pin_at))
-      || (a.pin_at && b.pin_at ? a.pin_at.localeCompare(b.pin_at) : 0)
-      || a.title.localeCompare(b.title))
+    return items.sort(compareLibraryItems)
   })
+  const sidebarPlaylists = computed(() => [...playlists.value].sort(compareLibraryItems))
   const sidebarPinBusy = ref(false)
   const toggleSidebarPin = async (item: (typeof sidebarLibraryItems.value)[number]) => {
     if (sidebarPinBusy.value || !authStore.isAuthenticated) return
@@ -446,7 +446,7 @@
           </div>
           <ul v-else v-sidebar-fade class="dashboard__sidebar-list">
             <li
-              v-for="item in playlists"
+              v-for="item in sidebarPlaylists"
               :key="item.id"
               class="dashboard__sidebar-item dashboard__sidebar-item--playlist"
               :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"

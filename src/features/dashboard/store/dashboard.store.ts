@@ -159,7 +159,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       else await libraryApi.add(Number(item.id))
       if (!authStore.isAuthenticated || authStore.user?.id !== identity) return
       if (saved) libraryAlbums.value = libraryAlbums.value.filter((album) => Number(album.id) !== Number(item.id))
-      else libraryAlbums.value = [...libraryAlbums.value, { ...item }]
+      else libraryAlbums.value = [...libraryAlbums.value, { ...item, created_at: new Date().toISOString() }]
       snackbar.show(saved ? 'Removed from library' : 'Added to library')
     } catch {
       if (!authStore.isAuthenticated || authStore.user?.id !== identity) return
