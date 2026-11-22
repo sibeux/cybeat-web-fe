@@ -14,6 +14,7 @@
   import { useTitle } from '@/core/shared/composables/useTitle'
   import ExploreCategorySection from '../components/ExploreCategorySection.vue'
   import ExploreCategoryPage from './ExploreCategoryPage.vue'
+  import AllAlbumsPage from './AllAlbumsPage.vue'
   import { vSidebarFade } from '../components/sidebarFade'
   import SidebarSkeleton from '../components/SidebarSkeleton.vue'
 
@@ -571,8 +572,13 @@
     </template>
 
     <div class="dashboard">
+      <AllAlbumsPage
+        v-if="route.name === 'all-albums'"
+        :key="`all-albums:${authStore.isAuthenticated}`"
+        embedded
+      />
       <ExploreCategoryPage
-        v-if="selectedExploreCategory"
+        v-else-if="selectedExploreCategory"
         :key="`${selectedExploreCategory}:${authStore.isAuthenticated}`"
         :category-id="selectedExploreCategory"
         embedded

@@ -5,6 +5,7 @@ import AlbumCatalogPage from '../components/AlbumCatalogPage.vue'
 import { useDashboardStore } from '../store/dashboard.store'
 import { useTitle } from '@/core/shared/composables/useTitle'
 
+defineProps<{ embedded?: boolean }>()
 const dashboardStore = useDashboardStore()
 const { albums, isLoading, error } = storeToRefs(dashboardStore)
 useTitle(() => 'All Albums ? Cybeat')
@@ -20,6 +21,7 @@ onMounted(() => dashboardStore.fetchDashboardData('', false))
 <template>
   <AlbumCatalogPage
     v-model:albums="albums"
+    :embedded="embedded"
     title="All Albums"
     badge="Catalog"
     subtitle="Browse through all albums available in the catalog"

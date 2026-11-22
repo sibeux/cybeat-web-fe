@@ -74,7 +74,7 @@ const router = createRouter({
     {
       path: '/albums',
       name: 'all-albums',
-      component: () => import('@/features/dashboard/pages/AllAlbumsPage.vue'),
+      component: () => import('@/features/dashboard/pages/DashboardPage.vue'),
     },
 
     {
