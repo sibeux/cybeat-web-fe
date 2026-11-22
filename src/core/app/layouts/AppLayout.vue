@@ -732,6 +732,7 @@
     border-right: 1px solid var(--color-border);
     overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     position: fixed;
     top: 3.75rem;
     left: 0;

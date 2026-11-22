@@ -1,5 +1,7 @@
 /* ── Sidebar (Kategori) ───────────────────────────────────────── */
 .dashboard__sidebar {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1309,3 +1311,20 @@
 @media (hover: none) { .dashboard__library-pin { opacity: 1; } }
 
 @media (min-width: 1024px) { .dashboard-layout { --app-sidebar-width: 320px; } }
+
+.dashboard__sidebar--more::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  height: 4rem;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-surface) 70%, transparent));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  mask-image: linear-gradient(to bottom, transparent, #000 85%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 85%);
+}

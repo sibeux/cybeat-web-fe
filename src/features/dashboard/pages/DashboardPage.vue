@@ -14,6 +14,7 @@
   import { useTitle } from '@/core/shared/composables/useTitle'
   import ExploreCategorySection from '../components/ExploreCategorySection.vue'
   import ExploreCategoryPage from './ExploreCategoryPage.vue'
+  import { vSidebarFade } from '../components/sidebarFade'
   import SidebarSkeleton from '../components/SidebarSkeleton.vue'
 
   const EXPLORE_CATEGORIES = [
@@ -353,7 +354,7 @@
           <div v-else-if="sidebarLibraryItems.length === 0" class="dashboard__sidebar-empty">
             No library items yet. Right-click an album to add it.
           </div>
-          <ul v-else class="dashboard__sidebar-list">
+          <ul v-else v-sidebar-fade class="dashboard__sidebar-list">
             <li
               v-for="item in sidebarLibraryItems"
               :key="`${item.type}:${item.id}`"
@@ -442,7 +443,7 @@
             <p>Save your favorite tracks in a playlist.</p>
             <button type="button" @click="openPlaylistDialog()">Create playlist</button>
           </div>
-          <ul v-else class="dashboard__sidebar-list">
+          <ul v-else v-sidebar-fade class="dashboard__sidebar-list">
             <li
               v-for="item in playlists"
               :key="item.id"
@@ -530,7 +531,7 @@
                 View all &rarr;
               </button>
             </div>
-            <ul class="dashboard__sidebar-list">
+            <ul v-sidebar-fade class="dashboard__sidebar-list">
               <li
                 v-for="(item, index) in recentTracks"
                 :key="`${item.id_music}-${item.played_at}-${index}`"
