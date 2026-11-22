@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import AlbumCatalogPage from '../components/AlbumCatalogPage.vue'
 import { useDashboardStore } from '../store/dashboard.store'
 import { dashboardApi } from '../api/dashboard.api'
@@ -10,6 +10,7 @@ import axios from 'axios'
 
 const props = defineProps<{ embedded?: boolean; categoryId?: number }>()
 const route = useRoute()
+const router = useRouter()
 const dashboardStore = useDashboardStore()
 
 const categoryId = computed(() => props.categoryId || Number(route.params.id) || 1)
@@ -28,7 +29,13 @@ const categoryMeta = computed(() => {
 
 useTitle(() => `${categoryMeta.value.name} - Explore New Albums • Cybeat`)
 
-const cached = dashboardStore.explorePageCache[categoryId.value]
+const initialSearch = typeof route.query.search === 'string' ? route.query.search : ''
+const sort = ref<{ mode: 'default' | 'alphabetical' | 'created'; direction: 'asc' | 'desc' }>({
+  mode: route.query.sort === 'alphabetical' || route.query.sort === 'created' ? route.query.sort : 'default',
+  direction: route.query.order === 'asc' ? 'asc' : 'desc',
+})
+const sortCacheKey = () => sort.value.mode + ':' + sort.value.direction
+const cached = dashboardStore.getExplorePageCache(categoryId.value, initialSearch, sortCacheKey())
 
 const albums = ref<Album[]>(cached ? [...cached.albums] : [])
 const categoryInfo = ref<ExploreCategoryInfo | null>(cached ? cached.categoryInfo : null)
@@ -41,15 +48,14 @@ const sentinelRef = ref<HTMLElement | null>(null)
 
 let sentinelObserver: IntersectionObserver | null = null
 
-const search = ref('')
+const search = ref(initialSearch)
 let requestController: AbortController | null = null
 
 const syncToCache = () => {
-  if (search.value) return
   dashboardStore.setExplorePageCache(categoryId.value, {
     albums: albums.value, categoryInfo: categoryInfo.value,
     cursor: cursor.value, hasMore: hasMore.value,
-  })
+  }, search.value, sortCacheKey())
 }
 
 const requestAlbums = async (append = false) => {
@@ -67,7 +73,7 @@ const requestAlbums = async (append = false) => {
     hasMore.value = true
   }
   try {
-    const response = await dashboardApi.getExploreAlbums(categoryId.value, 30, append ? cursor.value : null, controller.signal, search.value)
+    const response = await dashboardApi.getExploreAlbums(categoryId.value, 30, append ? cursor.value : null, controller.signal, search.value, sort.value)
     if (requestController !== controller || controller.signal.aborted) return
     const result = response.data.data
     categoryInfo.value = result.category
@@ -87,12 +93,32 @@ const requestAlbums = async (append = false) => {
 }
 
 const fetchInitialAlbums = async (force = false) => {
-  if (!force && cached && albums.value.length) return
+  if (!force && cached) return
   await requestAlbums()
 }
 const loadMoreAlbums = () => requestAlbums(true)
 const searchAlbums = (query: string) => {
   search.value = query
+  void router.replace({ query: { ...route.query, search: query || undefined } })
+  const saved = dashboardStore.getExplorePageCache(categoryId.value, query, sortCacheKey())
+  if (saved) {
+    requestController?.abort()
+    requestController = null
+    albums.value = [...saved.albums]
+    categoryInfo.value = saved.categoryInfo
+    cursor.value = saved.cursor
+    hasMore.value = saved.hasMore
+    isLoading.value = false
+    isLoadingMore.value = false
+    error.value = null
+    return
+  }
+  void requestAlbums()
+}
+
+const changeSort = (value: typeof sort.value) => {
+  sort.value = value
+  void router.replace({ query: { ...route.query, sort: value.mode, order: value.direction } })
   void requestAlbums()
 }
 
@@ -120,7 +146,7 @@ const setupSentinelObserver = () => {
 }
 
 onMounted(async () => {
-  if (!cached || albums.value.length === 0) {
+  if (!cached) {
     await fetchInitialAlbums()
   }
   setupSentinelObserver()
@@ -139,6 +165,11 @@ onUnmounted(() => {
   <AlbumCatalogPage
     v-model:albums="albums"
     :embedded="embedded"
+    :initial-search="initialSearch"
+    server-sort
+    :initial-sort-mode="sort.mode"
+    :initial-sort-direction="sort.direction"
+    @sort="changeSort"
     :title="`Explore ${categoryMeta.name} New Albums`"
     :badge="categoryMeta.badge"
     subtitle="Newly added albums ordered from latest additions"

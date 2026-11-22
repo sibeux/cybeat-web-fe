@@ -13,10 +13,12 @@ export const dashboardApi = {
     })
   },
 
-  getExploreAlbums(categoryId?: number, limit = 10, cursor?: number | null, signal?: AbortSignal, search = '') {
+  getExploreAlbums(categoryId?: number, limit = 10, cursor?: number | null, signal?: AbortSignal, search = '', sort?: { mode: string; direction: 'asc' | 'desc' }) {
     return apiClient.get<ApiSuccessResponse<ExploreCategoryData>>('/music/album/explore', {
       params: {
         category_id: categoryId,
+        sort_by: sort?.mode,
+        sort_direction: sort?.direction,
         search: search.trim() || undefined,
         limit,
         cursor: cursor ?? undefined,

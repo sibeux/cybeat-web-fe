@@ -18,18 +18,23 @@ const props = defineProps<{
   subtitle: string
   embedded?: boolean
   loadedCount?: boolean
+  initialSearch?: string
+  serverSort?: boolean
+  initialSortMode?: 'default' | 'alphabetical' | 'created'
+  initialSortDirection?: 'asc' | 'desc'
 }>()
 const emit = defineEmits<{
   (event: 'update:albums', value: Album[]): void
   (event: 'refresh'): void
   (event: 'search', query: string): void
+  (event: 'sort', value: { mode: 'default' | 'alphabetical' | 'created'; direction: 'asc' | 'desc' }): void
 }>()
 
 const albums = computed({ get: () => props.albums, set: (value) => emit('update:albums', value) })
 const { currentAlbum } = storeToRefs(playerStore)
 
 
-const localSearch = ref('')
+const localSearch = ref(props.initialSearch || '')
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(localSearch, (query) => {
   clearTimeout(searchTimer)
@@ -94,23 +99,26 @@ const goToDashboard = () => {
   router.push('/')
 }
 
-const sortOrder = ref('default')
+type SortMode = 'default' | 'alphabetical' | 'created'
+const sortMode = ref<SortMode>(props.initialSortMode || 'default')
+const sortDirection = ref<'asc' | 'desc'>(props.initialSortDirection || 'desc')
+watch([sortMode, sortDirection], () => emit('sort', { mode: sortMode.value, direction: sortDirection.value }))
+const isSortDropdownOpen = ref(false)
+const sortDropdownRef = ref<HTMLElement | null>(null)
+const sortLabel = computed(() => ({ default: 'Default (ID)', alphabetical: 'Alphabetical', created: 'Created at' })[sortMode.value])
+const toggleSortDropdown = () => { isSortDropdownOpen.value = !isSortDropdownOpen.value }
+const selectSortMode = (mode: SortMode) => {
+  if (sortMode.value === mode) sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  else { sortMode.value = mode; sortDirection.value = 'asc' }
+}
+const selectSortDirection = (direction: 'asc' | 'desc') => { sortDirection.value = direction }
 const albumNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
-
-const filteredAlbums = computed(() => {
-  const items = [...albums.value]
-  if (sortOrder.value === 'default') return items
-  const createdAt = (album: Album) => {
-    const timestamp = Date.parse(album.created_at)
-    return Number.isFinite(timestamp) ? timestamp : 0
-  }
-  return items.sort((a, b) => {
-    if (sortOrder.value === 'name-asc') return albumNameCollator.compare(a.title, b.title) || a.id - b.id
-    if (sortOrder.value === 'name-desc') return albumNameCollator.compare(b.title, a.title) || b.id - a.id
-    const difference = createdAt(a) - createdAt(b) || a.id - b.id
-    return sortOrder.value === 'oldest' ? difference : -difference
-  })
-})
+const filteredAlbums = computed(() => props.serverSort ? albums.value : [...albums.value].sort((a, b) => {
+  let difference = a.id - b.id
+  if (sortMode.value === 'alphabetical') difference = albumNameCollator.compare(a.title, b.title) || difference
+  if (sortMode.value === 'created') difference = ((Date.parse(a.created_at) || 0) - (Date.parse(b.created_at) || 0)) || difference
+  return sortDirection.value === 'asc' ? difference : -difference
+}))
 
 const handleRefresh = () => emit('refresh')
 
@@ -170,6 +178,7 @@ const toggleAlbumPinFromMenu = () => {
 }
 
 const handleOutsideClick = (event: MouseEvent) => {
+  if (!sortDropdownRef.value?.contains(event.target as Node)) isSortDropdownOpen.value = false
   if (albumContextMenuRef.value?.contains(event.target as Node)) return
   albumContextMenu.value = null
 }
@@ -271,16 +280,205 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="all-albums-page__sort">
-            <label for="album-sort" class="all-albums-page__search-label">{{ loadedCount ? 'Sort loaded albums' : 'Sort albums' }}</label>
-            <select id="album-sort" v-model="sortOrder" class="all-albums-page__sort-select">
-              <option value="default">Default order</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="name-asc">Name: A–Z</option>
-              <option value="name-desc">Name: Z–A</option>
-            </select>
+<div ref="sortDropdownRef" class="catalog-sort__wrapper" @keydown.esc="isSortDropdownOpen = false">
+            <button
+              type="button"
+              class="catalog-sort__btn"
+              :class="{ 'catalog-sort__btn--active': isSortDropdownOpen }"
+              aria-label="Sort albums"
+              aria-haspopup="true"
+              :aria-expanded="isSortDropdownOpen"
+              @click.stop="toggleSortDropdown"
+            >
+              <!-- Ascending icon -->
+              <svg
+                v-if="sortDirection === 'asc'"
+                class="catalog-sort__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m3 8 4-4 4 4" />
+                <path d="M7 4v16" />
+                <path d="M11 12h4" />
+                <path d="M11 16h7" />
+                <path d="M11 20h10" />
+              </svg>
+              <!-- Descending icon -->
+              <svg
+                v-else
+                class="catalog-sort__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m3 16 4 4 4-4" />
+                <path d="M7 20V4" />
+                <path d="M11 4h10" />
+                <path d="M11 8h7" />
+                <path d="M11 12h4" />
+              </svg>
+              <span>Sort: {{ sortLabel }}</span>
+              <span class="catalog-sort__indicator">{{
+                sortDirection === 'asc' ? 'Asc' : 'Desc'
+              }}</span>
+              <svg
+                class="catalog-sort__chevron"
+                :class="{ 'catalog-sort__chevron--open': isSortDropdownOpen }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            <div v-if="isSortDropdownOpen" class="catalog-sort__menu">
+              <div class="catalog-sort__menu-header">Sort By</div>
+              <button
+                type="button"
+                class="catalog-sort__option"
+                :class="{ 'catalog-sort__option--active': sortMode === 'default' }"
+                @click="selectSortMode('default')"
+              >
+                <span>Default (ID)</span>
+                <svg
+                  v-if="sortMode === 'default'"
+                  class="catalog-sort__check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="catalog-sort__option"
+                :class="{ 'catalog-sort__option--active': sortMode === 'alphabetical' }"
+                @click="selectSortMode('alphabetical')"
+              >
+                <span>Alphabetical</span>
+                <svg
+                  v-if="sortMode === 'alphabetical'"
+                  class="catalog-sort__check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="catalog-sort__option"
+                :class="{ 'catalog-sort__option--active': sortMode === 'created' }"
+                @click="selectSortMode('created')"
+              >
+                <span>Created at</span>
+                <svg
+                  v-if="sortMode === 'created'"
+                  class="catalog-sort__check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+
+              <div class="catalog-sort__divider"></div>
+              <div class="catalog-sort__menu-header">Order</div>
+
+              <button
+                type="button"
+                class="catalog-sort__option"
+                :class="{ 'catalog-sort__option--active': sortDirection === 'asc' }"
+                @click="selectSortDirection('asc')"
+              >
+                <div class="catalog-sort__option-content">
+                  <svg
+                    class="catalog-sort__option-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m3 8 4-4 4 4" />
+                    <path d="M7 4v16" />
+                  </svg>
+                  <span>Ascending</span>
+                </div>
+                <svg
+                  v-if="sortDirection === 'asc'"
+                  class="catalog-sort__check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="catalog-sort__option"
+                :class="{ 'catalog-sort__option--active': sortDirection === 'desc' }"
+                @click="selectSortDirection('desc')"
+              >
+                <div class="catalog-sort__option-content">
+                  <svg
+                    class="catalog-sort__option-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m3 16 4 4 4-4" />
+                    <path d="M7 20V4" />
+                  </svg>
+                  <span>Descending</span>
+                </div>
+                <svg
+                  v-if="sortDirection === 'desc'"
+                  class="catalog-sort__check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </div>
           </div>
+
 
           <button
             type="button"
@@ -429,7 +627,7 @@ onUnmounted(() => {
     <!-- Scroll to top button -->
     <Transition name="fade">
       <button
-        v-if="showScrollTop"
+        v-if="showScrollTop && !embedded"
         class="all-albums-scroll-top"
         type="button"
         aria-label="Scroll to top"
@@ -541,38 +739,10 @@ onUnmounted(() => {
 
 .all-albums-page__actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(11rem, 14rem) 2.75rem;
-  align-items: end;
-  gap: 0.75rem;
-  min-width: 0;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg, 0.75rem);
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
-}
-
-.all-albums-page__sort {
-  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 2.5rem;
+  align-items: center;
   gap: 0.5rem;
   min-width: 0;
-}
-
-.all-albums-page__sort-select {
-  width: 100%;
-  height: 2.75rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md, 0.5rem);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-
-.all-albums-page__sort-select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 .all-albums-page__search {
@@ -583,9 +753,14 @@ onUnmounted(() => {
 }
 
 .all-albums-page__search-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-text-muted, #a1a1aa);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .all-albums-page__search-input-wrapper {
@@ -594,7 +769,7 @@ onUnmounted(() => {
   gap: 0.625rem;
   width: 100%;
   box-sizing: border-box;
-  height: 2.75rem;
+  height: 2.5rem;
   padding: 0 0.875rem;
   background: var(--color-surface, #17191f);
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
@@ -662,8 +837,8 @@ onUnmounted(() => {
 }
 
 .all-albums-page__refresh-btn {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
   border-radius: var(--radius-md, 0.5rem);
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
@@ -708,10 +883,9 @@ onUnmounted(() => {
   }
 
   .all-albums-page__actions {
-    grid-template-columns: minmax(0, 1fr) 2.75rem;
+    grid-template-columns: minmax(0, 1fr) 2.5rem;
     margin-left: 0;
     gap: 0.875rem 0.5rem;
-    padding: 0.75rem;
   }
 
   .all-albums-page__search {
@@ -1003,4 +1177,165 @@ onUnmounted(() => {
   max-width: none;
   margin: 0;
 }
+.catalog-sort__wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.catalog-sort__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.catalog-sort__btn:hover {
+  background-color: var(--color-surface-raised);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.catalog-sort__btn--active {
+  background-color: var(--color-surface-raised);
+  border-color: var(--color-primary, #10b981);
+  color: var(--color-text);
+}
+
+.catalog-sort__indicator {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.35rem;
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary, #10b981);
+}
+
+.catalog-sort__icon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-muted);
+}
+
+.catalog-sort__chevron {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.catalog-sort__chevron--open {
+  transform: rotate(180deg);
+}
+
+.catalog-sort__menu {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  right: 0;
+  z-index: 50;
+  min-width: 180px;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  animation: catalogSortDropdownFade 0.15s ease;
+}
+
+@keyframes catalogSortDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.catalog-sort__menu-header {
+  padding: 0.35rem 0.75rem 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.catalog-sort__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0.35rem 0;
+}
+
+.catalog-sort__option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.catalog-sort__option:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.catalog-sort__option--active {
+  color: var(--color-primary, #10b981);
+  font-weight: 600;
+}
+
+.catalog-sort__option-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.catalog-sort__option-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.catalog-sort__option--active .catalog-sort__option-icon {
+  color: var(--color-primary, #10b981);
+}
+
+.catalog-sort__check {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--color-primary, #10b981);
+  flex-shrink: 0;
+}
+
+
+.catalog-sort__btn { font-family: inherit; }
+.catalog-sort__btn:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+@media (max-width: 600px) { .catalog-sort__wrapper { justify-self: start; } .catalog-sort__menu { left: 0; right: auto; } }
 </style>

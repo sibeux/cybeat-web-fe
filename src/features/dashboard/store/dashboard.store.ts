@@ -27,7 +27,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const exploreCategories = ref<Record<number, Album[]>>({})
 
   // In-memory cache for explore category dedicated pages (/explore/:id)
-  const explorePageCache = ref<Record<number, ExplorePageCacheItem>>({})
+  const explorePageCache = ref<Record<string, ExplorePageCacheItem>>({})
 
   const authStore = useAuthStore()
   let sidebarController: AbortController | null = null
@@ -56,8 +56,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
     exploreCategories.value[categoryId] = items
   }
 
-  const setExplorePageCache = (categoryId: number, data: ExplorePageCacheItem) => {
-    explorePageCache.value[categoryId] = data
+  const exploreCacheKey = (categoryId: number, search = '', sort = '') =>
+    sort || search.trim() ? JSON.stringify([categoryId, search.trim(), sort]) : String(categoryId)
+
+  const getExplorePageCache = (categoryId: number, search = '', sort = '') =>
+    explorePageCache.value[exploreCacheKey(categoryId, search, sort)]
+
+  const setExplorePageCache = (categoryId: number, data: ExplorePageCacheItem, search = '', sort = '') => {
+    explorePageCache.value[exploreCacheKey(categoryId, search, sort)] = { ...data, albums: [...data.albums] }
   }
 
   let dashboardAbortController: AbortController | null = null
@@ -135,6 +141,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     explorePageCache,
     setExploreCategoryAlbums,
     setExplorePageCache,
+    getExplorePageCache,
     fetchDashboardData
   }
 })
