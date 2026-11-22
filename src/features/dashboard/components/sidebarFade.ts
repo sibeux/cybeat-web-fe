@@ -8,14 +8,21 @@ export const vSidebarFade: ObjectDirective<HTMLElement> = {
     const viewport = element.closest<HTMLElement>('.app-layout__sidebar')
     if (!sidebar) return
     let frame = 0
+    let hasMore = false
     const update = () => {
-      cancelAnimationFrame(frame)
+      if (frame) return
       frame = requestAnimationFrame(() => {
+        frame = 0
         const lastCard = element.lastElementChild
         const bottom = Math.min(element.getBoundingClientRect().bottom,
           viewport?.getBoundingClientRect().bottom ?? window.innerHeight, window.innerHeight)
-        sidebar.classList.toggle('dashboard__sidebar--more',
-          !!lastCard && lastCard.getBoundingClientRect().bottom > bottom + 1)
+        const remaining = lastCard ? lastCard.getBoundingClientRect().bottom - bottom : 0
+        // Separate thresholds avoid flickering from fractional pixel rounding.
+        const next = hasMore ? remaining > 0 : remaining > 4
+        if (next !== hasMore) {
+          hasMore = next
+          sidebar.classList.toggle('dashboard__sidebar--more', hasMore)
+        }
       })
     }
     const resize = new ResizeObserver(update)

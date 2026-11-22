@@ -16,6 +16,7 @@
   import ExploreCategoryPage from './ExploreCategoryPage.vue'
   import AllAlbumsPage from './AllAlbumsPage.vue'
   import { vSidebarFade } from '../components/sidebarFade'
+  import { vSidebarWheel } from '../components/sidebarWheel'
   import SidebarSkeleton from '../components/SidebarSkeleton.vue'
   import { compareLibraryItems } from '../utils/librarySort'
 
@@ -326,7 +327,7 @@
 <template>
   <AppLayout class="dashboard-layout">
     <template #sidebar>
-      <div class="dashboard__sidebar">
+      <div v-sidebar-wheel class="dashboard__sidebar">
         <div class="dashboard__library-heading"><strong>Your library</strong><span>{{ categories.length + playlists.length + libraryAlbums.length }}</span></div>
         <p v-if="libraryStore.libraryError" class="dashboard__library-error" role="alert">{{ libraryStore.libraryError }}</p>
         <!-- Tab bar -->

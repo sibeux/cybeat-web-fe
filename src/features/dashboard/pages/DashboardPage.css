@@ -1,11 +1,18 @@
 /* ── Sidebar (Kategori) ───────────────────────────────────────── */
 .dashboard__sidebar {
+  min-height: 0;
+  overflow: hidden;
   position: relative;
   isolation: isolate;
   display: flex;
   flex-direction: column;
   height: 100%;
   padding: 1.5rem 0 2rem;
+}
+
+.dashboard-layout :deep(.app-layout__sidebar) {
+  overflow-y: hidden;
+  overscroll-behavior-y: none;
 }
 
 /* Tab bar */
@@ -1312,7 +1319,7 @@
 
 @media (min-width: 1024px) { .dashboard-layout { --app-sidebar-width: 320px; } }
 
-.dashboard__sidebar--more::after {
+.dashboard__sidebar::after {
   content: '';
   position: absolute;
   left: 0;
@@ -1322,9 +1329,18 @@
   height: 4rem;
   z-index: 5;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  transform: translateZ(0);
   background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-surface) 70%, transparent));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   mask-image: linear-gradient(to bottom, transparent, #000 85%);
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 85%);
+}
+
+.dashboard__sidebar--more::after { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard__sidebar::after { transition: none; }
 }
