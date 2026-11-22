@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { dashboardApi } from '../api/dashboard.api'
 import type { Album, Category, Playlist, ExploreCategoryInfo } from '../types/album.types'
+import { libraryApi } from '../api/library.api'
 import { useAuthStore } from '@/features/auth'
 
 export interface ExplorePageCacheItem {
@@ -13,6 +14,9 @@ export interface ExplorePageCacheItem {
 
 export const useDashboardStore = defineStore('dashboard', () => {
   const albums = ref<Album[]>([])
+  const libraryAlbums = ref<Album[]>([])
+  const libraryBusyId = ref<number | null>(null)
+  const libraryError = ref<string | null>(null)
   const isSidebarLoading = ref(false)
   const sidebarError = ref<string | null>(null)
   const categories = ref<Category[]>([])
@@ -46,6 +50,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
     fetchedSearch.value = ''
     searchQuery.value = ''
     albums.value = []
+    libraryAlbums.value = []
+    libraryError.value = null
     categories.value = []
     playlists.value = []
     exploreCategories.value = {}
@@ -85,6 +91,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       sidebarError.value = null
       const response = await dashboardApi.getSidebar(controller.signal)
       if (sidebarController !== controller) return
+      libraryAlbums.value = response.data.data.album || []
       categories.value = response.data.data.category || []
       playlists.value = response.data.data.playlist || []
     } catch (err: unknown) {
@@ -133,7 +140,27 @@ export const useDashboardStore = defineStore('dashboard', () => {
     }
   }
 
+  const isInLibrary = (id: number) => libraryAlbums.value.some((album) => Number(album.id) === Number(id))
+  const toggleLibraryAlbum = async (item: Album) => {
+    if (libraryBusyId.value !== null || isSidebarLoading.value) return
+    if (!authStore.isAuthenticated) { libraryError.value = 'Sign in to add albums to your library.'; return }
+    libraryBusyId.value = Number(item.id)
+    libraryError.value = null
+    const identity = authStore.user?.id
+    const saved = isInLibrary(item.id)
+    try {
+      if (saved) await libraryApi.remove(Number(item.id))
+      else await libraryApi.add(Number(item.id))
+      if (!authStore.isAuthenticated || authStore.user?.id !== identity) return
+      if (saved) libraryAlbums.value = libraryAlbums.value.filter((album) => Number(album.id) !== Number(item.id))
+      else libraryAlbums.value = [...libraryAlbums.value, { ...item }]
+    } catch {
+      libraryError.value = 'Could not update library. Please try again.'
+    } finally { libraryBusyId.value = null }
+  }
+
   return {
+    libraryAlbums, libraryBusyId, libraryError, isInLibrary, toggleLibraryAlbum,
     fetchSidebarData,
     isSidebarLoading,
     sidebarError,

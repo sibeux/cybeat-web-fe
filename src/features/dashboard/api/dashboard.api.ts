@@ -4,7 +4,7 @@ import type { MusicDashboardData, ExploreCategoryData } from '../types/album.typ
 
 export const dashboardApi = {
   getSidebar(signal?: AbortSignal) {
-    return apiClient.get<ApiSuccessResponse<Omit<MusicDashboardData, 'album'>>>('/music/album/sidebar.php', { signal })
+    return apiClient.get<ApiSuccessResponse<MusicDashboardData>>('/music/album/sidebar.php', { signal })
   },
   getMusicDashboard(search = '', signal?: AbortSignal) {
     return apiClient.get<ApiSuccessResponse<MusicDashboardData>>('/music/album/', {

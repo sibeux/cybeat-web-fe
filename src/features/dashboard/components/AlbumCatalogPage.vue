@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import AppLayout from '@/core/app/layouts/AppLayout.vue'
 import { usePlayerStore } from '@/features/album/store/player.store'
-import { pinApi, type PinnableType } from '@/features/album/api/pin.api'
+import { useDashboardStore as useLibraryStore } from '../store/dashboard.store'
 import type { Album } from '../types/album.types'
 
+const libraryStore = useLibraryStore()
 const router = useRouter()
 const playerStore = usePlayerStore()
 const props = defineProps<{
@@ -40,8 +41,6 @@ watch(localSearch, (query) => {
   clearTimeout(searchTimer)
   searchTimer = setTimeout(() => emit('search', query.trim()), 300)
 })
-const pinningAlbumId = ref<number | null>(null)
-const albumOriginalIndexes = new Map<number, number>()
 const albumContextMenu = ref<{ item: Album; x: number; y: number } | null>(null)
 const albumContextMenuRef = ref<HTMLElement | null>(null)
 const showScrollTop = ref(false)
@@ -133,49 +132,11 @@ const openAlbumMenu = (event: MouseEvent, item: Album) => {
   }
 }
 
-const toggleAlbumPinFromMenu = () => {
-  const item = albumContextMenu.value?.item
-  if (!item || pinningAlbumId.value !== null) return
-  const type = (String(item.type || 'album').toLowerCase()) as PinnableType
-  const wasPinned = Boolean(item.pin_at)
-  const currentIndex = albums.value.findIndex((album) => album.id === item.id)
-  const previousIndex = wasPinned
-    ? (albumOriginalIndexes.get(Number(item.id)) ?? currentIndex)
-    : currentIndex
-  item.pin_at = wasPinned ? null : new Date().toISOString()
-  if (!wasPinned) {
-    albumOriginalIndexes.set(Number(item.id), previousIndex)
-    albums.value = [item, ...albums.value.filter((album) => album.id !== item.id)]
-  } else if (currentIndex >= 0 && previousIndex >= 0 && currentIndex !== previousIndex) {
-    const restored = [...albums.value]
-    const [movedItem] = restored.splice(currentIndex, 1)
-    restored.splice(Math.min(previousIndex, restored.length), 0, movedItem)
-    albums.value = restored
-    albumOriginalIndexes.delete(Number(item.id))
+const toggleAlbumLibraryFromMenu = async () => {
+    const item = albumContextMenu.value?.item
+    albumContextMenu.value = null
+    if (item) await libraryStore.toggleLibraryAlbum(item)
   }
-  albumContextMenu.value = null
-  pinningAlbumId.value = Number(item.id)
-
-  void (async () => {
-    try {
-      if (wasPinned) await pinApi.unpin(type, Number(item.id))
-      else await pinApi.pin(type, Number(item.id))
-    } catch {
-      item.pin_at = wasPinned ? new Date().toISOString() : null
-      const rollbackIndex = albums.value.findIndex((album) => album.id === item.id)
-      if (rollbackIndex >= 0 && previousIndex >= 0 && rollbackIndex !== previousIndex) {
-        const restored = [...albums.value]
-        const [movedItem] = restored.splice(rollbackIndex, 1)
-        restored.splice(previousIndex, 0, movedItem)
-        albums.value = restored
-      }
-      if (wasPinned) albumOriginalIndexes.set(Number(item.id), previousIndex)
-      else albumOriginalIndexes.delete(Number(item.id))
-    } finally {
-      pinningAlbumId.value = null
-    }
-  })()
-}
 
 const handleOutsideClick = (event: MouseEvent) => {
   if (!sortDropdownRef.value?.contains(event.target as Node)) isSortDropdownOpen.value = false
@@ -192,6 +153,7 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
+  if (!props.embedded) void libraryStore.fetchSidebarData()
   window.addEventListener('click', handleOutsideClick)
   window.addEventListener('scroll', handleScroll, { passive: true })
 })
@@ -495,6 +457,7 @@ onUnmounted(() => {
           </button>
         </div>
       </header>
+      <p v-if="libraryStore.libraryError" role="alert">{{ libraryStore.libraryError }}</p>
 
       <!-- Loading State -->
       <div v-if="isLoading && albums.length === 0" class="all-albums-page__loading">
@@ -614,12 +577,13 @@ onUnmounted(() => {
           type="button"
           class="all-albums-context-menu-item"
           role="menuitem"
-          @click="toggleAlbumPinFromMenu"
+          :disabled="libraryStore.libraryBusyId !== null || libraryStore.isSidebarLoading"
+          @click="toggleAlbumLibraryFromMenu"
         >
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" />
+            <path d="M4 3h3v18H4V3zm5 0h3v18H9V3zm5 2 3-1 6 16-3 1-6-16z" />
           </svg>
-          <span>{{ albumContextMenu.item.pin_at ? 'Unpin from Top' : 'Pin to Top' }}</span>
+          <span>{{ libraryStore.isInLibrary(albumContextMenu.item.id) ? 'Remove from library' : 'Add to library' }}</span>
         </button>
       </div>
     </Teleport>

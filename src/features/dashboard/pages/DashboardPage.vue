@@ -33,6 +33,7 @@
   })
   const playerStore = usePlayerStore()
   const dashboardStore = useDashboardStore()
+  const libraryStore = dashboardStore
   watch(selectedExploreCategory, (categoryId, previousCategoryId) => {
     if (route.path === '/' && categoryId === null && previousCategoryId !== null) {
       dashboardStore.clearExplorePageCache(previousCategoryId)
@@ -40,11 +41,32 @@
   })
   const historyStore = useHistoryStore()
 
-  const { albums, categories, playlists, isSidebarLoading: isLoading } =
+  const { libraryAlbums, categories, playlists, isSidebarLoading: isLoading } =
     storeToRefs(dashboardStore)
   const { currentAlbum, currentSong } = storeToRefs(playerStore)
   const { tracks: recentTracks, isLoading: isHistoryLoading } = storeToRefs(historyStore)
-  const sidebarTab = ref<'kategori' | 'playlist' | 'history'>('kategori')
+  const sidebarTab = ref<'albums' | 'kategori' | 'playlist' | 'history' | null>(null)
+  const sidebarLibraryItems = computed(() => {
+    const items = sidebarTab.value === 'albums' ? [...libraryAlbums.value]
+      : sidebarTab.value === 'kategori' ? [...categories.value]
+      : [...categories.value, ...playlists.value, ...libraryAlbums.value]
+    return items.sort((a, b) => Number(Boolean(b.pin_at)) - Number(Boolean(a.pin_at))
+      || (a.pin_at && b.pin_at ? a.pin_at.localeCompare(b.pin_at) : 0)
+      || a.title.localeCompare(b.title))
+  })
+  const sidebarPinBusy = ref(false)
+  const toggleSidebarPin = async (item: (typeof sidebarLibraryItems.value)[number]) => {
+    if (sidebarPinBusy.value || !authStore.isAuthenticated) return
+    sidebarPinBusy.value = true
+    const wasPinned = item.pin_at
+    try {
+      const type = item.type as PinnableType
+      if (wasPinned) await pinApi.unpin(type, Number(item.id))
+      else await pinApi.pin(type, Number(item.id))
+      item.pin_at = wasPinned ? null : new Date().toISOString()
+    } catch { libraryStore.libraryError = 'Could not update pin. Please try again.' }
+    finally { sidebarPinBusy.value = false }
+  }
   const showScrollTop = ref(false)
   const playlistDialogOpen = ref(false)
   const playlistDialogTitle = ref('')
@@ -55,8 +77,6 @@
   const playlistContextMenuRef = ref<HTMLElement | null>(null)
   const albumContextMenu = ref<{ item: any; x: number; y: number } | null>(null)
   const albumContextMenuRef = ref<HTMLElement | null>(null)
-  const pinningAlbumId = ref<number | null>(null)
-  const albumOriginalIndexes = new Map<number, number>()
   const deletePlaylistTarget = ref<{ id: number; title: string } | null>(null)
   const playlistDeleting = ref(false)
   const deletePlaylistError = ref('')
@@ -217,48 +237,10 @@
     if (item) deletePlaylist(item)
   }
 
-  const toggleAlbumPinFromMenu = () => {
+  const toggleAlbumLibraryFromMenu = async () => {
     const item = albumContextMenu.value?.item
-    if (!item || pinningAlbumId.value !== null) return
-    const type = (String(item.type || 'album').toLowerCase()) as PinnableType
-    const wasPinned = Boolean(item.pin_at)
-    const currentIndex = albums.value.findIndex((album) => album.id === item.id)
-    const previousIndex = wasPinned
-      ? (albumOriginalIndexes.get(Number(item.id)) ?? currentIndex)
-      : currentIndex
-    item.pin_at = wasPinned ? null : new Date().toISOString()
-    if (!wasPinned) {
-      albumOriginalIndexes.set(Number(item.id), previousIndex)
-      albums.value = [item, ...albums.value.filter((album) => album.id !== item.id)]
-    } else if (currentIndex >= 0 && previousIndex >= 0 && currentIndex !== previousIndex) {
-      const restored = [...albums.value]
-      const [movedItem] = restored.splice(currentIndex, 1)
-      restored.splice(Math.min(previousIndex, restored.length), 0, movedItem)
-      albums.value = restored
-      albumOriginalIndexes.delete(Number(item.id))
-    }
     albumContextMenu.value = null
-    pinningAlbumId.value = Number(item.id)
-
-    void (async () => {
-      try {
-        if (wasPinned) await pinApi.unpin(type, Number(item.id))
-        else await pinApi.pin(type, Number(item.id))
-      } catch {
-        item.pin_at = wasPinned ? new Date().toISOString() : null
-        const rollbackIndex = albums.value.findIndex((album) => album.id === item.id)
-        if (rollbackIndex >= 0 && previousIndex >= 0 && rollbackIndex !== previousIndex) {
-          const restored = [...albums.value]
-          const [movedItem] = restored.splice(rollbackIndex, 1)
-          restored.splice(previousIndex, 0, movedItem)
-          albums.value = restored
-        }
-        if (wasPinned) albumOriginalIndexes.set(Number(item.id), previousIndex)
-        else albumOriginalIndexes.delete(Number(item.id))
-      } finally {
-        pinningAlbumId.value = null
-      }
-    })()
+    if (item) await libraryStore.toggleLibraryAlbum(item)
   }
 
   const closePlaylistDialog = () => {
@@ -340,40 +322,45 @@
 </script>
 
 <template>
-  <AppLayout>
+  <AppLayout class="dashboard-layout">
     <template #sidebar>
       <div class="dashboard__sidebar">
+        <div class="dashboard__library-heading"><strong>Your library</strong><span>{{ categories.length + playlists.length + libraryAlbums.length }}</span></div>
+        <p v-if="libraryStore.libraryError" class="dashboard__library-error" role="alert">{{ libraryStore.libraryError }}</p>
         <!-- Tab bar -->
         <div class="dashboard__sidebar-tabs">
+
+          <button class="dashboard__sidebar-tab" :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'albums' }" @click="sidebarTab = sidebarTab === 'albums' ? null : 'albums'" :aria-pressed="sidebarTab === 'albums'">Albums</button>
           <button
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'kategori' }"
-            @click="sidebarTab = 'kategori'"
+            @click="sidebarTab = sidebarTab === 'kategori' ? null : 'kategori'" :aria-pressed="sidebarTab === 'kategori'"
           >
             Categories
           </button>
           <button
             class="dashboard__sidebar-tab"
             :class="{ 'dashboard__sidebar-tab--active': sidebarTab === 'playlist' }"
-            @click="sidebarTab = 'playlist'"
+            @click="sidebarTab = sidebarTab === 'playlist' ? null : 'playlist'" :aria-pressed="sidebarTab === 'playlist'"
           >
             Playlists
           </button>
         </div>
 
         <!-- Categories -->
-        <template v-if="sidebarTab === 'kategori'">
-          <SidebarSkeleton v-if="isLoading && categories.length === 0" />
-          <div v-else-if="categories.length === 0" class="dashboard__sidebar-empty">
-            No categories available
+        <template v-if="sidebarTab === null || sidebarTab === 'albums' || sidebarTab === 'kategori'">
+          <SidebarSkeleton v-if="isLoading && sidebarLibraryItems.length === 0" />
+          <div v-else-if="sidebarLibraryItems.length === 0" class="dashboard__sidebar-empty">
+            No library items yet. Right-click an album to add it.
           </div>
           <ul v-else class="dashboard__sidebar-list">
             <li
-              v-for="item in categories"
-              :key="item.id"
+              v-for="item in sidebarLibraryItems"
+              :key="`${item.type}:${item.id}`"
               class="dashboard__sidebar-item"
               :class="{ 'dashboard__sidebar-item--playing': isPlayingAlbum(item) }"
               @click="goToAlbum(item)"
+              @contextmenu.prevent.stop="item.type === 'album' && openAlbumMenu($event, item)"
             >
               <div
                 class="dashboard__sidebar-cover"
@@ -412,7 +399,11 @@
                   </svg>
                   <span class="dashboard__sidebar-label" :title="item.title">{{ item.title }}</span>
                 </div>
+                <span class="dashboard__sidebar-sub">{{ item.type === 'album' ? item.author || 'Album' : item.type === 'playlist' ? 'Playlist' : 'Category' }}</span>
               </div>
+              <button type="button" class="dashboard__library-pin" :class="{ 'dashboard__library-pin--active': item.pin_at }" :title="item.pin_at ? 'Unpin' : 'Pin to top'" :aria-label="item.pin_at ? 'Unpin ' + item.title : 'Pin ' + item.title" :disabled="sidebarPinBusy || !authStore.isAuthenticated" @click.stop="toggleSidebarPin(item)">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" /></svg>
+              </button>
               <svg
                 v-if="isPlayingAlbum(item)"
                 class="dashboard__sidebar-playing"
@@ -701,9 +692,9 @@
       @click.stop
       @contextmenu.prevent
     >
-      <button type="button" role="menuitem" class="dashboard__pin-context-action" :class="{ 'dashboard__pin-context-action--active': albumContextMenu.item.pin_at }" :disabled="pinningAlbumId !== null" @click="toggleAlbumPinFromMenu">
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6l.8.8.8-.8v-6H18v-2l-2-2z" /></svg>
-        {{ albumContextMenu.item.pin_at ? 'Unpin album' : 'Pin album' }}
+      <button type="button" role="menuitem" class="dashboard__pin-context-action" :class="{ 'dashboard__pin-context-action--active': libraryStore.isInLibrary(albumContextMenu.item.id) }" :disabled="libraryStore.libraryBusyId !== null || isLoading" @click="toggleAlbumLibraryFromMenu">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 3h3v18H4V3zm5 0h3v18H9V3zm5 2 3-1 6 16-3 1-6-16z" /></svg>
+        {{ libraryStore.isInLibrary(albumContextMenu.item.id) ? 'Remove from library' : 'Add to library' }}
       </button>
     </div>
 

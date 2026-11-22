@@ -726,7 +726,7 @@
   }
 
   .app-layout__sidebar {
-    width: 260px;
+    width: var(--app-sidebar-width, 260px);
     flex-shrink: 0;
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
@@ -743,7 +743,7 @@
     flex: 1;
     min-width: 0;
     padding: 2rem 1.5rem 2rem 1.5rem;
-    margin-left: 260px;
+    margin-left: var(--app-sidebar-width, 260px);
     transition: padding-bottom 0.25s ease;
   }
 
