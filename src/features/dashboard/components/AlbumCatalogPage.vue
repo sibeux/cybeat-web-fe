@@ -460,7 +460,7 @@ onUnmounted(() => {
       <p v-if="libraryStore.libraryError" role="alert">{{ libraryStore.libraryError }}</p>
 
       <!-- Loading State -->
-      <div v-if="isLoading && albums.length === 0" class="all-albums-page__loading">
+      <div v-if="isLoading" class="all-albums-page__loading">
         <div class="all-albums-grid">
           <div v-for="i in 12" :key="`skel-album-${i}`" class="all-albums-skeleton">
             <div class="all-albums-skeleton-cover"></div>
