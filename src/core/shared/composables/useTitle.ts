@@ -1,8 +1,9 @@
 import { watchEffect } from 'vue'
 
-export function useTitle(titleFn: () => string) {
-  watchEffect(() => {
+export function useTitle(titleFn: () => string | null | undefined) {
+  watchEffect((onCleanup) => {
     const title = titleFn()
+    if (title == null) return
     
     // THE CHROMIUM DESYNC BUG:
     // When navigating back via history (popstate), Chromium natively sets the 
@@ -20,9 +21,11 @@ export function useTitle(titleFn: () => string) {
 
     document.title = title + '\u200B' // Append Zero-Width Space to force mutation
     
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       document.title = title
     }, 50)
+
+    onCleanup(() => clearTimeout(timer))
   })
 }
 

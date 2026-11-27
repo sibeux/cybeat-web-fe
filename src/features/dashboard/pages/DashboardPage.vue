@@ -95,9 +95,12 @@
     })
   }
 
-  useTitle(() =>
-    currentSong.value ? `${currentSong.value.title} • ${currentSong.value.artist}` : APP_NAME,
-  )
+  useTitle(() => {
+    if (route.name === 'all-albums' || selectedExploreCategory.value !== null) {
+      return null
+    }
+    return currentSong.value ? `${currentSong.value.title} • ${currentSong.value.artist}` : APP_NAME
+  })
 
   onMounted(async () => {
     window.addEventListener('scroll', handleScroll, { passive: true })
