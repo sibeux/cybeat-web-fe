@@ -32,6 +32,8 @@
   const isLoadingPlaylists = ref(false)
   const playlistOptions = ref<PlaylistOption[]>([])
   const addingToPlaylistId = ref<number | null>(null)
+  const removingFromPlaylistId = ref<number | null>(null)
+  const isPlaylistPickerBusy = computed(() => addingToPlaylistId.value !== null || removingFromPlaylistId.value !== null)
   const removingSongId = ref<number | null>(null)
   const isBulkDeleteMode = ref(false)
   const selectedSongIds = ref<number[]>([])
@@ -367,7 +369,7 @@
   }
 
   const closePlaylistPicker = () => {
-    if (addingToPlaylistId.value !== null) return
+    if (isPlaylistPickerBusy.value) return
     isPlaylistPickerOpen.value = false
     selectedSongForPlaylist.value = null
     playlistPickerError.value = ''
@@ -375,7 +377,7 @@
 
   const addSongToPlaylist = async (playlist: PlaylistOption) => {
     const song = selectedSongForPlaylist.value
-    if (!song) return
+    if (!song || isPlaylistPickerBusy.value) return
     addingToPlaylistId.value = playlist.id
     playlistPickerError.value = ''
     try {
@@ -387,6 +389,27 @@
       playlistPickerError.value = requestError.response?.data?.message || 'Could not add this song.'
     } finally {
       addingToPlaylistId.value = null
+    }
+  }
+
+  const removeSongFromPlaylistPicker = async (playlist: PlaylistOption) => {
+    const song = selectedSongForPlaylist.value
+    if (!song || isPlaylistPickerBusy.value) return
+    removingFromPlaylistId.value = playlist.id
+    playlistPickerError.value = ''
+    try {
+      const response = await playlistTracksApi.remove(playlist.id, song.id_music)
+      playlistOptions.value = playlistOptions.value.map((item) =>
+        item.id === playlist.id ? { ...item, contains_song: false } : item,
+      )
+      if (type.value === 'playlist' && Number(id.value) === Number(playlist.id)) {
+        await loadSongs(true)
+      }
+      showPlaylistNotice(response.data.message || `Removed from ${playlist.title}.`)
+    } catch (requestError: any) {
+      playlistPickerError.value = requestError.response?.data?.message || 'Could not remove this song.'
+    } finally {
+      removingFromPlaylistId.value = null
     }
   }
 
@@ -1749,7 +1772,7 @@
             <h2 id="playlist-picker-title">Choose a playlist</h2>
             <p v-if="selectedSongForPlaylist" :title="selectedSongForPlaylist.title">{{ selectedSongForPlaylist.title }}</p>
           </div>
-          <button type="button" aria-label="Close" :disabled="addingToPlaylistId !== null" @click="closePlaylistPicker">×</button>
+          <button type="button" aria-label="Close" :disabled="isPlaylistPickerBusy" @click="closePlaylistPicker">×</button>
         </header>
         <div v-if="isLoadingPlaylists" class="playlist-picker__state" role="status">Loading your playlists…</div>
         <div v-else-if="playlistOptions.length" class="playlist-picker__groups">
@@ -1761,7 +1784,18 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
                 </span>
                 <span class="playlist-picker__item-copy"><strong>{{ playlist.title }}</strong><small>This song is already here</small></span>
-                <span class="playlist-picker__item-status">Added</span>
+                <span v-if="removingFromPlaylistId === playlist.id" class="playlist-picker__item-pending playlist-picker__item-pending--danger">Removing…</span>
+                <button
+                  v-else
+                  type="button"
+                  class="playlist-picker__remove-btn"
+                  :disabled="isPlaylistPickerBusy"
+                  :title="`Remove from ${playlist.title}`"
+                  :aria-label="`Remove from ${playlist.title}`"
+                  @click="removeSongFromPlaylistPicker(playlist)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 14h12l1-14M9 7V4h6v3" /></svg>
+                </button>
               </div>
             </div>
           </div>
@@ -1773,7 +1807,7 @@
             :key="playlist.id"
             type="button"
             class="playlist-picker__item"
-            :disabled="addingToPlaylistId !== null"
+            :disabled="isPlaylistPickerBusy"
             @click="addSongToPlaylist(playlist)"
           >
             <span class="playlist-picker__item-icon" aria-hidden="true">

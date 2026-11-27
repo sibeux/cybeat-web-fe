@@ -757,13 +757,41 @@
 
 .playlist-picker__item--existing {
   cursor: default;
-  opacity: 0.72;
 }
 
-.playlist-picker__item-status {
+.playlist-picker__remove-btn {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 0.5rem);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 650;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.playlist-picker__remove-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.playlist-picker__remove-btn:hover:not(:disabled) {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.playlist-picker__remove-btn:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.playlist-picker__item-pending--danger {
+  color: #f87171;
 }
 
 .playlist-picker__state--compact {
